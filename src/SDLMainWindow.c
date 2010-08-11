@@ -19,6 +19,7 @@ int main(int argc, char * argv[]){
 
 	SDL_Surface * screen;
 	SDL_Event event;
+	Uint8 * keystate;
 
 	/* Initialize video, or at least try */
 	if( (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER)) != 0 )
@@ -45,16 +46,31 @@ int main(int argc, char * argv[]){
 	SDL_WM_SetCaption("Simple Ant Colony simulation", NULL);
 
 	SDLWorld * world = getWorld(696, 1050, "assets/bg.jpg", "JPG" );
+
+
+
+
   	while(1)
      	{
 		while( SDL_PollEvent( &event ) )
-           	{
-                    /* See if user presses ESC or quits */
+                    /* See if user  quits */
                     if(event.type == SDL_QUIT )
 			return cleanUp(1);
-		    else if( event.type == SDL_KEYDOWN  && event.key.keysym.sym == SDLK_ESCAPE)
-                                            return cleanUp(1);
-           	}
+           	
+
+
+		/* Get a keyboard snapshot */
+		keystate = SDL_GetKeyState( NULL );
+
+		// If user presses ESC
+		if(keystate[SDLK_ESCAPE])
+			return cleanUp(1);;
+
+		if(keystate[SDLK_DOWN])	translateCamera(world,0,-1);
+		if(keystate[SDLK_UP])	translateCamera(world,0,1);
+		if(keystate[SDLK_LEFT])	translateCamera(world,1,0);
+		if(keystate[SDLK_RIGHT])translateCamera(world,-1,0);
+
 
 
 
@@ -70,7 +86,6 @@ int main(int argc, char * argv[]){
 		// render World();
 
 		renderSDLWorld(world, screen);
-
 
 		/* Update screen */
 		SDL_Flip(screen);  
