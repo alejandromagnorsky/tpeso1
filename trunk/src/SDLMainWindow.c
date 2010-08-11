@@ -1,12 +1,10 @@
 #include <SDL.h>
-#include "sdl_aux.h"
+#include "../include/SDL_utils.h"
+#include "../include/SDL_World.h"
 
 
-// gcc sdl_test.c sdl_aux.c -Iinclude/SDL -Llib -lSDL -lSDL_image -g -Wall
-
-
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 1050
+#define SCREEN_HEIGHT 696
 
 #define DELAY 30	// delay in ms
 
@@ -20,8 +18,7 @@ int cleanUp( int err )
 int main(int argc, char * argv[]){
 
 	SDL_Surface * screen;
-	SDL_Event  event;
-	SDL_Surface * bg;
+	SDL_Event event;
 
 	/* Initialize video, or at least try */
 	if( (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER)) != 0 )
@@ -39,7 +36,13 @@ int main(int argc, char * argv[]){
 	}
 
 
-	bg = (SDL_Surface *)loadImageSDL( "prueba_high.jpg", "JPG", 1);
+	/* Comunicacion
+	   Aca recibe donde esta el hormiguero, el tamaño del mapa, y donde esta 
+	   la comida inicialmente.
+	*/
+
+
+	SDLWorld * world = getWorld(696, 1050, "assets/bg.jpg", "JPG" );
 
   	while(1)
      	{
@@ -52,7 +55,19 @@ int main(int argc, char * argv[]){
                                             return cleanUp(1);
            	}
 
-		blitSurface( screen, bg, 0,0);
+
+		/* 
+		Aca este proceso deberia recibir los datos de:
+			- hormigas
+			- comida
+			- rastros
+		y nada mas, con esto ya puede mostrarlos en pantalla.
+		OJO: Solo si se mueven. Estos procesos deberian avisar que se movieron.
+ 		*/  
+
+		// render World();
+
+		renderSDLWorld(world, screen);
 
 		/* Update screen */
 		SDL_Flip(screen);  
