@@ -1,4 +1,5 @@
 #include "../include/SDL_utils.h"
+#include <math.h>
 
 /* Load an optimized image */
 SDL_Surface * loadImageSDL( char * name, char * type, int isAlpha)
@@ -150,3 +151,65 @@ void blitAnim( SDL_Surface * dst, SDL_Surface * src, int rectW, int rectH, int f
 
 
 
+/*
+ * Set the pixel at (x, y) to the given value
+ * NOTE: The surface must be locked before calling this!
+ */
+void putpixel(SDL_Surface *surface, int x, int y, Uint32 pixel)
+{
+    int bpp = surface->format->BytesPerPixel;
+    /* Here p is the address to the pixel we want to set */
+    Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+
+    switch(bpp) {
+    case 1:
+        *p = pixel;
+        break;
+
+    case 2:
+        *(Uint16 *)p = pixel;
+        break;
+
+    case 3:
+        if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {
+            p[0] = (pixel >> 16) & 0xff;
+            p[1] = (pixel >> 8) & 0xff;
+            p[2] = pixel & 0xff;
+        } else {
+            p[0] = pixel & 0xff;
+            p[1] = (pixel >> 8) & 0xff;
+            p[2] = (pixel >> 16) & 0xff;
+        }
+        break;
+
+    case 4:
+        *(Uint32 *)p = pixel;
+        break;
+    }
+}
+
+
+void SDL_printLine(SDL_Surface * screen, int x1, int y1, int x2, int y2, Uint32 color )
+{
+	int x,y;
+	float lambda;              
+	int mX,mY;
+	double distance;
+
+	mX = x2 - x1;
+	mY = y2 - y1;
+
+	distance =  sqrt( pow( x2 - x1, 2 ) + pow( y2 - y1, 2 ) );
+
+	SDL_LockSurface(screen);
+
+	for( lambda=0;lambda<1;lambda+=1/distance)
+	{
+	      x = x1 + lambda*mX;
+	      y = y1 + lambda*mY;
+	      if( x> 0 && x<screen->w && y>0 && y<screen->h) 
+		putpixel(screen, x, y, color);
+	}
+
+	SDL_UnlockSurface(screen);
+}
