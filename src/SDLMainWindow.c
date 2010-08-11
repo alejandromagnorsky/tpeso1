@@ -6,6 +6,8 @@
 #define SCREEN_WIDTH 644
 #define SCREEN_HEIGHT 480
 
+#define SENSITIVITY 2
+
 #define DELAY 30	// delay in ms
 
 int cleanUp( int err )
@@ -68,10 +70,10 @@ int main(int argc, char * argv[]){
 		if(keystate[SDLK_ESCAPE])
 			return cleanUp(1);;
 
-		if(keystate[SDLK_DOWN])	translateCamera(world,0,-1);
-		if(keystate[SDLK_UP])	translateCamera(world,0,1);
-		if(keystate[SDLK_LEFT])	translateCamera(world,1,0);
-		if(keystate[SDLK_RIGHT])translateCamera(world,-1,0);
+		if(keystate[SDLK_DOWN])	translateCamera(world,0,-SENSITIVITY);
+		if(keystate[SDLK_UP])	translateCamera(world,0,SENSITIVITY);
+		if(keystate[SDLK_LEFT])	translateCamera(world,SENSITIVITY,0);
+		if(keystate[SDLK_RIGHT])translateCamera(world,-SENSITIVITY,0);
 
 
 		/* 

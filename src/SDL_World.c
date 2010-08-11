@@ -59,7 +59,7 @@ void renderSDLWorld(SDLWorld * world, SDL_Surface * screen){
 
 	// Ver bien el tema del tiling, para evitar los artifacts
 	// Esta es una solucion barata para que se mueva, y nada mas
-	blitSurface( screen, world->bgimage, world->cameraX % world->bgimage->w, world->cameraY % world->bgimage->h);
+	blitSurface( screen, world->bgimage, world->cameraX , world->cameraY );
 	renderGrid(world,screen, world->gridSize);
 
 }
