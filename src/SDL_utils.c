@@ -1,4 +1,4 @@
-#include "sdl_aux.h"
+#include "../include/SDL_utils.h"
 
 /* Load an optimized image */
 SDL_Surface * loadImageSDL( char * name, char * type, int isAlpha)
