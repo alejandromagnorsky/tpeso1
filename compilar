@@ -1,1 +1,1 @@
-gcc src/SDLMainWindow.c src/SDL_utils.c src/SDL_World.c -Iinclude/SDL -Llib -lSDL -lSDL_image -g -Wall -o frontend
+gcc src/SDLMainWindow.c src/SDL_utils.c src/SDL_World.c -Iinclude/SDL -Llib -lSDL -lSDL_image -g -Wall -o frontend -lm

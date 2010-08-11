@@ -3,8 +3,8 @@
 #include "../include/SDL_World.h"
 
 
-#define SCREEN_WIDTH 1050
-#define SCREEN_HEIGHT 696
+#define SCREEN_WIDTH 644
+#define SCREEN_HEIGHT 480
 
 #define DELAY 30	// delay in ms
 
@@ -42,8 +42,9 @@ int main(int argc, char * argv[]){
 	*/
 
 
-	SDLWorld * world = getWorld(696, 1050, "assets/bg.jpg", "JPG" );
+	SDL_WM_SetCaption("Simple Ant Colony simulation", NULL);
 
+	SDLWorld * world = getWorld(696, 1050, "assets/bg.jpg", "JPG" );
   	while(1)
      	{
 		while( SDL_PollEvent( &event ) )
@@ -54,6 +55,7 @@ int main(int argc, char * argv[]){
 		    else if( event.type == SDL_KEYDOWN  && event.key.keysym.sym == SDLK_ESCAPE)
                                             return cleanUp(1);
            	}
+
 
 
 		/* 
@@ -69,6 +71,7 @@ int main(int argc, char * argv[]){
 
 		renderSDLWorld(world, screen);
 
+
 		/* Update screen */
 		SDL_Flip(screen);  
 
@@ -76,6 +79,7 @@ int main(int argc, char * argv[]){
 //		SDL_Delay( DELAY );
      }   
 
+	endWorld(world);
     SDL_FreeSurface(screen);
     return cleanUp(0);
 }
