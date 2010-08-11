@@ -1,7 +1,7 @@
 #include <SDL.h>
 #include "../include/SDL_utils.h"
 #include "../include/SDL_World.h"
-
+#include "../include/SDL_AssetManager.h"
 
 #define SCREEN_WIDTH 644
 #define SCREEN_HEIGHT 480
@@ -42,13 +42,15 @@ int main(int argc, char * argv[]){
 	   la comida inicialmente.
 	*/
 
-
 	SDL_WM_SetCaption("Simple Ant Colony simulation", NULL);
 
-	SDLWorld * world = getWorld(696, 1050, "assets/bg.jpg", "JPG" );
+	SDLWorld * world = getWorld(696, 1050, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
+	initAssets(5);
 
+	addAsset("assets/hormiga_tmp.jpg", "JPG", "Hormiga", 0);
 
+	SDL_Surface * hormiga = getAssetImage("Hormiga");
 
   	while(1)
      	{
@@ -72,8 +74,6 @@ int main(int argc, char * argv[]){
 		if(keystate[SDLK_RIGHT])translateCamera(world,-1,0);
 
 
-
-
 		/* 
 		Aca este proceso deberia recibir los datos de:
 			- hormigas
@@ -81,11 +81,17 @@ int main(int argc, char * argv[]){
 			- rastros
 		y nada mas, con esto ya puede mostrarlos en pantalla.
 		OJO: Solo si se mueven. Estos procesos deberian avisar que se movieron.
+		No tiene sentido que se redibuje la pantalla todo el tiempo...
  		*/  
 
-		// render World();
-
 		renderSDLWorld(world, screen);
+
+		renderObject(screen, world, hormiga, 4, 6);
+		renderObject(screen, world, hormiga, 2, 8);
+		renderObject(screen, world, hormiga, 12, 15);
+		renderObject(screen, world, hormiga, 6, 10);
+		renderObject(screen, world, hormiga, 14, 18);
+		renderObject(screen, world, hormiga, 15, 13);
 
 		/* Update screen */
 		SDL_Flip(screen);  
