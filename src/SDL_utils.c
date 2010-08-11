@@ -31,6 +31,20 @@ SDL_Surface * loadImageSDL( char * name, char * type, int isAlpha)
 */
 void blitSurface(  SDL_Surface * dst, SDL_Surface *src, int x, int y)
 {
+	blitSurfaceEndlessBorder(dst, src, x, y, 0);
+}
+
+
+/* Function blitSurface.
+   It blits a surface 
+   onto another surface.
+   Parameters:
+              SDL_Surface * dst        - where to blit
+              SDL_Surface *src         - what to blit
+              int x, int y             - X,Y position
+*/
+void blitSurfaceEndlessBorder(  SDL_Surface * dst, SDL_Surface *src, int x, int y, int circularBorder)
+{
 
 	   if( dst == NULL)
 		return;
@@ -82,8 +96,8 @@ void blitSurface(  SDL_Surface * dst, SDL_Surface *src, int x, int y)
            SDL_BlitSurface( src, NULL, dst, &rect);   
            
            for(i=0;i<4;i++)
-           if( printAux[i] )
-           SDL_BlitSurface( src, NULL, dst, &aux[i]);   
+           if( printAux[i] && circularBorder )
+           	SDL_BlitSurface( src, NULL, dst, &aux[i]);   
 }
 
 
