@@ -4,7 +4,9 @@
 typedef struct {
 	int h,w;		//size
 	int cameraX, cameraY;	//camera position
+	double cameraRotation;
 	int gridSize;
+	double zoomFactor;
 	SDL_Surface * bgimage;
 	SDL_Rect bg;
 	Uint32 bgcolor;
@@ -13,6 +15,8 @@ typedef struct {
 
 
 SDLWorld * getWorld(int h, int w, char * filename, char * ext, Uint32 bgcolor);
+
+void zoom(SDLWorld * world, double z);
 
 void endWorld(SDLWorld * world);	// libera recursos!! IMPORTANTE
 

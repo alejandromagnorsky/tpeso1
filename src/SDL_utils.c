@@ -20,6 +20,15 @@ SDL_Surface * loadImageSDL( char * name, char * type, int isAlpha)
            return optimized;
 }
 
+/*
+   Blit with Zoom
+   WARNING: TOOOO SLOW =(
+*/
+void blitSurfaceZoom(  SDL_Surface * dst, SDL_Surface *src, int x, int y, double zoom){
+	SDL_Surface * tmp = rotozoomSurface(src, 0, zoom, 1);
+	blitSurface(dst, tmp, x, y);
+	SDL_FreeSurface(tmp);
+}
 
 /* Function blitSurface.
    It blits a surface 

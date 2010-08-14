@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <SDL_rotozoom.h>
 #include "../include/SDL_utils.h"
 #include "../include/SDL_World.h"
 #include "../include/SDL_AssetManager.h"
@@ -46,13 +47,17 @@ int main(int argc, char * argv[]){
 
 	SDL_WM_SetCaption("Simple Ant Colony simulation", NULL);
 
-	SDLWorld * world = getWorld(696, 1050, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
-
 	initAssets(5);
 
-	addAsset("assets/hormiga_tmp.jpg", "JPG", "Hormiga", 0);
+	SDLWorld * world = getWorld(696, 1050, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
+
+	addAsset("assets/hormiga_tmp.jpg", "JPG", "Hormiga", 1);
 
 	SDL_Surface * hormiga = getAssetImage("Hormiga");
+
+	modifyAssetImage("Hormiga", 5, 1);
+
+	zoom(world,1);
 
   	while(1)
      	{
@@ -74,6 +79,8 @@ int main(int argc, char * argv[]){
 		if(keystate[SDLK_UP])	translateCamera(world,0,SENSITIVITY);
 		if(keystate[SDLK_LEFT])	translateCamera(world,SENSITIVITY,0);
 		if(keystate[SDLK_RIGHT])translateCamera(world,-SENSITIVITY,0);
+		if(keystate[SDLK_a]) zoom(world,1.1);
+		if(keystate[SDLK_z]) zoom(world,0.9);
 
 
 		/* 
@@ -91,11 +98,9 @@ int main(int argc, char * argv[]){
 		renderObject(screen, world, hormiga, 4, 6);
 		renderObject(screen, world, hormiga, 2, 8);
 		renderObject(screen, world, hormiga, 12, 15);
-		renderObject(screen, world, hormiga, 6, 10);
 		renderObject(screen, world, hormiga, 14, 18);
-		renderObject(screen, world, hormiga, 15, 13);
 
-		/* Update screen */
+	/* Update screen */
 		SDL_Flip(screen);  
 
 		/* Delay */

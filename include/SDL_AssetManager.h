@@ -5,6 +5,7 @@
 
 typedef struct{
 	SDL_Surface * image;
+	SDL_Surface * original;
 	char * name;
 	char * filename;
 } SDL_Asset;
@@ -15,6 +16,14 @@ int qtyAssets;
 
 // Set init qty of assets
 void initAssets(int init);
+
+SDL_Asset * getAssets();
+
+int getQtyActiveAssets();
+
+SDL_Asset * getAssetByName(char * name);
+
+void modifyAssetImage(char * name, double rotate, double zoom );
 
 // Add if possible, realloc if not
 void addAsset(char * filename, char * ext, char * name, int alpha);
