@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_rotozoom.h>
 
 
 SDL_Surface * loadImageSDL( char * name, char * type, int isAlpha);
+
+void blitSurfaceZoom(  SDL_Surface * dst, SDL_Surface *src, int x, int y, double zoom);
 
 void blitSurface(  SDL_Surface * dst, SDL_Surface *src, int x, int y);
 
