@@ -13,7 +13,7 @@ typedef struct{
 
 int action(Ant * ant);
 void goAnthill(Ant * ant);
-cardinal getCardinal(Ant * ant);
+Cardinal getCardinal(Ant * ant);
 
 
 int
@@ -37,7 +37,7 @@ void
 goAnthill(Ant * ant){
 	int vecPos[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}};
 	//leaveTrace(ant->currentPos);
-	cardinal c = getCardinal(ant);
+	Cardinal c = getCardinal(ant);
 	ant->currentPos.x += vecPos[c%4];
 	ant->currentPos.y += vecPos[c%4];
 	
@@ -45,7 +45,7 @@ goAnthill(Ant * ant){
 	
 
 
-cardinal
+Cardinal
 getCardinal(Ant * ant){
 	int disX = ant->anthill.x - ant->currentPos.x;
 	int disY = ant->anthill.y - ant->currentPos.y;
