@@ -3,6 +3,7 @@
 #include "../include/SDL_utils.h"
 #include "../include/SDL_World.h"
 #include "../include/SDL_AssetManager.h"
+#include "../include/communication.h"
 
 #define SCREEN_WIDTH 644
 #define SCREEN_HEIGHT 480
