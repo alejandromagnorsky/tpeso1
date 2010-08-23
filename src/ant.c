@@ -1,19 +1,19 @@
 typedef enum { false, true } bool;
-typedef enum { north, east, south, west, northwest, northeast, southeast, southwest } cardinal;
+typedef enum { north, east, south, west, northwest, northeast, southeast, southwest } Cardinal;
 typedef struct{
 	int x;
 	int y;
-}pos_t;
+}Pos;
 
 typedef struct{
 	bool food;
-	pos_t currentPos;
-	pos_t anthill;
-}ant_t;
+	Pos currentPos;
+	Pos anthill;
+}Ant;
 
-int action(ant_t * ant);
-void goAnthill(ant_t * ant);
-cardinal getCardinal(ant_t * ant);
+int action(Ant * ant);
+void goAnthill(Ant * ant);
+cardinal getCardinal(Ant * ant);
 
 
 int
@@ -21,10 +21,10 @@ main(){
 }
 
 int
-action(ant_t * ant){
+action(Ant * ant){
 	int vecPos[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}};
 	int i;
-	if(ant->food) // Si ya tiene comida retorna al hormiguero
+	if(ant->food) // If the ant is carrying food
 		goAnthill(ant);
 //	else
 //		for(i = 0; i < 4; i++){
@@ -32,9 +32,9 @@ action(ant_t * ant){
 		
 }
 
-/* Ademas de retornar al hormiguero, va dejando rastro */
+/* In addition of return to the anthill, the ant leaves trace */
 void
-goAnthill(ant_t * ant){
+goAnthill(Ant * ant){
 	int vecPos[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}};
 	//leaveTrace(ant->currentPos);
 	cardinal c = getCardinal(ant);
@@ -46,7 +46,7 @@ goAnthill(ant_t * ant){
 
 
 cardinal
-getCardinal(ant_t * ant){
+getCardinal(Ant * ant){
 	int disX = ant->anthill.x - ant->currentPos.x;
 	int disY = ant->anthill.y - ant->currentPos.y;
 	if(disX == 0){
