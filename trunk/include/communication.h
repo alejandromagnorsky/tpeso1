@@ -1,22 +1,25 @@
-typedef enum { ANT, MOVE, FOOD , SHOUT, TRACE, RECEIVED, TURN } OpCode;
-typedef enum { SET, GET, OK, NOT_OK } OpCodeParam1;
+#include "common.h"
 
-typedef enum { ANTHILL, ANT, MAP } nodeType;
+typedef enum { REGISTER, NEIGHBOR, MOVE, FOOD , SHOUT, TRACE, RECEIVED, TURN } OpCode;
+
+typedef enum { SET, GET, OK, NOT_OK } OpCodeParam;
+
+typedef enum { ANTHILL, ANT, MAP } NodeType;
 
 typedef struct{
-	int pidto, pidfrom;
+	int pidTo, pidFrom;
 	OpCode opCode;
-	OpCodeParam1 param1;
+	OpCodeParam param;
 	Pos pos;
 	double trace;
 } Message;
 
-Message * createMessage(int pidto, pidfrom, OpCode opCode, OpCodeParam1 param1, Pos pos, double trace );
+Message * createMessage(int pidTo,int pidFrom, OpCode opCode, OpCodeParam param, Pos pos, double trace );
 
-int connect(nodeType t, int pidto);
+int connect(NodeType t, int pidTo);
 
-Message * receive(int pidfrom);
+Message * receive(int pidFrom);
 
 void send(Message * msg);
 
-void close(int pidto);
+void close(int pidTo);
