@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <SDL.h>
 #include <SDL_image.h>
-#include <SDL_rotozoom.h>
+#include "SDL_rotozoom.h"
 
 
 SDL_Surface * loadImageSDL( char * name, char * type, int isAlpha);
