@@ -31,7 +31,7 @@ int main(){
 		if( rmsg != NULL){
 			printf("Message received from %d: %d \n", ant_id, rmsg->opCode);
 			Pos pos = { 0, 0 };
-			smsg = createMessage(getpid(), ant_id, RECEIVED, OK, pos, 0 );
+			smsg = createMessage(getpid(), ant_id, RECEIVED, OK, pos, 0);
 			sendMessage(ANT, smsg);
 		}
 	}

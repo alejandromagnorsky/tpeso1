@@ -17,7 +17,7 @@ typedef struct {
 	Message msg;
 } msgbuf;
 
-Message * createMessage(int pidFrom,int pidTo, OpCode opCode, OpCodeParam param, Pos pos, double trace ){
+Message * createMessage(int pidFrom,int pidTo, OpCode opCode, OpCodeParam param, Pos pos, double trace){
 	Message * out = malloc(sizeof(Message));
 	out->pidTo = pidTo;
 	out->pidFrom = pidFrom;
