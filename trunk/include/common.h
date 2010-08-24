@@ -1,3 +1,6 @@
+#ifndef COMMON
+#define COMMON
+
 typedef enum { false, true } bool;
 
 typedef struct{
@@ -6,5 +9,6 @@ typedef struct{
 }Pos;
 
 
+#define MAX_CONNECTIONS 50
 
-#define SERVERNAME "MapTest3"
+#endif
