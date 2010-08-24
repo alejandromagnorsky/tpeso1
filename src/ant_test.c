@@ -23,7 +23,7 @@ int main(){
 		rmsg = NULL;
 
 		Pos pos = { 0, 0 };
-		smsg = createMessage(getpid(), -1, MOVE, SET, pos, 0 );
+		smsg = createMessage(getpid(), -1, MOVE, SET, pos, 0);
 		sendMessage(MAP, smsg);
 
 		printf("Waiting to receive from server...\n");
