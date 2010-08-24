@@ -1,5 +1,5 @@
-#include "common.h"
-#include "communication.h"
+#include "../include/common.h"
+#include "../include/communication.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,20 +8,31 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <mqueue.h>
+#include <signal.h>
 
 
 int main(){
 
-	int clients[10] = { 0 };
+	signal(SIGINT, sigHandler);
+	Message * smsg;
+	Message * rmsg;
 
-	Message * msg;
+	printf("PID: %d \n", getpid());
 
-	// Wait till response of every ant (end of turn EOT)
 	while(true){
-		printf("Waiting to receive...\n");
-		msg = receiveMessage(ANT);
 
-		if( msg != NULL)
-			printf("Message received from %d: %d \n", msg->pidFrom, msg->opCode);
+		smsg = NULL;
+		rmsg = NULL;
+
+		printf("Waiting to receive...\n");
+		rmsg = receiveMessage(ANT);
+		int ant_id = rmsg->pidFrom;
+
+		if( rmsg != NULL){
+			printf("Message received from %d: %d \n", ant_id, rmsg->opCode);
+			Pos pos = { 0, 0 };
+			smsg = createMessage(getpid(), ant_id, RECEIVED, OK, pos, 0 );
+			sendMessage(ANT, smsg);
+		}
 	}
  }
