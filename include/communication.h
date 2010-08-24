@@ -14,12 +14,11 @@ typedef struct{
 	double trace;
 } Message;
 
-Message * createMessage(int pidTo,int pidFrom, OpCode opCode, OpCodeParam param, Pos pos, double trace );
+Message * createMessage(int pidTo, int pidFrom, OpCode opCode, OpCodeParam param, Pos pos, double trace );
 
-int connect(NodeType t, int pidTo);
+void closeNode(NodeType t);
+Message * receiveMessage(NodeType from);
 
-Message * receive(int pidFrom);
+// Returns 0 on success, -1 on error
+int sendMessage(NodeType to, Message * msg);
 
-void send(Message * msg);
-
-void close(int pidTo);
