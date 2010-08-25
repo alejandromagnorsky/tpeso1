@@ -47,7 +47,7 @@ void closeNode(NodeType t){
 		sprintf(fifoName, "/tmp/fifo_anthill");
 
 	if ( unlink(fifoName) == -1 )
-			printf("%s could not be unlinked", fifoName);
+		printf("%s could not be unlinked", fifoName);
 	return;
 }
 
@@ -68,8 +68,8 @@ Message * receiveMessage(NodeType from){
 		fifoName = "/tmp/fifo_anthill";
 
 	if ( access(fifoName, 0) == -1 && mknod(fifoName, S_IFIFO | 0666, 0) == -1 ){
-			printf("%s could not be created", fifoName);
-			return NULL;
+		printf("%s could not be created", fifoName);
+		return NULL;
 	}
 
 	fd = open(fifoName, O_RDONLY);
@@ -87,14 +87,14 @@ int sendMessage(NodeType to, Message * msg){
 		fifoName = "/tmp/fifo_map";
 	else if( to == ANT ){
 		// VER QUE ONDA ESTE MALLOC SI LO PUEDO SACAR DE ALGUN MANERA
-		fifoName = malloc(14 * sizeof(char));
+		fifoName = malloc(16 * sizeof(char));
 		sprintf(fifoName, "/tmp/fifo_%d", msg->pidTo);
 	} else
 		fifoName = "/tmp/fifo_anthill";
 
 	if ( access(fifoName, 0) == -1 && mknod(fifoName, S_IFIFO | 0666, 0) == -1 ){
-			printf("%s could not be created", fifoName);
-			return -1;
+		printf("%s could not be created", fifoName);
+		return -1;
 	}
 
 	fd = open(fifoName, O_WRONLY);
