@@ -1,0 +1,3 @@
+gcc src/common.c src/comm-queue.c src/ant_test.c -lrt -o ant_test
+gcc src/common.c src/comm-queue.c src/map.c -lrt -o map
+

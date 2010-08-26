@@ -22,13 +22,11 @@ _____________________________________________________
 Protocol between ant and map
 
 Sent by map
-	Returned by ant
+	No response by ant (inefficient if not)
 
 SHOUT - SET = An ant has shout at pos	
-	SHOUT - OK = Message received correctly.
 
 TURN - SET = The ant has a turn to use.
-	TURN - OK = The ant has understood.
 
 _____________________________________________________
 
@@ -50,7 +48,7 @@ REGISTER - GET = Check if an ant is registered.
 
 MOVE --------------------------------------------
 
-MOVE - SET = Try to move to pos, leaving specified trace (OR NOT)
+MOVE - SET = Try to move to pos, with or without trace
 	MOVE - OK = Move accepted, ant moves and leaves trace (0 to 1).
 	MOVE - NOT_OK = Cannot move (should check MOVE - GET before)
 	TURN - NOT_OK = Ant has to wait
@@ -58,6 +56,7 @@ MOVE - GET = Check if moving to pos is possible (also, gets trace!)
 	MOVE - EMPTY = Cell at pos is empty, ant can move
 	MOVE - OCCUPIED = Cell at pos is occupied by ANT_CELL or ANTHILL_CELL
 	FOOD - OCCUPIED = Cell at pos is occupied by FOOD_CELL
+	TURN - NOT_OK = Ant has to wait
 
 FOOD ---------------------------------------------
 
@@ -106,7 +105,7 @@ SHOUT - SET = Print a shout at pos
 */
 
 
-typedef enum { REGISTER, MOVE, FOOD , SHOUT, TURN } OpCode;
+typedef enum { REGISTER, MOVE, FOOD , SHOUT, TRACE, TURN } OpCode;
 
 typedef enum { SET, GET, OK, NOT_OK, EMPTY, OCCUPIED, BIG } OpCodeParam;
 

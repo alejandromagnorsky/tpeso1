@@ -29,6 +29,7 @@ void printMessage(Message * msg){
 		case MOVE: opCodeStr = "Move"; break;
 		case FOOD: opCodeStr = "Food"; break;
 		case SHOUT: opCodeStr = "SHOUT"; break;
+		case TRACE: opCodeStr = "Trace"; break;
 		case TURN: opCodeStr = "Turn"; break;
 	}
 
