@@ -10,5 +10,6 @@ typedef struct{
 
 
 #define MAX_CONNECTIONS 50
+#define MAX_TURNS 10000
 
 #endif
