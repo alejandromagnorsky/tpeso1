@@ -72,7 +72,9 @@ Message * receiveMessage(NodeType from){
 		return NULL;
 
 
-	out = &(buf.msg);
+	// A copy must be made, because buf is deallocated after this function
+	out = createMessage(buf.msg.pidFrom,buf.msg.pidTo, buf.msg.opCode,  buf.msg.param, buf.msg.pos,buf.msg.trace);
+
 	return out;
 }
 
