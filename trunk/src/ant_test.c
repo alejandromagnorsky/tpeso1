@@ -9,6 +9,50 @@
 #include <sys/stat.h>
 #include <mqueue.h>
 #include <signal.h>
+#include <pthread.h>
+
+
+void testSETSHOUT(){
+	Pos pos = {0,0};
+
+	Message * send;	
+	Message * received;
+
+	printf("I want to SHOUT! \n");
+	send = createMessage( getpid(), -1, SHOUT, SET, pos, 0);
+	printMessage(send);
+	sendMessage(MAP, send);
+
+	received = receiveMessage(MAP);
+	printf("Message received.\n");
+	printMessage(received);
+	if(received->opCode == SHOUT && received->param == OK )
+		printf("I shout!\n");
+	else if(received->opCode == TURN && received->param == NOT_OK)
+		printf("I don't have turns left! \n");
+}
+
+
+
+void testSETTrace(double trace){
+	Pos pos = {0,0};
+
+	Message * send;	
+	Message * received;
+
+	printf("I want to leave trace here \n");
+	send = createMessage( getpid(), -1, TRACE, SET, pos, trace);
+	printMessage(send);
+	sendMessage(MAP, send);
+
+	received = receiveMessage(MAP);
+	printf("Message received.\n");
+	printMessage(received);
+	if(received->opCode == TRACE && received->param == OK )
+		printf("I left trace!\n");
+	else if(received->opCode == TRACE && received->param == NOT_OK)
+		printf("I tried to leave an invalid trace! \n");
+}
 
 
 void testSETFood(int x, int y){
@@ -17,7 +61,7 @@ void testSETFood(int x, int y){
 	Message * send;	
 	Message * received;
 
-	printf("I want leave food on anthill in (%d,%d) \n", x,y);
+	printf("I want to leave food on anthill in (%d,%d) \n", x,y);
 	send = createMessage( getpid(), -1, FOOD, SET, pos, 0);
 	printMessage(send);
 	sendMessage(MAP, send);
@@ -143,7 +187,6 @@ void testSETRegister(){
 
 int main(){
 	printf("PID: %d \n", getpid());
-
 
 	/* 
 	La idea:
@@ -275,6 +318,10 @@ int main(){
 	getchar();
 	testSETFood(3,5);
 
+	// SHOUT -------------------------------------
 
+	// Must succeed
+	getchar();
+	testSETSHOUT();
 
 }

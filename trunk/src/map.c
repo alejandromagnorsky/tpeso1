@@ -11,8 +11,8 @@
 #include <mqueue.h>
 #include <signal.h>
 
-#define SIZE_X 25
-#define SIZE_Y 50
+#define SIZE_X 15
+#define SIZE_Y 15
 
 
 void printWorld(World * w){
@@ -25,17 +25,17 @@ void printWorld(World * w){
 				case ANT_CELL:
 					printf("A");
 					if(w->cells[i][j].foodType == NO_FOOD)
-						printf(" ");
-					else printf("F");
+						printf("  |");
+					else printf("F |");
 					break;
 				case ANTHILL_CELL:
-					printf("H ");
+					printf("H  |");
 					break;
 				case FOOD_CELL:
-					printf("F ");
+					printf("F  |");
 					break;
 				default:
-					printf("--");
+					printf("%.1f|", w->cells[i][j].trace);
 					break;
 			}
 		printf("\n");
@@ -186,17 +186,19 @@ bool neighborCells(Pos p1, Pos p2 ){
 void setWorldPosition(Message * msg,World * world){
 
 	Message * ans;
-	double trace = msg->trace;
 	int i;
-	ans = createMessage( getpid(), msg->pidFrom, MOVE, NOT_OK, msg->pos, trace);
+	ans = createMessage( getpid(), msg->pidFrom, MOVE, NOT_OK, msg->pos, msg->trace);
 
 	// If cell is empty and ant is registered
 	if(!isOccupied(&msg->pos, world) && exists(msg->pidFrom, world)){
-
+		// If leaves or not trace 
+		if(msg->trace == 1 || msg->trace == 0){
+			
 			int index =  antExistsInAnthill(world, msg->pidFrom);
 			bool neighbor = false;
 
 			Cell * nextCell = &world->cells[msg->pos.x][msg->pos.y];
+
 
 			// Check if ant is in anthill, then move it
 			if( index >= 0){
@@ -212,7 +214,6 @@ void setWorldPosition(Message * msg,World * world){
 				// But, check if next pos is neighbor !
 				if(neighborCells(msg->pos, oldCell->pos)) {
 					oldCell->type = EMPTY_CELL;
-					oldCell->trace -= 0.1;
 					oldCell->typeID = INVALID_ID;
 					nextCell->foodType = oldCell->foodType; // carry food if possible
 					neighbor = true;
@@ -221,12 +222,13 @@ void setWorldPosition(Message * msg,World * world){
 
 			// If next position is neighbor, then finally send message and manage next cell.
 			if(neighbor){
-				ans = createMessage( getpid(), msg->pidFrom, MOVE, OK, msg->pos, trace);
+				ans = createMessage( getpid(), msg->pidFrom, MOVE, OK, msg->pos, msg->trace);
 				// Set next cell data
 				nextCell->type = ANT_CELL;
 				nextCell->trace = msg->trace;
 				nextCell->typeID = msg->pidFrom;
 			}
+		}
 	}
 	sendMessage(ANT, ans);
 }
@@ -272,6 +274,19 @@ void setFoodAtAnthill(Message * msg, World * world){
 	sendMessage(ANT, ans);
 }
 
+int nextTurn(World * world){
+
+	// Here traces are decreased.
+	int i,j;
+	for(i=0;i<world->sizeX;i++)
+		for(j=0;j<world->sizeY;j++)
+			world->cells[i][j].trace -= (world->cells[i][j].trace != 0) ? 0.05 : 0;
+
+	world->turnsLeft--;
+
+	return world->turnsLeft;
+}
+
 void getFoodFromWorld(Message * msg, World * world){
 
 	Message * ans;
@@ -308,6 +323,25 @@ void getFoodFromWorld(Message * msg, World * world){
 	sendMessage(ANT, ans);
 }
 
+void broadcastShout(Message * msg, World * world){
+	Message * ans;
+	int i;
+
+	// If the ant that shout exists
+	if(exists(msg->pidFrom, world)){
+
+		// For each ant, send a shout
+		for(i=0;i<world->maxConnections;i++)
+			if(world->clients[i] != INVALID_ID && world->clients[i] != msg->pidFrom){
+				ans = createMessage( getpid(),world->clients[i], SHOUT, SET, msg->pos, msg->trace);
+				sendMessage(ANT, ans);
+			}
+
+		ans = createMessage( getpid(),msg->pidFrom, SHOUT, OK, msg->pos, msg->trace);
+		sendMessage(ANT, ans);
+	}
+}
+
 /* Message parser */
 void parseMessage(Message * msg, World * world){
 
@@ -331,6 +365,10 @@ void parseMessage(Message * msg, World * world){
 			if(msg->param == GET)
 				getFoodFromWorld(msg, world);
 			break;
+		case SHOUT:
+			if(msg->param == SET)
+				broadcastShout(msg,world);
+				break;
 	}
 }
 
@@ -402,7 +440,9 @@ int main(){
 	world = getWorld(SIZE_X, SIZE_Y, MAX_CONNECTIONS, MAX_TURNS, pos);	
 	
 	printf("Anthill position: %d, %d\n", pos.x, pos.y);
-	while(1){
+	
+	// Turn management is more complex, this is a test
+	while(nextTurn(world)){
 
 		sndMsg = NULL;
 		rcvMsg = NULL;
@@ -419,10 +459,5 @@ int main(){
 		printWorld(world);
 		printWorldData(world);
 
-		//if( rcvMsg != NULL){
-	//		Pos pos = { 0, 0 };
-	//		sndMsg = createMessage(getpid(),  rcvMsg->pidFrom, RECEIVED, OK, pos, 0);
-	//		sendMessage(ANT, sndMsg);
-	//	}
 	}
  }

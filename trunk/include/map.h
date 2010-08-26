@@ -18,7 +18,6 @@ Anthill: ANTHILL_CELL, n/a
 
 */
 
-
 #define INVALID_ID -1
 
 typedef struct Cell{
