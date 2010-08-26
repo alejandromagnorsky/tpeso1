@@ -1,2 +1,2 @@
 gcc src/comm-queue.c src/SDLMainWindow.c src/SDL_rotozoom.c src/SDL_utils.c src/SDL_World.c src/SDL_AssetManager.c -Iinclude/SDL `sdl-config --libs --cflags` -Llib -lSDL -lSDL_image -g -Wall -o frontend -lm -lrt
-gcc src/comm-queue.c src/ant_test.c -lrt -o ant_test
+

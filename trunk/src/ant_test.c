@@ -10,83 +10,41 @@
 #include <mqueue.h>
 #include <signal.h>
 
+void testRegister(int x, int y){
 
+	Message * send;
+	Message * received;
 
-void printMessage(Message * msg){
+	Pos pos = {x,y};
 
-	printf("\nMessage Data \n");
-	printf("From: %d To: %d \n", msg->pidFrom, msg->pidTo);
+	// Sending first register
+	printf("Trying to register... \n");
+	send = createMessage( getpid(), -1, REGISTER, SET, pos, 0);
+	printMessage(send);
+	sendMessage(MAP, send);
 
-	char * opCodeStr = "Invalid";
-	char * opCodeParamStr = "Invalid";
+	received = receiveMessage(MAP);
+	printf("Message received.\n");
+	printMessage(received);
+	if(received->opCode == REGISTER && received->param == OK )
+		printf("Register successful.\n");
+	else printf("Register failed.\n");
 
-	switch(msg->opCode){
-		case REGISTER: opCodeStr = "Register"; break;
-		case NEIGHBOR: opCodeStr = "Neighbor"; break;
-		case MOVE: opCodeStr = "Move"; break;
-		case FOOD: opCodeStr = "Food"; break;
-		case SHOUT: opCodeStr = "SHOUT"; break;
-		case TRACE: opCodeStr = "Trace"; break;
-		case RECEIVED: opCodeStr = "Received"; break;
-		case TURN: opCodeStr = "Turn"; break;
-	}
-
-	switch(msg->param){
-		case SET: opCodeParamStr = "Set"; break;
-		case GET: opCodeParamStr = "Get"; break;
-		case OK: opCodeParamStr = "Ok"; break;
-		case NOT_OK: opCodeParamStr = "Not Ok"; break;
-	}
-
-	printf("OpCode: %s \n", opCodeStr);
-	printf("Parameter: %s, Trace: %f, x=%d, y=%d \n", opCodeParamStr, msg->trace, msg->pos.x, msg->pos.y);
 }
 
 
 int main(){
-
-	signal(SIGINT, sigHandler);
-	Message * smsg;
-	Message * rmsg;
-
 	printf("PID: %d \n", getpid());
 
-	Pos pos = { 0, 0 };
-	while( getchar() != EOF ){
-		smsg = NULL;
-		rmsg = NULL;
+	// Must succeed
+	getchar();
+	testRegister(0,0);
 
-		smsg = createMessage(getpid(), -1, REGISTER, GET, pos, 0);
-		sendMessage(MAP, smsg);
-		
-		printf("Waiting to receive from server...\n");
-		rmsg = receiveMessage(MAP);
-		if( rmsg != NULL) {
-			printf("Message received. \n");
-			printMessage(rmsg);
-		}
+	// Must fail
+	getchar();
+	testRegister(0,0);
 
-
-		smsg = createMessage(getpid(), -1, REGISTER, SET, pos, 0);
-		sendMessage(MAP, smsg);
-		
-		printf("Waiting to receive from server...\n");
-		rmsg = receiveMessage(MAP);
-		if( rmsg != NULL) {
-			printf("Message received. \n");
-			printMessage(rmsg);
-		}
-
-
-		smsg = createMessage(getpid(), -1, REGISTER, GET, pos, 0);
-		sendMessage(MAP, smsg);
-		
-		printf("Waiting to receive from server...\n");
-		rmsg = receiveMessage(MAP);
-		if( rmsg != NULL) {
-			printf("Message received. \n");
-			printMessage(rmsg);
-		}
-		
-	}
+	// Must succeed
+	getchar();
+	testRegister(1,0);
 }
