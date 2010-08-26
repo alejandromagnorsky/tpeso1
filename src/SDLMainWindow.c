@@ -39,7 +39,7 @@ void * checkMessages(void * threadid){
 
 		if( rmsg != NULL){
 			Pos pos = { 0, 0 };
-			smsg = createMessage(getpid(), ant_id, RECEIVED, OK, pos, 0);
+			smsg = createMessage(getpid(), ant_id, MOVE, OK, pos, 0);
 			sendMessage(ANT, smsg);
 			aux = 1 - aux;
 		}

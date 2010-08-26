@@ -1,23 +1,5 @@
 #include "common.h"
 
-typedef enum { REGISTER, NEIGHBOR, MOVE, FOOD , SHOUT, TRACE, RECEIVED, TURN } OpCode;
-
-typedef enum { SET, GET, OK, NOT_OK } OpCodeParam;
-
-typedef enum { ANTHILL, ANT, MAP } NodeType;
-
-typedef struct{
-	int pidTo, pidFrom;
-	OpCode opCode;
-	OpCodeParam param;
-	Pos pos;
-	double trace;
-} Message;
-
-
-// Message constructor
-Message * createMessage(int pidFrom, int pidTo, OpCode opCode, OpCodeParam param, Pos pos, double trace );
-
 // Closes a Node and its communication channel
 void closeNode(NodeType t);
 

@@ -18,18 +18,6 @@ typedef struct {
 	Message msg;
 } msgbuf;
 
-Message * createMessage(int pidFrom,int pidTo, OpCode opCode, OpCodeParam param, Pos pos, double trace){
-	Message * out = malloc(sizeof(Message));
-	out->pidTo = pidTo;
-	out->pidFrom = pidFrom;
-	out->opCode = opCode;
-	out->param = param;	
-	out->pos = pos;
-	out->trace = trace;
-
-	return out;
-}
-
 
 void sigHandler(){
 	closeNode(0);
