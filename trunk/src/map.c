@@ -11,10 +11,50 @@
 #include <mqueue.h>
 #include <signal.h>
 
-#define SIZE_X 50
+#define SIZE_X 25
 #define SIZE_Y 50
 
 
+void printWorld(World * w){
+	printf("\n");
+	int i,j;
+	for(i=0;i<w->sizeX;i++){
+		for(j=0;j<w->sizeY;j++)
+			switch(w->cells[i][j].type){
+
+				case ANT_CELL:
+					printf("A");
+					if(w->cells[i][j].foodType == NO_FOOD)
+						printf(" ");
+					else printf("F");
+					break;
+				case ANTHILL_CELL:
+					printf("H ");
+					break;
+				case FOOD_CELL:
+					printf("F ");
+					break;
+				default:
+					printf("--");
+					break;
+			}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void printWorldData(World * w){
+	int i;
+	printf("Registered ants: ");
+	for(i=0;i<w->maxConnections;i++)
+		printf("%d ", w->clients[i]);
+	printf("\n");
+
+	printf("Ants inside anthill: ");
+	for(i=0;i<w->anthill.maxPopulation;i++)
+		printf("%d ", w->anthill.ants[i]);
+	printf("\n");
+}
 
 /*
  * Registering works in this way:
@@ -29,11 +69,9 @@
 void registerAnt(Message * msg, World * world){
 
 	Message * ans;
-	int x,y,i,j;
-	x = msg->pos.x;
-	y = msg->pos.y;
+	int i,j;
 
-	ans = createMessage( getpid(), msg->pidFrom, REGISTER, NOT_OK, msg->pos, msg->trace );
+	ans = createMessage( getpid(), msg->pidFrom, REGISTER, NOT_OK, msg->pos, 0 );
 
 	if(!exists(msg->pidFrom, world)){
 		// Get next empty ant slot on map
@@ -47,7 +85,8 @@ void registerAnt(Message * msg, World * world){
 		    j != world->anthill.maxPopulation && world->anthill.ants[i] == INVALID_ID ){
 			world->clients[i] = msg->pidFrom;
 			world->anthill.ants[j] = msg->pidFrom;
-			ans = createMessage( getpid(), msg->pidFrom, REGISTER, OK, msg->pos, world->cells[x][y].trace);
+			ans = createMessage( getpid(), msg->pidFrom, REGISTER, OK, msg->pos, 0);
+			printf("Registered ant %d at (%d,%d) \n", msg->pidFrom, world->anthill.pos.x, world->anthill.pos.y);
 		}
 	}
 
@@ -72,9 +111,9 @@ bool exists(int pid,World * world){
 void checkRegistered(Message * msg, World * world){
 	int i;
 	Message * ans;
-	ans = createMessage( getpid(), msg->pidFrom, REGISTER, NOT_OK, msg->pos, msg->trace);
+	ans = createMessage( getpid(), msg->pidFrom, REGISTER, OK, msg->pos, msg->trace);
 	if(!exists(msg->pidFrom, world))
-			ans = createMessage( getpid(), msg->pidFrom, REGISTER, OK, msg->pos, msg->trace);
+			ans = createMessage( getpid(), msg->pidFrom, REGISTER, NOT_OK, msg->pos, msg->trace);
 
 	sendMessage(ANT, ans);
 }
@@ -95,10 +134,17 @@ void getWorldPosition(Message * msg,World * world){
 	double trace = world->cells[msg->pos.x][msg->pos.x].trace;
 	ans = createMessage( getpid(), msg->pidFrom, MOVE, OCCUPIED, msg->pos, trace);
 
-	if(!isOccupied(&msg->pos, world))
-			ans = createMessage( getpid(), msg->pidFrom, MOVE, EMPTY, msg->pos, trace);
-	else if( world->cells[msg->pos.x][msg->pos.y].type == FOOD_CELL )
-			ans = createMessage( getpid(), msg->pidFrom, FOOD, OCCUPIED, msg->pos, trace);
+	// If Ant exists
+	if(exists(msg->pidFrom, world))
+		// And the move is valid (neighbor
+		if( neighborCells(getAntCellByPID(world, msg->pidFrom)->pos, msg->pos))
+	
+			// And cell is empty
+			if(!isOccupied(&msg->pos, world))
+					ans = createMessage( getpid(), msg->pidFrom, MOVE, EMPTY, msg->pos, trace);
+			// Or has food
+			else if( world->cells[msg->pos.x][msg->pos.y].type == FOOD_CELL )
+					ans = createMessage( getpid(), msg->pidFrom, FOOD, OCCUPIED, msg->pos, trace);
 
 	sendMessage(ANT, ans);
 }
@@ -129,6 +175,14 @@ int antExistsInAnthill(World * world, int pid){
 	return -1;
 }
 
+
+bool neighborCells(Pos p1, Pos p2 ){
+	if( (abs(p1.x - p2.x) == 1 && p1.y - p2.y == 0 ) 
+	   || ( abs(p1.y -p2.y) == 1  && p1.x - p2.x == 0 ))
+		return true;
+	return false;
+}
+
 void setWorldPosition(Message * msg,World * world){
 
 	Message * ans;
@@ -138,46 +192,52 @@ void setWorldPosition(Message * msg,World * world){
 
 	// If cell is empty and ant is registered
 	if(!isOccupied(&msg->pos, world) && exists(msg->pidFrom, world)){
-			ans = createMessage( getpid(), msg->pidFrom, MOVE, OK, msg->pos, trace);
 
 			int index =  antExistsInAnthill(world, msg->pidFrom);
+			bool neighbor = false;
 
 			Cell * nextCell = &world->cells[msg->pos.x][msg->pos.y];
 
 			// Check if ant is in anthill, then move it
 			if( index >= 0){
-				world->anthill.ants[index] = INVALID_ID;
-	
+				// Check if next position is neighbor of anthill
+				if(neighborCells(msg->pos, world->anthill.pos)){
+					world->anthill.ants[index] = INVALID_ID;
+					neighbor = true;
+				}
 			} else {
 				// If ant is in world, erase old cell data, and if food is carried, keep carrying
 				Cell * oldCell = getAntCellByPID(world, msg->pidFrom );
-				oldCell->type = EMPTY_CELL;
-				oldCell->trace -= 0.1;
-				oldCell->typeID = INVALID_ID;
-				nextCell->foodType = oldCell->foodType;
+				
+				// But, check if next pos is neighbor !
+				if(neighborCells(msg->pos, oldCell->pos)) {
+					oldCell->type = EMPTY_CELL;
+					oldCell->trace -= 0.1;
+					oldCell->typeID = INVALID_ID;
+					nextCell->foodType = oldCell->foodType; // carry food if possible
+					neighbor = true;
+				}
 			}
 
-			// Set next cell data
-			nextCell->type = ANT_CELL;
-			nextCell->trace = msg->trace;
-			nextCell->typeID = msg->pidFrom;
+			// If next position is neighbor, then finally send message and manage next cell.
+			if(neighbor){
+				ans = createMessage( getpid(), msg->pidFrom, MOVE, OK, msg->pos, trace);
+				// Set next cell data
+				nextCell->type = ANT_CELL;
+				nextCell->trace = msg->trace;
+				nextCell->typeID = msg->pidFrom;
+			}
 	}
-
 	sendMessage(ANT, ans);
 }
 
-bool neighborCells(Pos p1, Pos p2 ){
-	if( abs(p1.x - p2.x) == 1 || abs(p1.y -p2.y) == 1 ) 
-		return true;
-	return true;
-}
 
 void setFoodAtAnthill(Message * msg, World * world){
-
-	int i;
 	Message * ans;
 	ans = createMessage( getpid(), msg->pidFrom, FOOD, NOT_OK, msg->pos, msg->trace);
-	if(!exists(msg->pidFrom, world)){
+
+	// If ant exists
+	if(exists(msg->pidFrom, world)){
 
 		// Cell actually occupied by ant
 		Cell * antCell = getAntCellByPID(world, msg->pidFrom );
@@ -214,6 +274,38 @@ void setFoodAtAnthill(Message * msg, World * world){
 
 void getFoodFromWorld(Message * msg, World * world){
 
+	Message * ans;
+	ans = createMessage( getpid(), msg->pidFrom, FOOD, NOT_OK, msg->pos, msg->trace);
+
+	// If ant exists
+	if(exists(msg->pidFrom, world)){
+
+		Cell * antCell = getAntCellByPID( world,msg->pidFrom);
+
+		// If ant doesn't have food already and requested cell is adjacent
+		if(antCell->foodType == NO_FOOD && neighborCells(antCell->pos, msg->pos)){
+		
+			Cell * foodCell = &world->cells[msg->pos.x][ msg->pos.y];
+
+			// If foodCell has food
+			if(foodCell->type == FOOD_CELL ){
+
+				//If it has small food
+				if(foodCell->foodType == SMALL_FOOD){
+					ans = createMessage( getpid(), msg->pidFrom, FOOD, OK, msg->pos, msg->trace);
+
+					// Take food from cell, give it to ant
+					foodCell->type = EMPTY_CELL;
+					foodCell->foodType = NO_FOOD; // Doesn't really matter if EMPTY_CELL active
+					antCell->foodType = SMALL_FOOD;
+					
+				} else // If it has big food, warn ant
+				if(foodCell->foodType == BIG_FOOD)
+					ans = createMessage( getpid(), msg->pidFrom, FOOD, BIG, msg->pos, msg->trace);
+			}
+		}
+	}
+	sendMessage(ANT, ans);
 }
 
 /* Message parser */
@@ -283,9 +375,15 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos a
 			out->cells[i][j].pos = pos;
 		}
 
-	out->cells[anthillPos.x][anthillPos.y].type = ANTHILL_CELL;
+	if(anthillPos.x < sizeX && anthillPos.y < sizeY)
+		out->cells[anthillPos.x][anthillPos.y].type = ANTHILL_CELL;
+	else
+		return NULL; // WTF
 	// Here, gotta fork to create the anthill and get its pid
 	
+	// Testing!
+	out->cells[7][5].type = FOOD_CELL;
+	out->cells[7][5].foodType = SMALL_FOOD;
 
 	return out;
 }
@@ -302,6 +400,8 @@ int main(){
 	World * world;
 	Pos pos = { 3, 5 };
 	world = getWorld(SIZE_X, SIZE_Y, MAX_CONNECTIONS, MAX_TURNS, pos);	
+	
+	printf("Anthill position: %d, %d\n", pos.x, pos.y);
 	while(1){
 
 		sndMsg = NULL;
@@ -315,6 +415,9 @@ int main(){
 		printMessage(rcvMsg);
 
 		parseMessage(rcvMsg, world);
+
+		printWorld(world);
+		printWorldData(world);
 
 		//if( rcvMsg != NULL){
 	//		Pos pos = { 0, 0 };

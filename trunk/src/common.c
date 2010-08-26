@@ -37,6 +37,8 @@ void printMessage(Message * msg){
 		case GET: opCodeParamStr = "Get"; break;
 		case OK: opCodeParamStr = "Ok"; break;
 		case NOT_OK: opCodeParamStr = "Not Ok"; break;
+		case OCCUPIED: opCodeParamStr = "Occupied"; break;
+		case BIG: opCodeParamStr = "Big food"; break;
 	}
 
 	printf("OpCode: %s \n", opCodeStr);

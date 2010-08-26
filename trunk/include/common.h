@@ -17,7 +17,18 @@ FOOD - BIG = Ant has delivered BIG food
 	FOOD - OK = Anthill received big food.
 	FOOD - NOT_OK = Anthill with problems ?  jaja
 	
-	
+_____________________________________________________
+
+Protocol between ant and map
+
+Sent by map
+	Returned by ant
+
+SHOUT - SET = An ant has shout at pos	
+	SHOUT - OK = Message received correctly.
+
+TURN - SET = The ant has a turn to use.
+	TURN - OK = The ant has understood.
 
 _____________________________________________________
 
@@ -42,6 +53,7 @@ MOVE --------------------------------------------
 MOVE - SET = Try to move to pos, leaving specified trace (OR NOT)
 	MOVE - OK = Move accepted, ant moves and leaves trace (0 to 1).
 	MOVE - NOT_OK = Cannot move (should check MOVE - GET before)
+	TURN - NOT_OK = Ant has to wait
 MOVE - GET = Check if moving to pos is possible (also, gets trace!)
 	MOVE - EMPTY = Cell at pos is empty, ant can move
 	MOVE - OCCUPIED = Cell at pos is occupied by ANT_CELL or ANTHILL_CELL
@@ -53,24 +65,18 @@ FOOD - SET = Try to leave food on ANTHILL_CELL at pos
 	FOOD - OK = Food left at anthill.
 	FOOD - EMPTY = This ant has no food
 	FOOD - NOT_OK = pos is not correct
+	TURN - NOT_OK = Ant has to wait
 
 FOOD - GET = Get food from pos
 	FOOD - OK = Food got.
 	FOOD - BIG = Food very big (need another ant)
 	FOOD - NOT_OK = pos not correct, occupied, or empty cell.
+	TURN - NOT_OK = Ant has to wait
 
 SHOUT ---------------------------------------------
 
 SHOUT - SET = Shout, broadcasting to all ants
 	SHOUT - OK = Shout broadcasted.
-SHOUT - GET = Check if some ant has shout.
-	SHOUT - OK = Someone has shout at pos
-	SHOUT - NOT_OK = No shouting.
-
-TURN ------------------------------------------------
-
-TURN - GET = Check if ant has turn to move
-	TURN - OK = Ant has turn
 	TURN - NOT_OK = Ant has to wait
 
 ________________________________________________________________
