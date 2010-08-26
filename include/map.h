@@ -4,6 +4,21 @@
 typedef enum { EMPTY_CELL, FOOD_CELL, ANT_CELL, ANTHILL_CELL } CellType;
 typedef enum { NO_FOOD, SMALL_FOOD, BIG_FOOD } FoodType;
 
+
+/*
+Valid types of cells:
+
+Small food cell: FOOD_CELL, SMALL_FOOD
+Big food cell: FOOD_CELL, BIG_FOOD
+Empty cell: EMPTY_CELL, n/a
+Ant with no food cell: ANT_CELL, NO_FOOD
+Ant with small food cell: ANT_CELL, SMALL_FOOD
+Ant with big food cell: ANT_CELL, BIG_FOOD
+Anthill: ANTHILL_CELL, n/a
+
+*/
+
+
 #define INVALID_ID -1
 
 typedef struct Cell{
@@ -32,7 +47,11 @@ typedef struct World{
 
 World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos anthillPos);
 
+int antExistsInAnthill(World * world, int pid);
+
 bool exists(int pid,World * world);
+
+bool neighborCells(Pos p1, Pos p2 );
 
 bool isOccupied(Pos * pos, World * world);
 
@@ -42,6 +61,14 @@ void checkRegistered(Message * msg, World * world);
 
 void parseMessage(Message * msg, World * world);
 
+Cell * getAntCellByPID(World * world, int pid );
+
+void setWorldPosition(Message * msg,World * world);
+
 void getWorldPosition(Message * msg,World * world);
+
+void setFoodAtAnthill(Message * msg, World * world);
+
+void getFoodFromWorld(Message * msg, World * world);
 
 #endif
