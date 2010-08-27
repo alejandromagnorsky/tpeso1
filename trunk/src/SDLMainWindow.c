@@ -135,7 +135,6 @@ int main(int argc, char * argv[]){
 			ants[i][j] = 0;
 
 
-	ants[2][3] = 1;
   	while(1)
      	{
 		while( SDL_PollEvent( &event ) )
