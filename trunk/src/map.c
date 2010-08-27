@@ -15,6 +15,18 @@
 #define SIZE_Y 15
 
 
+void putAntFrontend(World * world, Pos pos){
+	Message * ans;
+	ans = createMessage( getpid(), world->frontendID, MOVE, SET, pos, 0);
+	sendMessage(ANT, ans);
+}
+
+void eraseAntFrontend(World * world, Pos pos){
+	Message * ans;
+	ans = createMessage( getpid(), world->frontendID, MOVE, EMPTY, pos, 0);
+	sendMessage(ANT, ans);
+}
+
 void printWorld(World * w){
 	printf("\n");
 	int i,j;
@@ -217,6 +229,8 @@ void setWorldPosition(Message * msg,World * world){
 					oldCell->typeID = INVALID_ID;
 					nextCell->foodType = oldCell->foodType; // carry food if possible
 					neighbor = true;
+					// Tell frontend ant is no more
+					eraseAntFrontend(world,oldCell->pos);	
 				}
 			}
 
@@ -227,6 +241,8 @@ void setWorldPosition(Message * msg,World * world){
 				nextCell->type = ANT_CELL;
 				nextCell->trace = msg->trace;
 				nextCell->typeID = msg->pidFrom;
+				// Tell frontend ant's new position
+				putAntFrontend(world,nextCell->pos);
 			}
 		}
 	}
@@ -372,7 +388,7 @@ void parseMessage(Message * msg, World * world){
 	}
 }
 
-World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos anthillPos){
+World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos anthillPos, int frontendID){
 
 	int i,j;
 	World * out = malloc(sizeof(World));
@@ -381,6 +397,7 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos a
 	out->sizeY = sizeY;
 	out->turnsLeft = turnsLeft;
 	out->maxConnections = maxConnections;
+	out->frontendID = frontendID;
 
 	out->anthill.pos = anthillPos;
 	out->anthill.maxPopulation = maxConnections;
@@ -426,18 +443,22 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos a
 	return out;
 }
 
-int main(){
+int main(int argc, char * argv[]){
 
 	signal(SIGINT, sigHandler);
 	Message * sndMsg;
 	Message * rcvMsg;
+
+	int frontendPID;
+	sscanf(argv[1], "%d", &frontendPID);
+	printf("Frontend PID: %d \n", frontendPID);
 
 
 	// MAP LOADER HERE
 
 	World * world;
 	Pos pos = { 3, 5 };
-	world = getWorld(SIZE_X, SIZE_Y, MAX_CONNECTIONS, MAX_TURNS, pos);	
+	world = getWorld(SIZE_X, SIZE_Y, MAX_CONNECTIONS, MAX_TURNS, pos, frontendPID);	
 	
 	printf("Anthill position: %d, %d\n", pos.x, pos.y);
 	

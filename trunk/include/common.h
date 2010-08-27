@@ -86,21 +86,17 @@ Protocol between frontend and backend
 Sent by backend
 	Returned by frontend
 
+REGISTER - SET = Register ant at pos
+
 MOVE - SET = Position ant at pos with trace
-	MOVE - OK = Accepted.
+MOVE - EMPTY = Tell the frontend that pos is empty
 
 FOOD - SET = Position small food at pos.
-	FOOD - OK = Food positioned.
-	FOOD - NOT_OK = Something has gone wrong (should not happen)
 FOOD - BIG = Position big food at pos.
-	FOOD - OK = Food positioned.
-	FOOD - NOT_OK = Something has gone wrong (should not happen)
 
 TURN - SET = Turn has passed
-	TURN - OK = Command accepted.
 
 SHOUT - SET = Print a shout at pos
-	SHOUT - OK = Shout printed (or played)
 
 */
 
@@ -109,7 +105,7 @@ typedef enum { REGISTER, MOVE, FOOD , SHOUT, TRACE, TURN } OpCode;
 
 typedef enum { SET, GET, OK, NOT_OK, EMPTY, OCCUPIED, BIG } OpCodeParam;
 
-typedef enum { ANTHILL, ANT, MAP, FRONTEND } NodeType;
+typedef enum { ANTHILL, ANT, MAP } NodeType;
 
 typedef enum { false, true } bool;
 

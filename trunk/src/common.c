@@ -39,6 +39,7 @@ void printMessage(Message * msg){
 		case OK: opCodeParamStr = "Ok"; break;
 		case NOT_OK: opCodeParamStr = "Not Ok"; break;
 		case OCCUPIED: opCodeParamStr = "Occupied"; break;
+		case EMPTY: opCodeParamStr = "Empty"; break;
 		case BIG: opCodeParamStr = "Big food"; break;
 	}
 
