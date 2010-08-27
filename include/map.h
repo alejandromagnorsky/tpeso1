@@ -37,6 +37,7 @@ typedef struct Anthill{
 typedef struct World{
 	Cell ** cells;
 	Anthill anthill;
+	int frontendID;
 	int sizeX, sizeY;
 	int maxConnections;
 	int * clients;
@@ -44,7 +45,7 @@ typedef struct World{
 } World;
 
 
-World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos anthillPos);
+World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos anthillPos, int frontendID);
 
 int antExistsInAnthill(World * world, int pid);
 

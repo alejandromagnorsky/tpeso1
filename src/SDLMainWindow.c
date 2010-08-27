@@ -15,7 +15,8 @@
 
 #define DELAY 30	// delay in ms
 
-int aux = 0;
+Message * msg = NULL;
+bool newMessage = false;
 
 int cleanUp( int err )
 {
@@ -24,31 +25,63 @@ int cleanUp( int err )
 }
 
 void * checkMessages(void * threadid){
-
-
-	Message * smsg;
-	Message * rmsg;
-
 	while(1){
-
-		smsg = NULL;
-		rmsg = NULL;
-
-		rmsg = receiveMessage(ANT);
-		int ant_id = rmsg->pidFrom;
-
-		if( rmsg != NULL){
-			Pos pos = { 0, 0 };
-			smsg = createMessage(getpid(), ant_id, MOVE, OK, pos, 0);
-			sendMessage(ANT, smsg);
-			aux = 1 - aux;
+		if(!newMessage){
+			msg = receiveMessage(MAP);
+			newMessage = true;
 		}
 	}
 	pthread_exit(NULL);
 }
 
+void startMapEngine(){
+
+	int frontendPID = getpid();
+
+	int pid = fork();
+	char * argPID = malloc(10*sizeof(char));
+
+	sprintf(argPID, "%d", frontendPID);
+
+	switch(pid){
+		case -1: 
+			printf("can't fork\n");
+			exit(-1);	
+			break;
+		case 0 : // this is the code the child runs 
+			execl ("./map","map",argPID, NULL);
+			break;
+		default: // this is the code the parent runs 
+			// Get back to frontend
+			break;
+	}
+}
+
+
+void printAnts( SDL_Surface *screen, SDLWorld * world, SDL_Surface * antImage, int ants[30][30]){
+	int i,j;
+	for(i=0;i<30;i++)
+		for(j=0;j<30;j++)
+			if(ants[i][j])			
+				renderObject(screen, world, antImage, j, i);
+}
+
+void getInfoFromBackend(int ants[30][30]){
+	if(msg->opCode == MOVE){
+		if(msg->param == SET)
+			ants[msg->pos.x][msg->pos.y] = 1;
+		else if(msg->param == EMPTY)
+			ants[msg->pos.x][msg->pos.y] = 0;
+	}
+
+	newMessage = false;
+}
+
+
 
 int main(int argc, char * argv[]){
+
+	startMapEngine();
 
 	SDL_Surface * screen;
 	SDL_Event event;
@@ -91,10 +124,18 @@ int main(int argc, char * argv[]){
 
 	zoom(world,1);
 
-
 	pthread_t thread;
 	pthread_create(&thread, NULL, checkMessages, NULL);
 
+	int ants[30][30];
+
+	int i,j;
+	for(i=0;i<30;i++)
+		for(j=0;j<30;j++)
+			ants[i][j] = 0;
+
+
+	ants[2][3] = 1;
   	while(1)
      	{
 		while( SDL_PollEvent( &event ) )
@@ -119,28 +160,14 @@ int main(int argc, char * argv[]){
 		if(keystate[SDLK_z]) zoom(world,0.9);
 
 
-
-		/* 
-		Aca este proceso deberia recibir los datos de:
-			- hormigas
-			- comida
-			- rastros
-		y nada mas, con esto ya puede mostrarlos en pantalla.
-		OJO: Solo si se mueven. Estos procesos deberian avisar que se movieron.
-		No tiene sentido que se redibuje la pantalla todo el tiempo...
- 		*/  
-
-
-
 		renderSDLWorld(world, screen);
 
-		if(aux){
-			renderObject(screen, world, hormiga, 4, 6);
-			renderObject(screen, world, hormiga, 2, 8);
-			renderObject(screen, world, hormiga, 12, 15);
-			renderObject(screen, world, hormiga, 14, 18);
-		}
-	/* Update screen */
+		if(newMessage == true )
+			getInfoFromBackend(ants);
+		printAnts( screen, world, hormiga, ants);
+
+
+		/* Update screen */
 		SDL_Flip(screen);  
 
 		/* Delay */
