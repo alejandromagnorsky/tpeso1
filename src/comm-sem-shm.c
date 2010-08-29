@@ -13,8 +13,7 @@
 #include <errno.h>
 #include "../include/communication.h"
 
-#define SIZE 512
-
+#define SIZE sizeof(Message)
 
 
 Message * getmem(char * memKey);
@@ -54,25 +53,26 @@ receiveMessage(NodeType from){
 	else
 		memKey = "/map";	
 	
-	//initmutex();	
+	initmutex();	// Initialize the semaphore if isn't exists
 	mem = getmem(memKey);
 	memset(mem, 0, SIZE);
 	printf("Recibiendo\n");
-	//sem_wait(sd);
+
+	//Block the condition in the while, the assigment of out and the readed flag
+	sem_wait(sd);
 	while(mem->pidTo == 0){
-		//sem_post(sd);
-		//mem = getmem(memKey);
+		sem_post(sd);
 		sleep(1);	
-		printf("%d recibe de la posicion: %lu\n", getpid(), (long)mem);	
-		//sem_wait(sd);
+		//printf("%d recibe de la posicion: %lu\n", getpid(), (long)mem);	
+		sem_wait(sd);
 	}
 	
-	// A copy must be made, because buf is deallocated after this function
+	// A copy must be made, because mem is deallocated after this function
 	out = createMessage(mem->pidFrom, mem->pidTo, mem->opCode,  mem->param, mem->pos, mem->trace);
 
-	mem->pidTo = 0; // Lo marca como leido
+	mem->pidTo = 0; // Mark the message as readed
 	
-	//sem_post(sd);
+	sem_post(sd);
 
 	return out;
 }
@@ -93,14 +93,15 @@ sendMessage(NodeType to, Message * msg){
 
 	mem = getmem(memKey);
 	memset(mem, 0, SIZE);
-	//initmutex();	
+	initmutex(); // Initialize the semaphore if isn't exists
 	
-	//sem_wait(sd);
+	// Block this zone of code
+	sem_wait(sd);
 
 	memcpy(mem, msg, SIZE);
 
-	//sem_post(sd);
-	printf("To: %d\n", mem->pidTo);
+	sem_post(sd);
+
 	return 0;
 }
 
