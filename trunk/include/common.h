@@ -129,6 +129,8 @@ Message * createMessage(int pidFrom, int pidTo, OpCode opCode, OpCodeParam param
 
 void printMessage(Message * msg);
 
+void errorLog(char * s);
+
 
 
 #endif

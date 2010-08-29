@@ -17,7 +17,6 @@
 
 
 Message * getmem(char * memKey);
-void fatal(char *s);
 void initmutex(void);
 
 static char * semKey = "/mutex";
@@ -110,7 +109,7 @@ void
 initmutex(void)
 {
 	if ( !(sd = sem_open(semKey, O_RDWR|O_CREAT, 0666, 1)) )
-		fatal("sem_open");
+		errorLog("sem_open");
 }
 
 Message *
@@ -120,19 +119,12 @@ getmem(char * memKey)
 	Message * mem;
 	
 	if ( (fd = shm_open(memKey, O_RDWR|O_CREAT, 0666)) == -1 )
-		fatal("sh_open");
+		errorLog("sh_open");
 	ftruncate(fd, SIZE);
 
 	if ( !(mem = mmap(NULL, SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
-		fatal("mmap");
+		errorLog("mmap");
 	close(fd);
 
 	return mem;
-}
-
-void
-fatal(char *s)
-{
-	perror(s);
-	exit(1);
 }
