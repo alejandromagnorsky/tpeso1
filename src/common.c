@@ -47,3 +47,10 @@ void printMessage(Message * msg){
 	printf("Parameter: %s, Trace: %f, x=%d, y=%d \n", opCodeParamStr, msg->trace, msg->pos.x, msg->pos.y);
 }
 
+void
+errorLog(char * s)
+{
+	perror(s);
+	exit(1);
+}
+
