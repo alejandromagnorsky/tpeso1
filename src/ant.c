@@ -31,12 +31,11 @@ int
 action(Ant * ant){
 	srand (time(NULL)); 
 	int i;
-	Pos * pos;
-	pos = malloc(sizeof(Pos));
-	if(ant->food) // If the ant is carrying food
+	
+	if(ant->food)	// If the ant is carrying food
 		goAnthill(ant);
-	else if(!getNearFood(ant)){ // If the ant couldn't take any food
-		if(!followTrace(ant)) // If the ant hasn't any trace around to follow move to a random position
+	else if(!getNearFood(ant)){	// If the ant couldn't take any food
+		if(!followTrace(ant))	// If the ant hasn't any trace around to follow move to a random position
 			randomMove(ant);		
 	}
 	
@@ -61,7 +60,7 @@ followTrace(Ant * ant){
 		//sendMessage(MAP, smsg);
 		//rmsg = receiveMessage(MAP);
 
-		if(rmsg->param == OK && rmsg->trace != 0){ // If the message was received and the cell has trace, sort all
+		if(rmsg->param == OK && rmsg->trace != 0){	// If the message was received and the cell has trace, sort all
 			// Sort the cells, descending, by their trace
 			if(k == 0){
 				aux[0].pos = pos;
@@ -87,9 +86,9 @@ followTrace(Ant * ant){
 	}
 
 	i = 0;
-	while(i < 4 && !move(ant, aux[i].pos))
+	while(i < k && !move(ant, aux[i].pos))
 		i++;
-	if(i == 4)
+	if(i == k)
 		return false;	
 	return true;
 }	
@@ -107,7 +106,7 @@ getNearFood(Ant * ant){
 		//smsg = createMessage(getpid(), -1, FOOD, GET, pos, 0);
 		//sendMessage(MAP, smsg);
 		//rmsg = receiveMessage(MAP);
-		if(rmsg->param == OK && move(ant, pos)) // If it found food and can move there
+		if(rmsg->param == OK && move(ant, pos))	// If it found food and can move there
 			return true;
 	}
 	return false;	
@@ -119,7 +118,7 @@ void
 goAnthill(Ant * ant){
 	Pos pos;
 	leaveTrace(ant->currentPos);
-	Cardinal card = getCardinal(ant) % 4; // If NW then go to N, NE go to E, SE go to S and SW go to W
+	Cardinal card = getCardinal(ant) % 4;	// If NW then go to N, NE go to E, SE go to S and SW go to W
 	
 	
 	pos.x = ant->currentPos.x + vecMov[card][0];
@@ -134,7 +133,7 @@ bool
 randomMove(Ant * ant){
 	int index, count;
 	Pos pos;
-	bool tried[4] = {false, false, false, false}; // Verify if the ant tried to go to the i direction
+	bool tried[4] = {false, false, false, false};	// Verify if the ant tried to go to the i direction
 	do{
 		do{
 			index = rand()%4;
@@ -148,8 +147,8 @@ randomMove(Ant * ant){
 	} while(count < 4 && !move(ant, pos));
 	
 	if(count == 4)
-		return false; // It didn't move
-	return true; // The ant moved
+		return false;	// It didn't move
+	return true;	// The ant moved
 }
 
 
