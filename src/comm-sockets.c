@@ -17,7 +17,7 @@
 #include "../include/communication.h"
 
 #define LOCALHOST INADDR_LOOPBACK
-#define MAP_PORT 6222
+#define MAP_PORT 6211
 
 typedef struct {
 	long int type;
@@ -56,6 +56,7 @@ Message * receiveMessage(NodeType from){
 		server.sin_addr.s_addr = htonl(LOCALHOST);	/* Local IP address */
 		/* Connect to server */
 printf("RECEIVE FROM MAP: CONNECT  |  pid: %d\n", getpid());
+printf("RECEIVE: CONECTANDO CON SERVER: %s:%d\n", inet_ntoa(server.sin_addr), ntohs(server.sin_port));
 		if (connect(ssd, (struct sockaddr *) &server, sizeof(server)) < 0) {
              		printf("Failed to connect to the server. Returning NULL.\n");
 			close(ssd);
@@ -93,6 +94,7 @@ printf("RECEIVE FROM ANT: ACCEPT  |  pid: %d\n", getpid());
 			return NULL;
              	}
 		/* Receiving data from client */
+printf("RECEIVE: ATENDIENDO CLIENTE: %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 printf("RECEIVE FROM ANT: RECV  |  pid: %d\n", getpid());
  		if (recv(csd, out, sizeof(out), 0) < 0) {
            		printf("Failed to receive from data client. Returning NULL.\n");
@@ -122,6 +124,7 @@ int sendMessage(NodeType to, Message * msg){
 	if (to == MAP) {	// I'm CLIENT and I'm receiving data from SERVER.
 		server.sin_addr.s_addr = htonl(LOCALHOST);	/* Local IP address */
 		/* Connect to server */
+printf("SEND: CONECTANDOSE: %s:%d\n", inet_ntoa(server.sin_addr), ntohs(server.sin_port));
 printf("SEND: CONNECT\n");
 		if (connect(ssd, (struct sockaddr *) &server, sizeof(server)) < 0) {
              		printf("SEND: Failed to connect to the server. Returning -1.\n");
@@ -160,7 +163,8 @@ printf("SEND: ACCEPT\n");
 			return -1;
              	}
 		
-		/* Receiving data from client */
+		/* Sending data to client */
+printf("SEND: ATENDIENDO CLIENTE: %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 printf("SEND: SEND 2\n");
  		if (send(csd, msg, sizeof(msg), 0) < 0) {
            		printf("Failed to send data to client. Returning -1.\n");

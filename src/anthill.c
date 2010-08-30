@@ -1,4 +1,4 @@
-#include <sys/types.h>
+ #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -10,8 +10,10 @@
 void endOfFifo(int n);
 void fatal(char *s);
 int anthill(int testAnts);
+void setControlC();
 
 int main(void){
+	setControlC();
 	anthill(7);
 }
 
@@ -48,7 +50,7 @@ int anthill(int testAnts){
 			return;
 
 		} else if (pid > 0){	/* Anthill process (parent) */
-			/* Anthill and ants maintain contact through 'anthillFifo' FIFO */
+			/* Anthill and ants maintain contact through 'fifo' */
 			signal(SIGPIPE, endOfFifo);
 			fd = open(fifoName, O_RDONLY);
 			wait(&status);
@@ -57,9 +59,10 @@ int anthill(int testAnts){
 
 		} else {
 			fatal("FORK could not be done");
-		}
+		} gkl
 		testAnts--;
 	}
+	//unlink(fifoName);
 }
 
 void fatal(char *s){
@@ -70,4 +73,9 @@ void fatal(char *s){
 void endOfFifo(int n){
 	printf("Ejecución terminada");
 	exit(1);
+}
+
+void setControlC(){
+	// HACER
+	return;
 }
