@@ -112,17 +112,11 @@ int main(int argc, char * argv[]){
 
 	SDL_WM_SetCaption("Simple Ant Colony simulation", NULL);
 
-	initAssets(5);
-
 	SDLWorld * world = getWorld(696, 1050, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
-	addAsset("assets/hormiga_tmp.jpg", "JPG", "Hormiga", 1);
+	addAsset(world->vector, "assets/hormiga_tmp.jpg", "JPG", "Hormiga", 1);
 
-	SDL_Surface * hormiga = getAssetImage("Hormiga");
-
-	modifyAssetImage("Hormiga", 5, 1);
-
-	zoom(world,1);
+	SDL_Surface * hormiga = getAssetImage(world->vector, "Hormiga");
 
 	pthread_t thread;
 	pthread_create(&thread, NULL, checkMessages, NULL);
@@ -137,12 +131,21 @@ int main(int argc, char * argv[]){
 
   	while(1)
      	{
-		while( SDL_PollEvent( &event ) )
+		while( SDL_PollEvent( &event ) ){
                     /* See if user  quits */
-                    if(event.type == SDL_QUIT )
-			return cleanUp(1);
-           	
-
+			if(event.type == SDL_QUIT )
+				return cleanUp(1);
+			else if(event.type == SDL_MOUSEBUTTONDOWN)
+				switch(event.button.button){
+					case SDL_BUTTON_WHEELUP:
+						zoom(world,1.1);
+						break;
+					case SDL_BUTTON_WHEELDOWN:
+						zoom(world,0.9);
+						break;
+				}
+		
+		}
 
 		/* Get a keyboard snapshot */
 		keystate = SDL_GetKeyState( NULL );
@@ -158,9 +161,8 @@ int main(int argc, char * argv[]){
 		if(keystate[SDLK_a]) zoom(world,1.1);
 		if(keystate[SDLK_z]) zoom(world,0.9);
 
-
 		renderSDLWorld(world, screen);
-
+		renderObject(screen, world, hormiga, 2, 3);
 		if(newMessage == true )
 			getInfoFromBackend(ants);
 		printAnts( screen, world, hormiga, ants);
