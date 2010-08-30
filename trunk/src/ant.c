@@ -6,19 +6,13 @@ main(void){
 
 	//SET REGISTER -----------------------------
 	
+	Ant * ant = malloc(sizeof(Ant));	
+	
 	getchar();
-	setRegister();
-
-	Ant * ant = malloc(sizeof(Ant));
+	setRegister(ant);
 	
 	ant->food = NO_FOOD;
-	//Asumiendo la posicion del anthill
-	ant->currentPos; 
-	// En la matriz, (3,5)
-	ant->currentPos.x = 5;
-	ant->currentPos.y = 11;
-	ant->anthill = ant->currentPos;
-	
+		
 	action(ant);
 }
 
@@ -41,7 +35,6 @@ action(Ant * ant){
 // Tries to move to the maximum trace left by another ant
 bool
 followTrace(Ant * ant){
-/*
 	int i, j, k;
 	Pos pos;
 	Message * send;
@@ -53,7 +46,7 @@ followTrace(Ant * ant){
 	for(i = 0; i < 4; i++){
 		pos.x = ant->currentPos.x + vecMov[i][0];
 		pos.y = ant->currentPos.y + vecMov[i][1];
-		send = createMessage(getpid(), -1, TRACE, GET, pos, 0);
+		send = createMessage(getpid(), -1, MOVE, GET, pos, 0); // Obtain the trace and verifies if the cell is empty
 		sendMessage(MAP, send);
 		receive = receiveMessage(MAP);
 		printMessage(receive);
@@ -84,34 +77,30 @@ followTrace(Ant * ant){
 	}
 
 	i = 0;
-	while(i < k && !move(ant, aux[i].pos))
+	while(i < k && !move(aux[i].pos, false))
 		i++;
 	if(i == k)
 		return false;	
 	return true;
-*/
-	//---------------------------------------------	
-	//PEDIR QUE EL MAP MANEJE TRACE PARA FACILITAR goAnthill()
-	//---------------------------------------------	
-
-	return false;
 }	
 
-
+//MODIFICADA
 /* In addition of approach to the anthill, the ant leaves trace */
 void
 goAnthill(Ant * ant){
-	Pos pos;
-	leaveTrace(ant->currentPos);
-	Cardinal card = getCardinal(ant) % 4;	// If NW then go to N, NE go to E, SE go to S and SW go to W
-		
-	pos.x = ant->currentPos.x + vecMov[card][0];
-	pos.y = ant->currentPos.y + vecMov[card][1];
+	Pos anthill = ant->anthill;
+	Pos currentPos = getCurrentPos();
+	Cardinal card = getCardinal(currentPos, anthill) % 4;	// If NW then go to N, NE go to E, SE go to S and SW go to W
+	Pos to;
+
+	to.x = vecMov[card][0];
+	to.y = vecMov[card][1];	
+	
 	// If the ant is going to arrive to the anthill
-	if( ant->anthill.x == pos.x && ant->anthill.y == pos.y )
+	if( anthill.x == currentPos.x+to.x && anthill.y == currentPos.y+to.y )
 		setFood(ant);
 	// Tries to move closer, but if it can't then, move to another direction
-	else if( !move(ant, pos) )
+	else if( !move(to, true) )
 		randomMove(ant);	
 }
 
@@ -136,7 +125,7 @@ randomMove(Ant * ant){
 		tried[index] = true;
 		count++;
 
-	} while(!move(ant, pos) && count < 4);
+	} while(!move(pos, false) && count < 4);
 	
 	if(count == 4)
 		return false;	// It didn't move
@@ -145,12 +134,15 @@ randomMove(Ant * ant){
 
 
 bool
-move(Ant * ant, Pos to){
+move(Pos to, bool trace){
 	Message * send;	
 	Message * received;
 
 	printf("I want to move to (%d,%d) \n", to.x, to.y);
-	send = createMessage(getpid(), -1, MOVE, SET, to, 0);
+	if(trace)
+		send = createMessage(getpid(), -1, MOVE, SET, to, 1);
+	else
+		send = createMessage(getpid(), -1, MOVE, SET, to, 0);
 	printMessage(send);
 	sendMessage(MAP, send);
 
@@ -158,8 +150,7 @@ move(Ant * ant, Pos to){
 	printf("Message received.\n");
 	printMessage(received);
 	if(received->opCode == MOVE && received->param == OK ){
-		printf("I moved! \n");
-		ant->currentPos = received->pos;
+		printf("I moved! \n");		
 		return true;
 	}
 	else {
@@ -168,24 +159,23 @@ move(Ant * ant, Pos to){
 	}
 }
 
-
-void
-leaveTrace(Pos pos){
+//MODIFICADA
+Pos
+getCurrentPos(){
 	Message * send;
-	Message * receive;
-
-	send = createMessage(getpid(), -1, TRACE, SET, pos, 1);
+	Message * received;
+	Pos pos;
+	
+	send = createMessage(getpid(), -1, REGISTER, GET, pos, 0);	
 	sendMessage(MAP, send);
-	receive = receiveMessage(MAP);
-	printMessage(receive);
-	//---------------------------------------------	
-	//PEDIR QUE EL MAP MANEJE TRACE PARA FACILITAR goAnthill()
-	//---------------------------------------------	
+	received = receiveMessage(MAP);
+	pos = received->pos;
+	return pos;
 }
 
 
 void 
-setRegister(){
+setRegister(Ant * ant){
 
 	Message * send;
 	Message * received;
@@ -200,13 +190,12 @@ setRegister(){
 
 	received = receiveMessage(MAP);
 	printf("Message received.\n");
-	//---------------------------------------------	
-	//DEBERIA RECIBIR EN EL MENSAJE LA POS DEL ANTHILL
-	//---------------------------------------------	
 	printMessage(received);
-	if(received->opCode == REGISTER && received->param == OK )
+	if(received->opCode == REGISTER && received->param == OK ){
 		printf("Register successful.\n");
-	else
+		ant->anthill.x = received->pos.x;
+		ant->anthill.y = received->pos.y;
+	} else
 		printf("Register failed.\n");
 }
 
@@ -215,10 +204,8 @@ setRegister(){
 bool 
 getNearFood(Ant * ant){
 
-	//---------------------------------------------	
-	//LA HORMIGA SOLO PUEDE MOVERSE A UN LUGAR CON COMIDA SI NO TIENE
-	//ES DECIR, QUE SI LLEGA A UNA CELDA QUE TIENE COMIDA Y ELLA NO TIENE,
-	//LA VA A TOMAR. TAMBIEN FALTA AGREGAR EL COMPORTAMIENTO PARA LAS BIG
+	//---------------------------------------------
+	//FALTA AGREGAR EL COMPORTAMIENTO PARA LAS BIG
 	//---------------------------------------------
 	int i;
 	Pos pos;
@@ -236,7 +223,7 @@ getNearFood(Ant * ant){
 		received = receiveMessage(MAP);
 		printf("Message received.\n");
 		printMessage(received);
-		if(received->opCode == FOOD && received->param == OK && move(ant, pos)){
+		if(received->opCode == FOOD && received->param == OK && move(pos, false)){
 				printf("I got food! \n");
 				ant->food = SMALL_FOOD;
 				return true;
@@ -248,7 +235,7 @@ getNearFood(Ant * ant){
 	return false;
 }
 
-
+//MODIFICADA
 void 
 setFood(Ant * ant){
 	
@@ -270,11 +257,11 @@ setFood(Ant * ant){
 		printf("I have no food! \n");
 }
 
-
+//MODIFICADA
 Cardinal
-getCardinal(Ant * ant){
-	int disX = ant->anthill.x - ant->currentPos.x;
-	int disY = ant->anthill.y - ant->currentPos.y;
+getCardinal(Pos from, Pos to){
+	int disX = to.x - from.x;
+	int disY = to.y - from.y;
 	if(disX == 0){
 		if(disY > 0)
 			return north;

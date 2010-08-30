@@ -23,14 +23,14 @@ bool getNearFood(Ant * ant);
 
 bool randomMove(Ant * ant);
 
-bool move(Ant * ant, Pos to);
+bool move(Pos to, bool trace);
 
-Cardinal getCardinal(Ant * ant);
-
-void leaveTrace(Pos pos);
+Cardinal getCardinal(Pos from, Pos to);
 
 bool followTrace(Ant * ant);
 
-void setRegister();
+void setRegister(Ant * ant);
 
 void setFood(Ant * ant);
+
+Pos getCurrentPos(void);
