@@ -14,16 +14,17 @@
 #define SIZE_X 15
 #define SIZE_Y 15
 
+#define MAP_ID -1
 
 void putAntFrontend(World * world, Pos pos){
 	Message * ans;
-	ans = createMessage( getpid(), world->frontendID, MOVE, SET, pos, 0);
+	ans = createMessage( MAP_ID, world->frontendID, MOVE, SET, pos, 0);
 	sendMessage(ANT, ans);
 }
 
 void eraseAntFrontend(World * world, Pos pos){
 	Message * ans;
-	ans = createMessage( getpid(), world->frontendID, MOVE, EMPTY, pos, 0);
+	ans = createMessage( MAP_ID, world->frontendID, MOVE, EMPTY, pos, 0);
 	sendMessage(ANT, ans);
 }
 
@@ -83,7 +84,9 @@ void registerAnt(Message * msg, World * world){
 	Message * ans;
 	int i,j;
 
-	ans = createMessage( getpid(), msg->pidFrom, REGISTER, NOT_OK, msg->pos, 0 );
+	Pos anthillPos = world->anthill.pos;
+
+	ans = createMessage( MAP_ID, msg->pidFrom, REGISTER, NOT_OK, anthillPos, 0 );
 
 	if(!exists(msg->pidFrom, world)){
 		// Get next empty ant slot on map
@@ -97,7 +100,7 @@ void registerAnt(Message * msg, World * world){
 		    j != world->anthill.maxPopulation && world->anthill.ants[i] == INVALID_ID ){
 			world->clients[i] = msg->pidFrom;
 			world->anthill.ants[j] = msg->pidFrom;
-			ans = createMessage( getpid(), msg->pidFrom, REGISTER, OK, msg->pos, 0);
+			ans = createMessage( MAP_ID, msg->pidFrom, REGISTER, OK, anthillPos, 0);
 			printf("Registered ant %d at (%d,%d) \n", msg->pidFrom, world->anthill.pos.x, world->anthill.pos.y);
 		}
 	}
@@ -118,18 +121,18 @@ bool exists(int pid,World * world){
 }
 
 /*
- * Tell the client if the ant is registered
+ * Tell the client if the ant is registered, return its position
 */
 void checkRegistered(Message * msg, World * world){
 	int i;
 	Message * ans;
-	ans = createMessage( getpid(), msg->pidFrom, REGISTER, OK, msg->pos, msg->trace);
-	if(!exists(msg->pidFrom, world))
-			ans = createMessage( getpid(), msg->pidFrom, REGISTER, NOT_OK, msg->pos, msg->trace);
+
+	ans = createMessage( MAP_ID, msg->pidFrom, REGISTER, NOT_OK, msg->pos, msg->trace);
+	if(exists(msg->pidFrom, world))
+		ans = createMessage( MAP_ID, msg->pidFrom, REGISTER, OK, getAntCellByPID(world,msg->pidFrom )->pos, msg->trace);
 
 	sendMessage(ANT, ans);
 }
-
 
 /*
  * Check if cell at pos is occupied.
@@ -138,26 +141,45 @@ bool isOccupied(Pos * pos, World * world){
 	return world->cells[pos->x][pos->y].type != EMPTY_CELL;
 }
 
+bool verifyPosition(Pos pos){
+	if((abs(pos.x) == 1 && pos.y == 0) 
+        || (abs(pos.y) == 1 && pos.x == 0) )
+		return true;
+	return false;
+}
+
+Pos addPositions(Pos p1, Pos p2){
+	Pos out;
+	out.x = p1.x + p2.x;
+	out.y = p1.y + p2.y;
+
+	return out;
+}
+
+// A SEGUIRRRRRRR -----------------------------------
 
 // Get world position, check if its empty or not
 void getWorldPosition(Message * msg,World * world){
-
 	Message * ans;
-	double trace = world->cells[msg->pos.x][msg->pos.x].trace;
-	ans = createMessage( getpid(), msg->pidFrom, MOVE, OCCUPIED, msg->pos, trace);
 
-	// If Ant exists
-	if(exists(msg->pidFrom, world))
-		// And the move is valid (neighbor
-		if( neighborCells(getAntCellByPID(world, msg->pidFrom)->pos, msg->pos))
-	
-			// And cell is empty
-			if(!isOccupied(&msg->pos, world))
-					ans = createMessage( getpid(), msg->pidFrom, MOVE, EMPTY, msg->pos, trace);
-			// Or has food
-			else if( world->cells[msg->pos.x][msg->pos.y].type == FOOD_CELL )
-					ans = createMessage( getpid(), msg->pidFrom, FOOD, OCCUPIED, msg->pos, trace);
+	Pos antPos = getAntCellByPID(world,msg->pidFrom )->pos;
+	Pos desiredPos = addPositions(antPos, msg->pos);
 
+	double trace = world->cells[desiredPos.x][desiredPos.y].trace;
+	ans = createMessage( MAP_ID, msg->pidFrom, MOVE, NOT_OK, msg->pos, msg->trace);
+
+	// If Ant exists and move is valid
+	if(exists(msg->pidFrom, world) && verifyPosition(msg->pos)){
+
+		ans = createMessage( MAP_ID, msg->pidFrom, MOVE, OCCUPIED, msg->pos, msg->trace);
+
+		// And cell is empty
+		if(!isOccupied(&desiredPos, world))
+				ans = createMessage( MAP_ID, msg->pidFrom, MOVE, EMPTY, msg->pos, trace);
+		// Or has food
+		else if( world->cells[desiredPos.x][desiredPos.y].type == FOOD_CELL )
+				ans = createMessage(MAP_ID, msg->pidFrom, FOOD, OCCUPIED, msg->pos, trace);
+	}
 	sendMessage(ANT, ans);
 }
 
@@ -187,63 +209,49 @@ int antExistsInAnthill(World * world, int pid){
 	return -1;
 }
 
-
-bool neighborCells(Pos p1, Pos p2 ){
-	if( (abs(p1.x - p2.x) == 1 && p1.y - p2.y == 0 ) 
-	   || ( abs(p1.y -p2.y) == 1  && p1.x - p2.x == 0 ))
-		return true;
-	return false;
-}
-
 void setWorldPosition(Message * msg,World * world){
 
 	Message * ans;
 	int i;
-	ans = createMessage( getpid(), msg->pidFrom, MOVE, NOT_OK, msg->pos, msg->trace);
+	ans = createMessage( MAP_ID, msg->pidFrom, MOVE, NOT_OK, msg->pos, msg->trace);
 
-	// If cell is empty and ant is registered
-	if(!isOccupied(&msg->pos, world) && exists(msg->pidFrom, world)){
+	Pos antPos = getAntCellByPID(world,msg->pidFrom )->pos;
+	Pos desiredPos = addPositions(antPos, msg->pos);
+
+	// If cell is empty, move is valid and ant is registered
+	if(!isOccupied(&desiredPos, world) && verifyPosition(msg->pos) && exists(msg->pidFrom, world)){
 		// If leaves or not trace 
-		if(msg->trace == 1 || msg->trace == 0){
+		if((int)msg->trace == 1 || (int) msg->trace == 0){
 			
-			int index =  antExistsInAnthill(world, msg->pidFrom);
-			bool neighbor = false;
+			int antIndex =  antExistsInAnthill(world, msg->pidFrom);
+			Cell * nextCell = &world->cells[desiredPos.x][desiredPos.y];
 
-			Cell * nextCell = &world->cells[msg->pos.x][msg->pos.y];
-
-
-			// Check if ant is in anthill, then move it
-			if( index >= 0){
-				// Check if next position is neighbor of anthill
-				if(neighborCells(msg->pos, world->anthill.pos)){
-					world->anthill.ants[index] = INVALID_ID;
-					neighbor = true;
-				}
+			// Check if ant is in anthill, then erase it from anthill
+			if( antIndex >= 0){
+				world->anthill.ants[antIndex] = INVALID_ID;
 			} else {
 				// If ant is in world, erase old cell data, and if food is carried, keep carrying
 				Cell * oldCell = getAntCellByPID(world, msg->pidFrom );
 				
-				// But, check if next pos is neighbor !
-				if(neighborCells(msg->pos, oldCell->pos)) {
-					oldCell->type = EMPTY_CELL;
-					oldCell->typeID = INVALID_ID;
-					nextCell->foodType = oldCell->foodType; // carry food if possible
-					neighbor = true;
-					// Tell frontend ant is no more
-					eraseAntFrontend(world,oldCell->pos);	
-				}
+				oldCell->type = EMPTY_CELL;
+				oldCell->typeID = INVALID_ID;
+				nextCell->foodType = oldCell->foodType; // carry food if possible
+
+				// Tell frontend ant is no more
+				eraseAntFrontend(world,oldCell->pos);	
 			}
 
-			// If next position is neighbor, then finally send message and manage next cell.
-			if(neighbor){
-				ans = createMessage( getpid(), msg->pidFrom, MOVE, OK, msg->pos, msg->trace);
-				// Set next cell data
-				nextCell->type = ANT_CELL;
-				nextCell->trace = msg->trace;
-				nextCell->typeID = msg->pidFrom;
-				// Tell frontend ant's new position
-				putAntFrontend(world,nextCell->pos);
-			}
+			ans = createMessage( getpid(), msg->pidFrom, MOVE, OK, msg->pos, msg->trace);
+
+			// Set next cell data
+			nextCell->type = ANT_CELL;
+
+			// If trace 1 change it, if not, leave it unchanged
+			nextCell->trace =( (int) msg->trace == 1) ? msg->trace : nextCell->trace;
+			nextCell->typeID = msg->pidFrom;
+
+			// Tell frontend ant's new position
+			putAntFrontend(world,nextCell->pos);
 		}
 	}
 	sendMessage(ANT, ans);
@@ -252,7 +260,7 @@ void setWorldPosition(Message * msg,World * world){
 
 void setFoodAtAnthill(Message * msg, World * world){
 	Message * ans;
-	ans = createMessage( getpid(), msg->pidFrom, FOOD, NOT_OK, msg->pos, msg->trace);
+	ans = createMessage( MAP_ID, msg->pidFrom, FOOD, NOT_OK, msg->pos, msg->trace);
 
 	// If ant exists
 	if(exists(msg->pidFrom, world)){
@@ -260,14 +268,16 @@ void setFoodAtAnthill(Message * msg, World * world){
 		// Cell actually occupied by ant
 		Cell * antCell = getAntCellByPID(world, msg->pidFrom );
 
+		Pos desiredPos = addPositions(antCell->pos, msg->pos);
+
+
 		// If desired pos is anthill and ant is neighbor of anthill...
-		if( msg->pos.x == world->anthill.pos.x && msg->pos.y == world->anthill.pos.y
-		 && neighborCells(antCell->pos, world->anthill.pos ))
+		if( verifyPosition(msg->pos) && desiredPos.x == world->anthill.pos.x && desiredPos.y == world->anthill.pos.y)
 			// Now check if ant has food to deliver
 			if( antCell->foodType == NO_FOOD )
-				ans = createMessage( getpid(), msg->pidFrom, FOOD, EMPTY, msg->pos, msg->trace);
+				ans = createMessage( MAP_ID, msg->pidFrom, FOOD, EMPTY, msg->pos, msg->trace);
 			else { // DELIVERANCE!
-				ans = createMessage( getpid(), msg->pidFrom, FOOD, OK, msg->pos, msg->trace);
+				ans = createMessage( MAP_ID, msg->pidFrom, FOOD, OK, msg->pos, msg->trace);
 
 				// Now give food to anthill
 				Message * sendFood;
@@ -306,24 +316,27 @@ int nextTurn(World * world){
 void getFoodFromWorld(Message * msg, World * world){
 
 	Message * ans;
-	ans = createMessage( getpid(), msg->pidFrom, FOOD, NOT_OK, msg->pos, msg->trace);
+	ans = createMessage( MAP_ID, msg->pidFrom, FOOD, NOT_OK, msg->pos, msg->trace);
 
 	// If ant exists
 	if(exists(msg->pidFrom, world)){
 
-		Cell * antCell = getAntCellByPID( world,msg->pidFrom);
+		// Cell actually occupied by ant
+		Cell * antCell = getAntCellByPID(world, msg->pidFrom );
+		Pos desiredPos = addPositions(antCell->pos, msg->pos);
+
 
 		// If ant doesn't have food already and requested cell is adjacent
-		if(antCell->foodType == NO_FOOD && neighborCells(antCell->pos, msg->pos)){
+		if(antCell->foodType == NO_FOOD && verifyPosition(msg->pos)){
 		
-			Cell * foodCell = &world->cells[msg->pos.x][ msg->pos.y];
+			Cell * foodCell = &world->cells[desiredPos.x][desiredPos.y];
 
 			// If foodCell has food
 			if(foodCell->type == FOOD_CELL ){
 
 				//If it has small food
 				if(foodCell->foodType == SMALL_FOOD){
-					ans = createMessage( getpid(), msg->pidFrom, FOOD, OK, msg->pos, msg->trace);
+					ans = createMessage( MAP_ID, msg->pidFrom, FOOD, OK, msg->pos, msg->trace);
 
 					// Take food from cell, give it to ant
 					foodCell->type = EMPTY_CELL;
@@ -332,7 +345,7 @@ void getFoodFromWorld(Message * msg, World * world){
 					
 				} else // If it has big food, warn ant
 				if(foodCell->foodType == BIG_FOOD)
-					ans = createMessage( getpid(), msg->pidFrom, FOOD, BIG, msg->pos, msg->trace);
+					ans = createMessage(MAP_ID, msg->pidFrom, FOOD, BIG, msg->pos, msg->trace);
 			}
 		}
 	}

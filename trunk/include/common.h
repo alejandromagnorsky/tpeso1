@@ -42,7 +42,7 @@ REGISTER ----------------------------------------
 REGISTER - SET = Register an ant. Starts on anthill.
 	REGISTER - OK = Register successful.
 	REGISTER - NOT_OK = Register unsuccessful.
-REGISTER - GET = Check if an ant is registered.
+REGISTER - GET = Check if an ant is registered and its pos
 	REGISTER - OK = Ant is registered at pos.
 	REGISTER - NOT_OK = Ant is not registered.
 
@@ -54,6 +54,7 @@ MOVE - SET = Try to move to pos, with or without trace
 	TURN - NOT_OK = Ant has to wait
 MOVE - GET = Check if moving to pos is possible (also, gets trace!)
 	MOVE - EMPTY = Cell at pos is empty, ant can move
+	MOVE - NOT_OK = Bad relative position
 	MOVE - OCCUPIED = Cell at pos is occupied by ANT_CELL or ANTHILL_CELL
 	FOOD - OCCUPIED = Cell at pos is occupied by FOOD_CELL
 	TURN - NOT_OK = Ant has to wait
