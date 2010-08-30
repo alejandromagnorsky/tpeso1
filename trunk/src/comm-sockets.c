@@ -39,6 +39,7 @@ void closeNode(NodeType t){
 
 Message * receiveMessage(NodeType from){
 	int ssd, csd;	//Server/Client socket descriptors
+	unsigned int clientSize;
 	struct sockaddr_in server = { 0 }, client = { 0 };	//Server/Client structures
 	Message * out = malloc(sizeof(Message));
 
@@ -83,25 +84,28 @@ printf("RECEIVE FROM ANT: LISTEN\n");
 			close(ssd);
 			return NULL;
           	}
-
-		/* Server is ready to accept incoming connections. Server is a 'socket factory' */
-		unsigned int clientSize = sizeof(client);
+		
+		while(1){
+			/* Server is ready to accept incoming connections. Server is a 'socket factory' */
 printf("RECEIVE FROM ANT: ACCEPT  |  pid: %d\n", getpid());
-		if ((csd = accept(ssd, (struct sockaddr *) &client, &clientSize)) < 0) {
-           	 	printf("Failed to accept client connection. Returning NULL.\n");
-			close(ssd);
-			close(csd);
-			return NULL;
-             	}
-		/* Receiving data from client */
-printf("RECEIVE: ATENDIENDO CLIENTE: %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+			if ((csd = accept(ssd, (struct sockaddr *) &client, &clientSize)) < 0) {
+     		      	 	printf("Failed to accept client connection. Returning NULL.\n");
+				close(ssd);
+				close(csd);
+				return NULL;
+      	       		}
+			clientSize = sizeof(client);
+			/* Receiving data from client */
+			printf("ATENDIENDO CLIENTE: %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 printf("RECEIVE FROM ANT: RECV  |  pid: %d\n", getpid());
- 		if (recv(csd, out, sizeof(out), 0) < 0) {
-           		printf("Failed to receive from data client. Returning NULL.\n");
-			close(ssd);
-			close(csd);
-			return NULL;
-            	}		
+ 			if (recv(csd, out, sizeof(out), 0) < 0) {
+    		       		printf("Failed to receive from data client. Returning NULL.\n");
+				close(ssd);
+				close(csd);
+				return NULL;
+	            	}
+			return out;
+		}		
 	}
 	close(csd);
 	close(ssd);
