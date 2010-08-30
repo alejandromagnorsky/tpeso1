@@ -196,6 +196,11 @@ int main(){
 		receive from Map TURN SET
 	
 		do_things
+
+		Message * msgR;
+		msgR = receiveMessage(MAP);
+
+		printf("Received from map: %d \n", msgR->opCode);
 	}
 	*/
 	
