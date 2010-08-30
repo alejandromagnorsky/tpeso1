@@ -12,8 +12,10 @@ SDLWorld * getWorld(int h, int w, char * filename, char * ext, Uint32 bgcolor){
 	out->gridSize = 40;
 	out->zoomFactor = 1;
 
-	addAsset(filename, ext, "World Background", 0);
-	out->bgimage = getAssetImage("World Background");
+	out->vector = createAssetVector(10);
+
+	addAsset(out->vector, filename, ext, "World Background", 0);
+	out->bgimage = getAssetImage(out->vector, "World Background");
 
 	out->bg.x = 0;
 	out->bg.y = 0;
@@ -36,15 +38,14 @@ void endWorld(SDLWorld * world){
 }
 
 void zoom(SDLWorld * world, double z){
-	if(z *world->zoomFactor < 0.3)
+	if(z * world->zoomFactor < 0.1 || z * world->zoomFactor >= 1)
 		return;
 
 	world->zoomFactor *= z;
-	SDL_Asset * allAssets = getAssets();
-	int qty = getQtyActiveAssets();
+	int qty = getQtyActiveAssets(world->vector);
 	int i;
 	for(i=0;i<qty;i++)
-		modifyAssetImage(allAssets[i].name, 0, world->zoomFactor);
+		modifyAssetImage(world->vector, world->vector->assets[i].name, 0, world->zoomFactor);
 }
 
 
