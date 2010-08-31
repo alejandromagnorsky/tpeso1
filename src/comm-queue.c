@@ -59,7 +59,7 @@ Message * receiveMessage(NodeType from){
 		return NULL;
 
 	// A copy must be made, because buf is deallocated after this function
-	out = createMessage(buf.msg.pidFrom,buf.msg.pidTo, buf.msg.opCode,  buf.msg.param, buf.msg.pos,buf.msg.trace);
+	out = createMessage(buf.msg.keyFrom,buf.msg.keyTo, buf.msg.opCode,  buf.msg.param, buf.msg.pos,buf.msg.trace);
 
 	return out;
 }
@@ -72,7 +72,7 @@ int sendMessage(NodeType to, Message * msg){
 	if( to == SERVER )
 		buf.type = 1; // CLIENTs send to SERVER in queue 1
 	else if( to == CLIENT )
-		buf.type = msg->pidTo; // SERVER sends to CLIENT by its pid
+		buf.type = msg->keyTo; // SERVER sends to CLIENT by its pid
 
 	msgsnd(queueID, &buf, sizeof(msgbuf), 0);
 
