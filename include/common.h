@@ -106,7 +106,7 @@ typedef enum { REGISTER, MOVE, FOOD , SHOUT, TRACE, TURN } OpCode;
 
 typedef enum { SET, GET, OK, NOT_OK, EMPTY, OCCUPIED, BIG } OpCodeParam;
 
-typedef enum { ANTHILL, ANT, MAP } NodeType;
+typedef enum {  SERVER, CLIENT } NodeType;
 
 typedef enum { false, true } bool;
 

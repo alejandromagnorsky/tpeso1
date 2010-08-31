@@ -19,13 +19,13 @@
 void putAntFrontend(World * world, Pos pos){
 	Message * ans;
 	ans = createMessage( MAP_ID, world->frontendID, MOVE, SET, pos, 0);
-	sendMessage(ANT, ans);
+	sendMessage(CLIENT, ans);
 }
 
 void eraseAntFrontend(World * world, Pos pos){
 	Message * ans;
 	ans = createMessage( MAP_ID, world->frontendID, MOVE, EMPTY, pos, 0);
-	sendMessage(ANT, ans);
+	sendMessage(CLIENT, ans);
 }
 
 void printWorld(World * w){
@@ -105,7 +105,7 @@ void registerAnt(Message * msg, World * world){
 		}
 	}
 
-	sendMessage(ANT, ans);
+	sendMessage(CLIENT, ans);
 }
 
 
@@ -131,7 +131,7 @@ void checkRegistered(Message * msg, World * world){
 	if(exists(msg->pidFrom, world))
 		ans = createMessage( MAP_ID, msg->pidFrom, REGISTER, OK, getAntCellByPID(world,msg->pidFrom )->pos, msg->trace);
 
-	sendMessage(ANT, ans);
+	sendMessage(CLIENT, ans);
 }
 
 /*
@@ -180,7 +180,7 @@ void getWorldPosition(Message * msg,World * world){
 		else if( world->cells[desiredPos.x][desiredPos.y].type == FOOD_CELL )
 				ans = createMessage(MAP_ID, msg->pidFrom, FOOD, OCCUPIED, msg->pos, trace);
 	}
-	sendMessage(ANT, ans);
+	sendMessage(CLIENT, ans);
 }
 
 Cell * getAntCellByPID(World * world, int pid ){
@@ -241,7 +241,7 @@ void setWorldPosition(Message * msg,World * world){
 				eraseAntFrontend(world,oldCell->pos);	
 			}
 
-			ans = createMessage( getpid(), msg->pidFrom, MOVE, OK, msg->pos, msg->trace);
+			ans = createMessage( MAP_ID, msg->pidFrom, MOVE, OK, msg->pos, msg->trace);
 
 			// Set next cell data
 			nextCell->type = ANT_CELL;
@@ -254,7 +254,7 @@ void setWorldPosition(Message * msg,World * world){
 			putAntFrontend(world,nextCell->pos);
 		}
 	}
-	sendMessage(ANT, ans);
+	sendMessage(CLIENT, ans);
 }
 
 
@@ -297,7 +297,7 @@ void setFoodAtAnthill(Message * msg, World * world){
 			}
 	}
 
-	sendMessage(ANT, ans);
+	sendMessage(CLIENT, ans);
 }
 
 int nextTurn(World * world){
@@ -349,7 +349,7 @@ void getFoodFromWorld(Message * msg, World * world){
 			}
 		}
 	}
-	sendMessage(ANT, ans);
+	sendMessage(CLIENT, ans);
 }
 
 void broadcastShout(Message * msg, World * world){
@@ -363,11 +363,11 @@ void broadcastShout(Message * msg, World * world){
 		for(i=0;i<world->maxConnections;i++)
 			if(world->clients[i] != INVALID_ID && world->clients[i] != msg->pidFrom){
 				ans = createMessage( getpid(),world->clients[i], SHOUT, SET, msg->pos, msg->trace);
-				sendMessage(ANT, ans);
+				sendMessage(CLIENT, ans);
 			}
 
 		ans = createMessage( getpid(),msg->pidFrom, SHOUT, OK, msg->pos, msg->trace);
-		sendMessage(ANT, ans);
+		sendMessage(CLIENT, ans);
 	}
 }
 
@@ -467,6 +467,8 @@ int main(int argc, char * argv[]){
 	printf("Frontend PID: %d \n", frontendPID);
 
 
+	openIPC();
+
 	// MAP LOADER HERE
 
 	World * world;
@@ -482,7 +484,7 @@ int main(int argc, char * argv[]){
 		rcvMsg = NULL;
 
 		printf("Waiting to receive...\n\n");
-		rcvMsg = receiveMessage(ANT);
+		rcvMsg = receiveMessage(CLIENT);
 
 		printf("Message received. \n\n");
 
@@ -494,4 +496,7 @@ int main(int argc, char * argv[]){
 		printWorldData(world);
 
 	}
+
+	closeIPC();
+	destroyIPC();
  }
