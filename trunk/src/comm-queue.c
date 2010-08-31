@@ -11,7 +11,9 @@
 
 #include "../include/communication.h"
 
-static key_t mapKey = 1235;
+static key_t SERVERKey = 1235;
+
+static int queueID = 0;
 
 typedef struct {
 	long int type;
@@ -20,45 +22,41 @@ typedef struct {
 
 
 void sigHandler(){
-	closeNode(0);
+	destroyIPC();
 	exit(1);
 }
 
-
-void closeNode(NodeType t){
-	int id;
-
-	// Get descriptor
-	if ( ( id = msgget(mapKey,O_WRONLY | O_CREAT |  0666)) == -1 )	
-		return;
-	msgctl(id, IPC_RMID , NULL); 
+void destroyIPC(){
+	msgctl(queueID, IPC_RMID, NULL); 
 }
 
+// Open & initialize IPC resource
+void openIPC(){
+	if ( ( queueID = msgget(SERVERKey,O_RDONLY | O_CREAT | IPC_CREAT |0666)) == -1 )
+		errorLog("msgget");
+	printf("HOLA: %d\n", queueID);
+}
+
+// Close IPC resource
+void closeIPC(){
+
+}
 
 
 Message * receiveMessage(NodeType from){
 
-	int id, prio;
+	int prio;
 	Message * out = NULL;
 	msgbuf buf;
 
 
-	if( from == MAP )
-		prio = getpid(); // Ants receive (from Map) in queue getpid()
-	else prio = 1; // Map receives in queue 1
-
-
-
-	// Open
-	if ( ( id = msgget(mapKey,O_RDONLY | O_CREAT | IPC_CREAT |0666)) == -1 )	{
-		printf("error: %d \n", errno );
-		return NULL;
-	}
+	if( from == SERVER )
+		prio = getpid(); // CLIENTs receive (from SERVER) in queue getpid()
+	else prio = 1; // SERVER receives in queue 1
 
 	// Receive
-	if( msgrcv(id, &buf, sizeof(msgbuf), prio, 0) == -1 )
+	if( msgrcv(queueID, &buf, sizeof(msgbuf), prio, 0) == -1 )
 		return NULL;
-
 
 	// A copy must be made, because buf is deallocated after this function
 	out = createMessage(buf.msg.pidFrom,buf.msg.pidTo, buf.msg.opCode,  buf.msg.param, buf.msg.pos,buf.msg.trace);
@@ -68,21 +66,15 @@ Message * receiveMessage(NodeType from){
 
 int sendMessage(NodeType to, Message * msg){
 
-	int id;
 	msgbuf buf;
 	buf.msg = *msg;
 
-	if( to == MAP )
-		buf.type = 1; // Ants send to Map in queue 1
-	else if( to == ANT )
-		buf.type = msg->pidTo; // Map sends to ant by its pid
-	else buf.type = 2; // Map sends to anthill in queue 2
+	if( to == SERVER )
+		buf.type = 1; // CLIENTs send to SERVER in queue 1
+	else if( to == CLIENT )
+		buf.type = msg->pidTo; // SERVER sends to CLIENT by its pid
 
-
-	if ( ( id = msgget(mapKey,O_WRONLY | O_CREAT | IPC_CREAT | 0666)) == -1 )
-		return -1;
-
-	msgsnd(id, &buf, sizeof(msgbuf), 0);
+	msgsnd(queueID, &buf, sizeof(msgbuf), 0);
 
 	return 0;
 }

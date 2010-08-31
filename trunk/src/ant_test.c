@@ -21,9 +21,9 @@ void testSETSHOUT(){
 	printf("I want to SHOUT! \n");
 	send = createMessage( getpid(), -1, SHOUT, SET, pos, 0);
 	printMessage(send);
-	sendMessage(MAP, send);
+	sendMessage(SERVER, send);
 
-	received = receiveMessage(MAP);
+	received = receiveMessage(SERVER);
 	printf("Message received.\n");
 	printMessage(received);
 	if(received->opCode == SHOUT && received->param == OK )
@@ -32,41 +32,18 @@ void testSETSHOUT(){
 		printf("I don't have turns left! \n");
 }
 
-
-
-void testSETTrace(double trace){
-	Pos pos = {0,0};
-
-	Message * send;	
-	Message * received;
-
-	printf("I want to leave trace here \n");
-	send = createMessage( getpid(), -1, TRACE, SET, pos, trace);
-	printMessage(send);
-	sendMessage(MAP, send);
-
-	received = receiveMessage(MAP);
-	printf("Message received.\n");
-	printMessage(received);
-	if(received->opCode == TRACE && received->param == OK )
-		printf("I left trace!\n");
-	else if(received->opCode == TRACE && received->param == NOT_OK)
-		printf("I tried to leave an invalid trace! \n");
-}
-
-
 void testSETFood(int x, int y){
 	Pos pos = {x,y};
 
 	Message * send;	
 	Message * received;
 
-	printf("I want to leave food on anthill in (%d,%d) \n", x,y);
+	printf("I want to leave food on anthill at (%d,%d) from here \n", x,y);
 	send = createMessage( getpid(), -1, FOOD, SET, pos, 0);
 	printMessage(send);
-	sendMessage(MAP, send);
+	sendMessage(SERVER, send);
 
-	received = receiveMessage(MAP);
+	received = receiveMessage(SERVER);
 	printf("Message received.\n");
 	printMessage(received);
 	if(received->opCode == FOOD && received->param == OK )
@@ -82,12 +59,12 @@ void testGETFood(int x, int y){
 	Message * send;	
 	Message * received;
 
-	printf("I want get food from (%d,%d) \n", x,y);
+	printf("I want get food at (%d,%d) from here\n", x,y);
 	send = createMessage( getpid(), -1, FOOD, GET, pos, 0);
 	printMessage(send);
-	sendMessage(MAP, send);
+	sendMessage(SERVER, send);
 
-	received = receiveMessage(MAP);
+	received = receiveMessage(SERVER);
 	printf("Message received.\n");
 	printMessage(received);
 	if(received->opCode == FOOD && received->param == OK )
@@ -105,12 +82,12 @@ void testGETMove(int x, int y){
 	Message * send;	
 	Message * received;
 
-	printf("I want check to move to (%d,%d) \n", x,y);
+	printf("I want check to move at (%d,%d) from here\n", x,y);
 	send = createMessage( getpid(), -1, MOVE, GET, pos, 0);
 	printMessage(send);
-	sendMessage(MAP, send);
+	sendMessage(SERVER, send);
 
-	received = receiveMessage(MAP);
+	received = receiveMessage(SERVER);
 	printf("Message received.\n");
 	printMessage(received);
 	if(received->opCode == MOVE && received->param == EMPTY )
@@ -127,12 +104,12 @@ void testSETMove(int x, int y){
 	Message * send;	
 	Message * received;
 
-	printf("I want to move to (%d,%d) \n", x,y);
+	printf("I want to move at (%d,%d) from here \n", x,y);
 	send = createMessage( getpid(), -1, MOVE, SET, pos, 0);
 	printMessage(send);
-	sendMessage(MAP, send);
+	sendMessage(SERVER, send);
 
-	received = receiveMessage(MAP);
+	received = receiveMessage(SERVER);
 	printf("Message received.\n");
 	printMessage(received);
 	if(received->opCode == MOVE && received->param == OK )
@@ -151,9 +128,9 @@ void testGETRegister(){
 	printf("Am I registered? \n");
 	send = createMessage( getpid(), -1, REGISTER, GET, pos, 0);
 	printMessage(send);
-	sendMessage(MAP, send);
+	sendMessage(SERVER, send);
 
-	received = receiveMessage(MAP);
+	received = receiveMessage(SERVER);
 	printf("Message received.\n");
 	printMessage(received);
 	if(received->opCode == REGISTER && received->param == OK )
@@ -173,13 +150,13 @@ void testSETRegister(){
 	printf("Trying to register... \n");
 	send = createMessage( getpid(), -1, REGISTER, SET, pos, 0);
 	printMessage(send);
-	sendMessage(MAP, send);
+	sendMessage(SERVER, send);
 
-	received = receiveMessage(MAP);
+	received = receiveMessage(SERVER);
 	printf("Message received.\n");
 	printMessage(received);
 	if(received->opCode == REGISTER && received->param == OK )
-		printf("Register successful.\n");
+		printf("Register successful. Anthillpos: (%d,%d)\n",received->pos.x, received->pos.y);
 	else printf("Register failed.\n");
 
 }
@@ -187,6 +164,9 @@ void testSETRegister(){
 
 int main(){
 	printf("PID: %d \n", getpid());
+
+
+	openIPC();
 
 	/* 
 	La idea:
@@ -198,7 +178,7 @@ int main(){
 		do_things
 
 		Message * msgR;
-		msgR = receiveMessage(MAP);
+		msgR = receiveMessage(SERVER);
 
 		printf("Received from map: %d \n", msgR->opCode);
 	}
@@ -233,57 +213,49 @@ int main(){
 
 	// MOVE SET-----------------------------
 
-	// Must succeed
+	// Must succeed, toy en 4,5
 	getchar();
-	testSETMove(4,5);
+	testSETMove(1,0);
 
 	// Must FAIL
 	getchar();
-	testSETMove(3,5);
+	testSETMove(0,0);
 
 	// Must FAIL
 	getchar();
-	testSETMove(14,15);
+	testSETMove(10,10);
 
-	// Must succeed
+	// Must succeed, toy en 5,5
 	getchar();
-	testSETMove(4,5);
+	testSETMove(1,0);
 
-	// Must succeed
+	// Must succeed, toy en 6,5
 	getchar();
-	testSETMove(5,5);
+	testSETMove(1,0);
 
-	// Must succeed
+	// Must fail, food is in 7,5
 	getchar();
-	testSETMove(6,5);
+	testSETMove(1,0);
 
 	// MOVE GET -----------------------------
 
-	// Must FAIL
+	// Must FAIL, food there
 	getchar();
-	testGETMove(6,5);
+	testGETMove(1,0);
 
 	// Must work
 	getchar();
-	testGETMove(6,6);
+	testGETMove(0,1);
 
 	// Must fail
 	getchar();
-	testGETMove(4,5);
-
-	// Must fail
-	getchar();
-	testGETMove(5,4);
-
-	// Must fail, FOOD is there
-	getchar();
-	testGETMove(7,5);
+	testGETMove(-2,-1);
 
 	// FOOD GET ------------------------------
 
 	// Must fail
 	getchar();
-	testGETFood(6,5);
+	testGETFood(0,0);
 
 	// Must fail
 	getchar();
@@ -291,42 +263,44 @@ int main(){
 	
 	// Must fail
 	getchar();
-	testGETFood(5,5);
+	testGETFood(-2,0);
 
 	// Must work
 	getchar();
-	testGETFood(7,5);
+	testGETFood(1,0);
 
 	// Must fail, already got food
 	getchar();
-	testGETFood(7,5);
+	testGETFood(1,0);
 
 	// FOOD SET ----------------------
 
-	// Must succeed
+	// Must succeed, toy en 5,5
 	getchar();
-	testSETMove(5,5);
+	testSETMove(-1,0);
 
-	// Must succeed
+	// Must succeed, toy en 4,5
 	getchar();
-	testSETMove(4,5);
-
-	// Must fail
-	getchar();
-	testSETFood(5,5);
-
-	// Must succeed
-	getchar();
-	testSETFood(3,5);
+	testSETMove(-1,0);
 
 	// Must fail
 	getchar();
-	testSETFood(3,5);
+	testSETFood(1,0);
+
+	// Must succeed
+	getchar();
+	testSETFood(-1,0);
+
+	// Must fail
+	getchar();
+	testSETFood(0,0);
 
 	// SHOUT -------------------------------------
 
 	// Must succeed
 	getchar();
 	testSETSHOUT();
+
+	closeIPC();
 
 }

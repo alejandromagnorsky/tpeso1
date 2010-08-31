@@ -1,7 +1,13 @@
 #include "common.h"
 
-// Closes a Node and its communication channel
-void closeNode(NodeType t);
+// Destroy communication channel
+void destroyIPC();
+
+// Open & initialize IPC resource
+void openIPC();
+
+// Close IPC resource
+void closeIPC();
 
 // Returns a Message on success, NULL on error
 Message * receiveMessage(NodeType from);
@@ -11,5 +17,4 @@ int sendMessage(NodeType to, Message * msg);
 
 // This function MUST! be called for signal handling (close channel, etc)
 // usage: signal(SIGINT, sigHandler)
-// No vendria mal un broadcast del server diciendo "ME CIERRO" asi los demas dejan de preguntar, no?
 void sigHandler();

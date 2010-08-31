@@ -11,7 +11,7 @@
 #define SCREEN_WIDTH 644
 #define SCREEN_HEIGHT 480
 
-#define SENSITIVITY 2
+#define SENSITIVITY 3
 
 #define DELAY 30	// delay in ms
 
@@ -20,17 +20,24 @@ bool newMessage = false;
 
 int cleanUp( int err )
 {
-     SDL_Quit();
-     return err;            
+	destroyIPC();
+	SDL_Quit();
+	return err;            
 }
 
 void * checkMessages(void * threadid){
+
+	openIPC();
+
 	while(1){
 		if(!newMessage){
-			msg = receiveMessage(MAP);
+			msg = receiveMessage(SERVER);
 			newMessage = true;
 		}
 	}
+
+	closeIPC();
+
 	pthread_exit(NULL);
 }
 
@@ -103,11 +110,6 @@ int main(int argc, char * argv[]){
 	}
 
 
-	/* Comunicacion
-	   Aca recibe donde esta el hormiguero, el tamaño del mapa, y donde esta 
-	   la comida inicialmente.
-	*/
-
 	signal(SIGINT, sigHandler);
 
 	SDL_WM_SetCaption("Simple Ant Colony simulation", NULL);
@@ -163,10 +165,9 @@ int main(int argc, char * argv[]){
 
 		renderSDLWorld(world, screen);
 		renderObject(screen, world, hormiga, 2, 3);
-		if(newMessage == true )
+		if(newMessage)
 			getInfoFromBackend(ants);
 		printAnts( screen, world, hormiga, ants);
-
 
 		/* Update screen */
 		SDL_Flip(screen);  
