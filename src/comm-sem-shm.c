@@ -15,26 +15,35 @@
 
 #define SIZE sizeof(Message)
 
-
 Message * getmem(char * memKey);
-void initmutex(void);
 
 static char * semKey = "/mutex";
 static sem_t * sd;
-
+static int fd; // For the shm
 
 void 
 sigHandler(){
-	closeNode(0);
+	destroyIPC();
 	exit(1);
 }
 
 
 void 
-closeNode(NodeType t){
+destroyIPC(){
 	sem_unlink(semKey);
-	if(t == MAP)
-		shm_unlink("/map");
+	shm_unlink("/server");
+	shm_unlink("/ANT");	
+}
+
+void openIPC(){
+	if ( !(sd = sem_open(semKey, O_RDWR|O_CREAT, 0666, 1)) ) // Create and initialize the semaphore if isn't exists
+		errorLog("sem_open");
+}
+
+
+void
+closeIPC(){
+
 }
 
 
@@ -45,31 +54,30 @@ receiveMessage(NodeType from){
 	Message * out = NULL;
 		
 	char * memKey;
-	if(from == MAP){
-		memKey = malloc(sizeof("hormiga_") + sizeof(int));
-		sprintf(memKey, "hormiga_%d", getpid());
+	if(from == SERVER){
+		memKey = malloc(sizeof("/hormiga_") + sizeof(int));
+		sprintf(memKey, "/hormiga_%d", getpid());
 	}	
 	else
-		memKey = "/map";	
+		memKey = "/server";	
 	
-	initmutex();	// Initialize the semaphore if isn't exists
 	mem = getmem(memKey);
 	memset(mem, 0, SIZE);
 	printf("Recibiendo\n");
 
 	//Block the condition in the while, the assigment of out and the readed flag
 	sem_wait(sd);
-	while(mem->pidTo == 0){
+	while(mem->keyTo == 0){
 		sem_post(sd);
 		sleep(1);	
 		//printf("%d recibe de la posicion: %lu\n", getpid(), (long)mem);	
 		sem_wait(sd);
 	}
-	
+		
 	// A copy must be made, because mem is deallocated after this function
-	out = createMessage(mem->pidFrom, mem->pidTo, mem->opCode,  mem->param, mem->pos, mem->trace);
+	out = createMessage(mem->keyFrom, mem->keyTo, mem->opCode,  mem->param, mem->pos, mem->trace);
 
-	mem->pidTo = 0; // Mark the message as readed
+	mem->keyTo = 0; // Mark the message as readed
 	
 	sem_post(sd);
 
@@ -82,17 +90,15 @@ sendMessage(NodeType to, Message * msg){
 	Message * mem;	
 	
 	char * memKey;
-	if(to == MAP)
-		memKey = "/map";		
+	if(to == SERVER)
+		memKey = "/server";		
 	else{
-		memKey = malloc(sizeof("hormiga_")+ sizeof(int));
-		sprintf(memKey, "hormiga_%d", msg->pidTo);
+		memKey = malloc(sizeof("/hormiga_")+ sizeof(int));
+		sprintf(memKey, "/hormiga_%d", msg->keyTo);
 	}
-
-
+	
 	mem = getmem(memKey);
 	memset(mem, 0, SIZE);
-	initmutex(); // Initialize the semaphore if isn't exists
 	
 	// Block this zone of code
 	sem_wait(sd);
@@ -105,23 +111,16 @@ sendMessage(NodeType to, Message * msg){
 }
 
 
-void
-initmutex(void)
-{
-	if ( !(sd = sem_open(semKey, O_RDWR|O_CREAT, 0666, 1)) )
-		errorLog("sem_open");
-}
-
 Message *
 getmem(char * memKey)
 {
-	int fd;
+	
 	Message * mem;
 	
 	if ( (fd = shm_open(memKey, O_RDWR|O_CREAT, 0666)) == -1 )
 		errorLog("sh_open");
 	ftruncate(fd, SIZE);
-
+	printf("FD: %d. Memkey: %s\n", fd, memKey);
 	if ( !(mem = mmap(NULL, SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
 		errorLog("mmap");
 	close(fd);
