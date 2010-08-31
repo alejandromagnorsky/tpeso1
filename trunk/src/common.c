@@ -4,10 +4,10 @@
 #include "../include/common.h"
 
 
-Message * createMessage(int pidFrom,int pidTo, OpCode opCode, OpCodeParam param, Pos pos, double trace){
+Message * createMessage(int keyFrom,int keyTo, OpCode opCode, OpCodeParam param, Pos pos, double trace){
 	Message * out = malloc(sizeof(Message));
-	out->pidTo = pidTo;
-	out->pidFrom = pidFrom;
+	out->keyTo = keyTo;
+	out->keyFrom = keyFrom;
 	out->opCode = opCode;
 	out->param = param;	
 	out->pos = pos;
@@ -19,7 +19,7 @@ Message * createMessage(int pidFrom,int pidTo, OpCode opCode, OpCodeParam param,
 
 void printMessage(Message * msg){
 	printf("Message Data || ");
-	printf("From: %d To: %d  || ", msg->pidFrom, msg->pidTo);
+	printf("From: %d To: %d  || ", msg->keyFrom, msg->keyTo);
 
 	char * opCodeStr = "Invalid";
 	char * opCodeParamStr = "Invalid";

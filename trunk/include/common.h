@@ -119,14 +119,14 @@ typedef struct{
 }Pos;
 
 typedef struct{
-	int pidTo, pidFrom;
+	int keyTo, keyFrom;
 	OpCode opCode;
 	OpCodeParam param;
 	Pos pos;
 	double trace;
 } Message;
 
-Message * createMessage(int pidFrom, int pidTo, OpCode opCode, OpCodeParam param, Pos pos, double trace );
+Message * createMessage(int keyFrom, int keyTo, OpCode opCode, OpCodeParam param, Pos pos, double trace );
 
 void printMessage(Message * msg);
 

@@ -86,9 +86,9 @@ void registerAnt(Message * msg, World * world){
 
 	Pos anthillPos = world->anthill.pos;
 
-	ans = createMessage( MAP_ID, msg->pidFrom, REGISTER, NOT_OK, anthillPos, 0 );
+	ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, NOT_OK, anthillPos, 0 );
 
-	if(!exists(msg->pidFrom, world)){
+	if(!exists(msg->keyFrom, world)){
 		// Get next empty ant slot on map
 		for(i=0;i<world->maxConnections && world->clients[i] != INVALID_ID;i++);
 	
@@ -98,10 +98,10 @@ void registerAnt(Message * msg, World * world){
 		// Register ant on map and anthill
 		if( i != world->maxConnections && world->clients[i] == INVALID_ID &&
 		    j != world->anthill.maxPopulation && world->anthill.ants[i] == INVALID_ID ){
-			world->clients[i] = msg->pidFrom;
-			world->anthill.ants[j] = msg->pidFrom;
-			ans = createMessage( MAP_ID, msg->pidFrom, REGISTER, OK, anthillPos, 0);
-			printf("Registered ant %d at (%d,%d) \n", msg->pidFrom, world->anthill.pos.x, world->anthill.pos.y);
+			world->clients[i] = msg->keyFrom;
+			world->anthill.ants[j] = msg->keyFrom;
+			ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, anthillPos, 0);
+			printf("Registered ant %d at (%d,%d) \n", msg->keyFrom, world->anthill.pos.x, world->anthill.pos.y);
 		}
 	}
 
@@ -127,9 +127,9 @@ void checkRegistered(Message * msg, World * world){
 	int i;
 	Message * ans;
 
-	ans = createMessage( MAP_ID, msg->pidFrom, REGISTER, NOT_OK, msg->pos, msg->trace);
-	if(exists(msg->pidFrom, world))
-		ans = createMessage( MAP_ID, msg->pidFrom, REGISTER, OK, getAntCellByPID(world,msg->pidFrom )->pos, msg->trace);
+	ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, NOT_OK, msg->pos, msg->trace);
+	if(exists(msg->keyFrom, world))
+		ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, getAntCellByPID(world,msg->keyFrom )->pos, msg->trace);
 
 	sendMessage(CLIENT, ans);
 }
@@ -162,23 +162,23 @@ Pos addPositions(Pos p1, Pos p2){
 void getWorldPosition(Message * msg,World * world){
 	Message * ans;
 
-	Pos antPos = getAntCellByPID(world,msg->pidFrom )->pos;
+	Pos antPos = getAntCellByPID(world,msg->keyFrom )->pos;
 	Pos desiredPos = addPositions(antPos, msg->pos);
 
 	double trace = world->cells[desiredPos.x][desiredPos.y].trace;
-	ans = createMessage( MAP_ID, msg->pidFrom, MOVE, NOT_OK, msg->pos, msg->trace);
+	ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
 
 	// If Ant exists and move is valid
-	if(exists(msg->pidFrom, world) && verifyPosition(msg->pos)){
+	if(exists(msg->keyFrom, world) && verifyPosition(msg->pos)){
 
-		ans = createMessage( MAP_ID, msg->pidFrom, MOVE, OCCUPIED, msg->pos, msg->trace);
+		ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OCCUPIED, msg->pos, msg->trace);
 
 		// And cell is empty
 		if(!isOccupied(&desiredPos, world))
-				ans = createMessage( MAP_ID, msg->pidFrom, MOVE, EMPTY, msg->pos, trace);
+				ans = createMessage( MAP_ID, msg->keyFrom, MOVE, EMPTY, msg->pos, trace);
 		// Or has food
 		else if( world->cells[desiredPos.x][desiredPos.y].type == FOOD_CELL )
-				ans = createMessage(MAP_ID, msg->pidFrom, FOOD, OCCUPIED, msg->pos, trace);
+				ans = createMessage(MAP_ID, msg->keyFrom, FOOD, OCCUPIED, msg->pos, trace);
 	}
 	sendMessage(CLIENT, ans);
 }
@@ -213,17 +213,17 @@ void setWorldPosition(Message * msg,World * world){
 
 	Message * ans;
 	int i;
-	ans = createMessage( MAP_ID, msg->pidFrom, MOVE, NOT_OK, msg->pos, msg->trace);
+	ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
 
-	Pos antPos = getAntCellByPID(world,msg->pidFrom )->pos;
+	Pos antPos = getAntCellByPID(world,msg->keyFrom )->pos;
 	Pos desiredPos = addPositions(antPos, msg->pos);
 
 	// If cell is empty, move is valid and ant is registered
-	if(!isOccupied(&desiredPos, world) && verifyPosition(msg->pos) && exists(msg->pidFrom, world)){
+	if(!isOccupied(&desiredPos, world) && verifyPosition(msg->pos) && exists(msg->keyFrom, world)){
 		// If leaves or not trace 
 		if((int)msg->trace == 1 || (int) msg->trace == 0){
 			
-			int antIndex =  antExistsInAnthill(world, msg->pidFrom);
+			int antIndex =  antExistsInAnthill(world, msg->keyFrom);
 			Cell * nextCell = &world->cells[desiredPos.x][desiredPos.y];
 
 			// Check if ant is in anthill, then erase it from anthill
@@ -231,7 +231,7 @@ void setWorldPosition(Message * msg,World * world){
 				world->anthill.ants[antIndex] = INVALID_ID;
 			} else {
 				// If ant is in world, erase old cell data, and if food is carried, keep carrying
-				Cell * oldCell = getAntCellByPID(world, msg->pidFrom );
+				Cell * oldCell = getAntCellByPID(world, msg->keyFrom );
 				
 				oldCell->type = EMPTY_CELL;
 				oldCell->typeID = INVALID_ID;
@@ -241,14 +241,14 @@ void setWorldPosition(Message * msg,World * world){
 				eraseAntFrontend(world,oldCell->pos);	
 			}
 
-			ans = createMessage( MAP_ID, msg->pidFrom, MOVE, OK, msg->pos, msg->trace);
+			ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OK, msg->pos, msg->trace);
 
 			// Set next cell data
 			nextCell->type = ANT_CELL;
 
 			// If trace 1 change it, if not, leave it unchanged
 			nextCell->trace =( (int) msg->trace == 1) ? msg->trace : nextCell->trace;
-			nextCell->typeID = msg->pidFrom;
+			nextCell->typeID = msg->keyFrom;
 
 			// Tell frontend ant's new position
 			putAntFrontend(world,nextCell->pos);
@@ -260,13 +260,13 @@ void setWorldPosition(Message * msg,World * world){
 
 void setFoodAtAnthill(Message * msg, World * world){
 	Message * ans;
-	ans = createMessage( MAP_ID, msg->pidFrom, FOOD, NOT_OK, msg->pos, msg->trace);
+	ans = createMessage( MAP_ID, msg->keyFrom, FOOD, NOT_OK, msg->pos, msg->trace);
 
 	// If ant exists
-	if(exists(msg->pidFrom, world)){
+	if(exists(msg->keyFrom, world)){
 
 		// Cell actually occupied by ant
-		Cell * antCell = getAntCellByPID(world, msg->pidFrom );
+		Cell * antCell = getAntCellByPID(world, msg->keyFrom );
 
 		Pos desiredPos = addPositions(antCell->pos, msg->pos);
 
@@ -275,9 +275,9 @@ void setFoodAtAnthill(Message * msg, World * world){
 		if( verifyPosition(msg->pos) && desiredPos.x == world->anthill.pos.x && desiredPos.y == world->anthill.pos.y)
 			// Now check if ant has food to deliver
 			if( antCell->foodType == NO_FOOD )
-				ans = createMessage( MAP_ID, msg->pidFrom, FOOD, EMPTY, msg->pos, msg->trace);
+				ans = createMessage( MAP_ID, msg->keyFrom, FOOD, EMPTY, msg->pos, msg->trace);
 			else { // DELIVERANCE!
-				ans = createMessage( MAP_ID, msg->pidFrom, FOOD, OK, msg->pos, msg->trace);
+				ans = createMessage( MAP_ID, msg->keyFrom, FOOD, OK, msg->pos, msg->trace);
 
 				// Now give food to anthill
 				Message * sendFood;
@@ -316,13 +316,13 @@ int nextTurn(World * world){
 void getFoodFromWorld(Message * msg, World * world){
 
 	Message * ans;
-	ans = createMessage( MAP_ID, msg->pidFrom, FOOD, NOT_OK, msg->pos, msg->trace);
+	ans = createMessage( MAP_ID, msg->keyFrom, FOOD, NOT_OK, msg->pos, msg->trace);
 
 	// If ant exists
-	if(exists(msg->pidFrom, world)){
+	if(exists(msg->keyFrom, world)){
 
 		// Cell actually occupied by ant
-		Cell * antCell = getAntCellByPID(world, msg->pidFrom );
+		Cell * antCell = getAntCellByPID(world, msg->keyFrom );
 		Pos desiredPos = addPositions(antCell->pos, msg->pos);
 
 
@@ -336,7 +336,7 @@ void getFoodFromWorld(Message * msg, World * world){
 
 				//If it has small food
 				if(foodCell->foodType == SMALL_FOOD){
-					ans = createMessage( MAP_ID, msg->pidFrom, FOOD, OK, msg->pos, msg->trace);
+					ans = createMessage( MAP_ID, msg->keyFrom, FOOD, OK, msg->pos, msg->trace);
 
 					// Take food from cell, give it to ant
 					foodCell->type = EMPTY_CELL;
@@ -345,7 +345,7 @@ void getFoodFromWorld(Message * msg, World * world){
 					
 				} else // If it has big food, warn ant
 				if(foodCell->foodType == BIG_FOOD)
-					ans = createMessage(MAP_ID, msg->pidFrom, FOOD, BIG, msg->pos, msg->trace);
+					ans = createMessage(MAP_ID, msg->keyFrom, FOOD, BIG, msg->pos, msg->trace);
 			}
 		}
 	}
@@ -357,16 +357,16 @@ void broadcastShout(Message * msg, World * world){
 	int i;
 
 	// If the ant that shout exists
-	if(exists(msg->pidFrom, world)){
+	if(exists(msg->keyFrom, world)){
 
 		// For each ant, send a shout
 		for(i=0;i<world->maxConnections;i++)
-			if(world->clients[i] != INVALID_ID && world->clients[i] != msg->pidFrom){
-				ans = createMessage( getpid(),world->clients[i], SHOUT, SET, msg->pos, msg->trace);
+			if(world->clients[i] != INVALID_ID && world->clients[i] != msg->keyFrom){
+				ans = createMessage( MAP_ID,world->clients[i], SHOUT, SET, msg->pos, msg->trace);
 				sendMessage(CLIENT, ans);
 			}
 
-		ans = createMessage( getpid(),msg->pidFrom, SHOUT, OK, msg->pos, msg->trace);
+		ans = createMessage( MAP_ID,msg->keyFrom, SHOUT, OK, msg->pos, msg->trace);
 		sendMessage(CLIENT, ans);
 	}
 }
