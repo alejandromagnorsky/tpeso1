@@ -7,8 +7,9 @@
 typedef enum { north, east, south, west, northwest, northeast, southeast, southwest } Cardinal;
 
 typedef struct{
+	OpCode opCode;
 	FoodType food;
-	Pos currentPos;
+	Pos mov;
 	Pos anthill;
 }Ant;
 
@@ -19,6 +20,8 @@ int action(Ant * ant);
 
 void goAnthill(Ant * ant);
 
+void search(Ant * ant);
+
 bool getNearFood(Ant * ant);
 
 bool randomMove(Ant * ant);
@@ -26,8 +29,6 @@ bool randomMove(Ant * ant);
 bool move(Pos to, bool trace);
 
 Cardinal getCardinal(Pos from, Pos to);
-
-bool followTrace();
 
 void setRegister(Ant * ant);
 
