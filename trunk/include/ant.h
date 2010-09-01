@@ -31,6 +31,6 @@ bool followTrace();
 
 void setRegister(Ant * ant);
 
-void setFood(Ant * ant);
+bool setFood(Pos to);
 
 Pos getCurrentPos(void);

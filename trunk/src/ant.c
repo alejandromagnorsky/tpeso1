@@ -2,7 +2,7 @@
 
 //---------------------------------------------
 //FALTA:
-//VERIFICAR EL COMPORTAMIENTO DE SET FOOD QUE PARECE QUE EL MAPA RESPONDE MAL
+//VERIFICAR EL TRACE QUE SE HACE NEGATIVO Y A VECES DECRECE MAS RAPIDO
 //DEFINIR LOS LIMITES Y LA INTERACCION ENTRE HORMIGAS JUNTAS
 //AGREGAR EL COMPORTAMIENTO PARA LAS BIG INCLUYENDO EL SHOUT
 //---------------------------------------------
@@ -109,10 +109,12 @@ goAnthill(Ant * ant){
 	printf("CARDINAL: %d\n", card);
 	to.x = vecMov[card][0];
 	to.y = vecMov[card][1];	
-	
+	printf("CURRENT: %d, %d.    ANTHILL: %d, %d.    TO: %d, %d\n", currentPos.x, currentPos.y, anthill.x, anthill.y, to.x, to.y);
 	// If the ant is going to arrive to the anthill
-	if( anthill.x == currentPos.x+to.x && anthill.y == currentPos.y+to.y )
-		setFood(ant);
+	if( anthill.x == currentPos.x+to.x && anthill.y == currentPos.y+to.y ){
+		if(setFood(to))
+			ant->food = NO_FOOD;
+	}
 	// Tries to move closer, but if it can't then, move to another direction
 	else if( !move(to, true) )
 		randomMove(ant);	
@@ -230,7 +232,7 @@ getNearFood(Ant * ant){
 		received = receiveMessage(SERVER);
 		printf("Message received.\n");
 		printMessage(received);
-		if(received->opCode == FOOD && received->param == OK && move(to, false)){
+		if(received->opCode == FOOD && received->param == OK){
 				printf("I got food! \n");
 				ant->food = SMALL_FOOD;
 				return true;
@@ -243,14 +245,14 @@ getNearFood(Ant * ant){
 }
 
 
-void 
-setFood(Ant * ant){
+bool 
+setFood(Pos to){
 	
 	Message * send;	
 	Message * received;
-
-	printf("I want to leave food on anthill in (%d,%d) \n", ant->anthill.x, ant->anthill.y);
-	send = createMessage(getpid(), -1, FOOD, SET, ant->anthill, 0);
+	
+	printf("I want to leave food on anthill in (%d,%d) \n", to.x, to.y);
+	send = createMessage(getpid(), -1, FOOD, SET, to, 0);
 	printMessage(send);
 	sendMessage(SERVER, send);
 
@@ -259,9 +261,11 @@ setFood(Ant * ant){
 	printMessage(received);
 	if(received->opCode == FOOD && received->param == OK ){
 		printf("I left food at anthill!\n");
-		ant->food = NO_FOOD;	
-	} else
+		return true;
+	} else {
 		printf("I have no food! \n");
+		return false;
+	}
 }
 
 
