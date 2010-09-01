@@ -27,7 +27,7 @@ bool move(Pos to, bool trace);
 
 Cardinal getCardinal(Pos from, Pos to);
 
-bool followTrace(Ant * ant);
+bool followTrace();
 
 void setRegister(Ant * ant);
 
