@@ -20,6 +20,25 @@ main(void){
 	setRegister(ant);
 	
 	ant->food = NO_FOOD;
+	ant->opCode = -1;
+	Pos pos = {1,0};	
+
+	//COMPORTAMIENTO FORZADO PARA TESTEAR TOMAR Y DEJAR COMIDA
+	getchar();
+	move(pos, false);
+	getchar();
+	move(pos, false);
+	getchar();
+	move(pos, false);
+	getchar();
+	search(ant);
+	getchar();
+	if(ant->opCode == FOOD){
+		printf("hola\n");
+		getNearFood(ant);		
+		ant->opCode = -1;
+	}
+
 
 	
 	while(getchar() != 'q')
@@ -33,70 +52,25 @@ int
 action(Ant * ant){
 	srand (time(NULL)); 
 	int i;
-	
-	if(ant->food != NO_FOOD)	// If the ant is carrying food
-		goAnthill(ant);
-	else if(!getNearFood(ant)){	// If the ant couldn't take any food
-		if(!followTrace())	// If the ant hasn't any trace around to follow move to a random position
-			randomMove(ant);		
+	if(ant->opCode == -1){	// If the ant 	
+		if(ant->food != NO_FOOD)	// If the ant is carrying food
+			goAnthill(ant);
+		else {
+			if(rand()%10 > 6)
+				search(ant);
+			else
+				randomMove(ant);		
+		}
+	} else {
+		if(ant->opCode == FOOD)
+			getNearFood(ant);
+		else
+			move(ant->mov, false);
+
+		ant->opCode = -1;
 	}
 	
 }
-
-
-// Tries to move to the maximum trace left by another ant
-bool
-followTrace(){
-	int i, j, k = 0;
-	Pos to;
-	Message * send;
-	Message * receive;
-	struct{
-		Pos pos;
-		double trace;
-	} aux[4];
-	for(i = 0; i < 4; i++){
-		to.x = vecMov[i][0];
-		to.y = vecMov[i][1];
-		send = createMessage(getpid(), -1, MOVE, GET, to, 0); // Obtain the trace and verifies if the cell is empty
-		printMessage(send);
-		sendMessage(SERVER, send);
-
-		receive = receiveMessage(SERVER);
-		printMessage(receive);
-		
-		if(receive->param == OK && receive->trace != 0){	//  If the ant can move to a cell which has trace
-			// Sort the cells, descending, by their trace
-			if(k == 0){
-				aux[0].pos = to;
-				aux[0].trace = receive->trace;
-			} else {
-				for(j = 0; j < k; j++)
-					if(receive->trace >= aux[j].trace){
-						double tmpTrace = aux[j].trace;
-						Pos tmpPos = aux[j].pos;
-						aux[j].trace = receive->trace;
-						aux[j].pos = to;
-						aux[j+1].trace = tmpTrace;
-						aux[j+1].pos = tmpPos;
-						break;
-					}
-				if(j == k){
-					aux[j].trace = receive->trace;
-					aux[j].pos = to;
-				}
-			}
-			k++;
-		}
-	}
-
-	for(i = 0; i < k && !move(aux[i].pos, false); i++)
-		;
-	
-	if(i == k)
-		return false;	
-	return true;
-}	
 
 
 /* In addition of approach to the anthill, the ant leaves trace */
@@ -212,35 +186,86 @@ setRegister(Ant * ant){
 }
 
 
-/* Tries to move to any cell wich has food and take it*/
-bool 
-getNearFood(Ant * ant){
+void
+search(Ant * ant){
 
 	int i;
 	Pos to;
 	Message * send;	
 	Message * received;
-	
+
+	// Search food
 	for(i = 0; i < 4; i++){
 		to.x = vecMov[i][0];
 		to.y = vecMov[i][1];
-		printf("I want get food from (%d,%d) \n", to.x, to.y);
-		send = createMessage(getpid(), -1, FOOD, GET, to, 0);
+		printf("I want to search food from (%d,%d) \n", to.x, to.y);
+		send = createMessage(getpid(), -1, MOVE, GET, to, 0);  
 		printMessage(send);
 		sendMessage(SERVER, send);
 
 		received = receiveMessage(SERVER);
 		printf("Message received.\n");
 		printMessage(received);
-		if(received->opCode == FOOD && received->param == OK){
-				printf("I got food! \n");
-				ant->food = SMALL_FOOD;
-				return true;
-		} else if(received->opCode == FOOD && received->param == BIG)
-			printf("I cannot get food, too big! \n");
+		if(received->opCode == FOOD && received->param == OCCUPIED){
+				ant->opCode = FOOD;
+				ant->mov = to;
+				return;
+		} else if(received->opCode == FOOD && received->param == BIG) // FALTA IMPLEMENTAR
+			printf("I found food, but is too big! \n");
 		else 
-			printf("I cannot get food =( \n");
+			printf("I didn't find food =( \n");
 	}
+
+	// If the ant didn't find food, search trace
+	Pos pos;
+	double trace = 0;
+	for(i = 0; i < 4; i++){
+		to.x = vecMov[i][0];
+		to.y = vecMov[i][1];
+		send = createMessage(getpid(), -1, MOVE, GET, to, 0); // Obtain the trace and verifies if the cell is empty
+		printMessage(send);
+		sendMessage(SERVER, send);
+
+		received = receiveMessage(SERVER);
+		printMessage(received);
+		
+		if(received->param == EMPTY && received->trace > trace){
+				trace = received->trace;
+				pos = received->pos;
+		}
+	}
+	if(trace != 0){
+		ant->opCode = TRACE;
+		ant->mov = pos;
+	}	
+}
+
+
+/* Tries to take food from a near cell*/
+bool 
+getNearFood(Ant * ant){
+
+	int i;
+	Pos to = ant->mov;
+	Message * send;	
+	Message * received;
+	
+	printf("I want to get food from (%d,%d) \n", to.x, to.y);
+	send = createMessage(getpid(), -1, FOOD, GET, to, 0);
+	printMessage(send);
+	sendMessage(SERVER, send);
+
+	received = receiveMessage(SERVER);
+	printf("Message received.\n");
+	printMessage(received);
+	if(received->opCode == FOOD && received->param == OK){
+			printf("I get food! \n");
+			ant->food = SMALL_FOOD;
+			return true;
+	} else if(received->opCode == FOOD && received->param == BIG)
+			printf("I cannot get food, too big! \n");
+	else 
+			printf("I cannot get food =( \n");
 	return false;
 }
 
