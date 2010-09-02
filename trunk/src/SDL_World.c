@@ -2,7 +2,7 @@
 #include "../include/SDL_utils.h"
 #include "../include/SDL_AssetManager.h"
 
-SDL_World * getWorld(int sizeX, int sizeY, char * filename, char * ext, Uint32 bgcolor){
+SDL_World * getSDLWorld(int sizeX, int sizeY, char * filename, char * ext, Uint32 bgcolor){
 	SDL_World * out = malloc(sizeof(SDL_World));
 	out->sizeX = sizeX;
 	out->sizeY = sizeY;

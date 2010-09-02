@@ -34,7 +34,7 @@ typedef struct {
 	GridObject * * grid[LAYERS]; // A matrix with layers, each element represents its index in AssetVector
 } SDL_World;
 
-SDL_World * getWorld(int h, int w, char * filename, char * ext, Uint32 bgcolor);
+SDL_World * getSDLWorld(int h, int w, char * filename, char * ext, Uint32 bgcolor);
 
 void zoom(SDL_World * world, double z);
 

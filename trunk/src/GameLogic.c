@@ -4,15 +4,11 @@ Message * frontendMessage = NULL;
 
 void startGame(SDL_Surface * screen){
 
-	openIPC();
-
 	SDL_World * gameWorld = initGame(screen);
 
 	gameLoop(gameWorld, screen);
 
 	// exit Game ( destroy thread )
-
-	closeIPC();
 }
 
 // Returns 1 if not finished registering
@@ -38,7 +34,7 @@ int registerAnts(SDL_World * gameWorld){
 }
 
 SDL_World * initGame(SDL_Surface * screen){
-	SDL_World * out = getWorld(15, 15, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
+	SDL_World * out = getSDLWorld(15, 15, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
 	addAsset(out->vector, "assets/planta.png", "PNG", "Planta", 1);
 	addAsset(out->vector, "assets/tesoro.png", "PNG", "Tesoro", 1);
@@ -61,10 +57,9 @@ SDL_World * initGame(SDL_Surface * screen){
 /* Just get messages from server */
 void * getBackendInput(void * threadid){
 
-
 	while(1){
 		if(frontendMessage == NULL){
-			frontendMessage = receiveMessage(SERVER);
+			frontendMessage = receiveMessage(SERVER,2);
 
 			// If message is invalid semantically...
 			if(frontendMessage->opCode != MOVE && 
