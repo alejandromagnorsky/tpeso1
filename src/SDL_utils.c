@@ -111,65 +111,23 @@ void blitSurfaceEndlessBorder(  SDL_Surface * dst, SDL_Surface *src, int x, int 
 
 
 /* Blit surface but animated */
-void blitAnim( SDL_Surface * dst, SDL_Surface * src, int rectW, int rectH, int frame, int x, int y )
+void blitAnim( SDL_Surface * dst, SDL_Surface * src, int spriteW, int spriteH, int frameY, int frameX, int x, int y )
 {
-            SDL_Rect spriteRect;
-            
-            spriteRect.w = rectW;
-            spriteRect.h = rectH;
-            spriteRect.y = 0;
-            spriteRect.x = (frame-1) * rectW;
-            
+	SDL_Rect spriteRect;
 
-           SDL_Rect rect;
-           SDL_Rect aux[4];
-           
-           int i, dH, dW, printAux[4] = {0};
-           
-           /* Initialize aux and rect */
-           for(i=0;i<4;i++){
-           aux[i].x = x;
-           aux[i].y = y;
-           aux[i].w = src->w;
-           aux[i].h = src->h;
-           }
-         
-           rect.x = x;
-           rect.y = y;
-           rect.w = src->w;
-           rect.h = src->h;
-           
-           /* Check boundaries of surface, and blit them properly */  
-           if( src->h + y > dst->h && y < dst->h ) {
-               dH = dst->h - y;
-               aux[0].y = -dH;
-               printAux[0] = 1;
-           } 
-           
-           if( y < 0 && y + src->h > 0) {
-               dH = 0 - y;
-               aux[1].y = dst->h - dH;
-               printAux[1] = 1;
-           } 
-           
-           if( x < 0 && x + src->w > 0 ) {
-               dW = 0 - x;
-               aux[2].x = dst->w - dW;
-               printAux[2] = 1;
-           } 
-         
-           if( src->w + x > dst->w && x < dst->w ) {
-               dW = dst->w - x;
-               aux[3].x = -dW;
-               printAux[3] = 1;
-           } 
-           
+	spriteRect.w = spriteW;
+	spriteRect.h = spriteH;
+	spriteRect.y = (frameY-1) * spriteH;
+	spriteRect.x = (frameX-1) * spriteW;
 
-           SDL_BlitSurface( src, &spriteRect, dst, &rect);   
-           
-           for(i=0;i<4;i++)
-           if( printAux[i] )
-           SDL_BlitSurface( src, &spriteRect, dst, &aux[i]);           
+	SDL_Rect rect;
+
+	rect.x = x;
+	rect.y = y;
+	rect.w = spriteW;
+	rect.h = spriteH;
+
+	SDL_BlitSurface( src, &spriteRect, dst, &rect);   
 }
 
 

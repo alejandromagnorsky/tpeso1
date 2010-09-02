@@ -100,6 +100,15 @@ void registerAnt(Message * msg, World * world){
 		    j != world->anthill.maxPopulation && world->anthill.ants[i] == INVALID_ID ){
 			world->clients[i] = msg->keyFrom;
 			world->anthill.ants[j] = msg->keyFrom;
+
+			// First, register this on frontend
+			ans = createMessage( MAP_ID, world->frontendID, REGISTER, SET, anthillPos, 0);
+			sendMessage(CLIENT, ans);
+			// TMP
+			ans = createMessage( MAP_ID, world->frontendID, REGISTER, OK, anthillPos, 0);
+			sendMessage(CLIENT, ans);
+
+
 			ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, anthillPos, 0);
 			printf("Registered ant %d at (%d,%d) \n", msg->keyFrom, world->anthill.pos.x, world->anthill.pos.y);
 		}
@@ -138,10 +147,12 @@ void checkRegistered(Message * msg, World * world){
  * Check if cell at pos is occupied.
 */
 bool isOccupied(Pos * pos, World * world){
+	printf("OCCUPIED?\n");
 	return world->cells[pos->x][pos->y].type != EMPTY_CELL;
 }
 
 bool verifyPosition(Pos pos){
+	printf("VERIFY\n");
 	if((abs(pos.x) == 1 && pos.y == 0) 
         || (abs(pos.y) == 1 && pos.x == 0) )
 		return true;
@@ -165,11 +176,13 @@ void getWorldPosition(Message * msg,World * world){
 	Pos antPos = getAntCellByPID(world,msg->keyFrom )->pos;
 	Pos desiredPos = addPositions(antPos, msg->pos);
 
-	double trace = world->cells[desiredPos.x][desiredPos.y].trace;
+
 	ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
 
 	// If Ant exists and move is valid
-	if(exists(msg->keyFrom, world) && verifyPosition(msg->pos)){
+	if(exists(msg->keyFrom, world) && withinMapRange(world, desiredPos) && verifyPosition(msg->pos)){
+
+		double trace = world->cells[desiredPos.x][desiredPos.y].trace;
 
 		ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OCCUPIED, msg->pos, msg->trace);
 
@@ -209,6 +222,13 @@ int antExistsInAnthill(World * world, int pid){
 	return -1;
 }
 
+int withinMapRange(World * world, Pos pos){
+	printf("WITHIN\n");
+	if( pos.x >= 0 && pos.x < world->sizeX && pos.y >= 0 && pos.y < world->sizeY)
+		return 1;
+	else return 0;
+}
+
 void setWorldPosition(Message * msg,World * world){
 
 	Message * ans;
@@ -219,16 +239,22 @@ void setWorldPosition(Message * msg,World * world){
 	Pos desiredPos = addPositions(antPos, msg->pos);
 
 	// If cell is empty, move is valid and ant is registered
-	if(!isOccupied(&desiredPos, world) && verifyPosition(msg->pos) && exists(msg->keyFrom, world)){
+	if(withinMapRange(world,desiredPos) &&!isOccupied(&desiredPos, world) && verifyPosition(msg->pos) 
+	&& exists(msg->keyFrom, world) )
+		{
 		// If leaves or not trace 
 		if((int)msg->trace == 1 || (int) msg->trace == 0){
 			
 			int antIndex =  antExistsInAnthill(world, msg->keyFrom);
 			Cell * nextCell = &world->cells[desiredPos.x][desiredPos.y];
 
+			// Prepare message for frontend
+			ans = createMessage( MAP_ID, world->frontendID, MOVE, SET, msg->pos, 0);
+
 			// Check if ant is in anthill, then erase it from anthill
 			if( antIndex >= 0){
 				world->anthill.ants[antIndex] = INVALID_ID;
+				ans->fromPos = world->anthill.pos;  //Tell frontend from where to move
 			} else {
 				// If ant is in world, erase old cell data, and if food is carried, keep carrying
 				Cell * oldCell = getAntCellByPID(world, msg->keyFrom );
@@ -237,11 +263,16 @@ void setWorldPosition(Message * msg,World * world){
 				oldCell->typeID = INVALID_ID;
 				nextCell->foodType = oldCell->foodType; // carry food if possible
 
-				// Tell frontend ant is no more
-				eraseAntFrontend(world,oldCell->pos);	
+				ans->fromPos = oldCell->pos; 	//Tell frontend from where to move
 			}
 
-			ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OK, msg->pos, msg->trace);
+			// Tell frontend ant's new position
+			sendMessage(CLIENT, ans);
+
+
+			// TMP!
+			ans = createMessage( MAP_ID, world->frontendID, TURN, SET, msg->pos, 0);
+			sendMessage(CLIENT, ans);
 
 			// Set next cell data
 			nextCell->type = ANT_CELL;
@@ -250,10 +281,10 @@ void setWorldPosition(Message * msg,World * world){
 			nextCell->trace =( (int) msg->trace == 1) ? msg->trace : nextCell->trace;
 			nextCell->typeID = msg->keyFrom;
 
-			// Tell frontend ant's new position
-			putAntFrontend(world,nextCell->pos);
+			ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OK, msg->pos, msg->trace);
 		}
 	}
+
 	sendMessage(CLIENT, ans);
 }
 
@@ -270,9 +301,9 @@ void setFoodAtAnthill(Message * msg, World * world){
 
 		Pos desiredPos = addPositions(antCell->pos, msg->pos);
 
-
 		// If desired pos is anthill and ant is neighbor of anthill...
-		if( verifyPosition(msg->pos) && desiredPos.x == world->anthill.pos.x && desiredPos.y == world->anthill.pos.y)
+		if( withinMapRange(world, desiredPos) && verifyPosition(msg->pos) 
+			&& desiredPos.x == world->anthill.pos.x && desiredPos.y == world->anthill.pos.y)
 			// Now check if ant has food to deliver
 			if( antCell->foodType == NO_FOOD )
 				ans = createMessage( MAP_ID, msg->keyFrom, FOOD, EMPTY, msg->pos, msg->trace);
@@ -306,7 +337,7 @@ int nextTurn(World * world){
 	int i,j;
 	for(i=0;i<world->sizeX;i++)
 		for(j=0;j<world->sizeY;j++)
-			world->cells[i][j].trace -= (world->cells[i][j].trace != 0) ? 0.05 : 0;
+			world->cells[i][j].trace -= (world->cells[i][j].trace > 0) ? 0.01 : 0;
 
 	world->turnsLeft--;
 
@@ -327,7 +358,7 @@ void getFoodFromWorld(Message * msg, World * world){
 
 
 		// If ant doesn't have food already and requested cell is adjacent
-		if(antCell->foodType == NO_FOOD && verifyPosition(msg->pos)){
+		if(withinMapRange(world, desiredPos) && antCell->foodType == NO_FOOD && verifyPosition(msg->pos)){
 		
 			Cell * foodCell = &world->cells[desiredPos.x][desiredPos.y];
 
