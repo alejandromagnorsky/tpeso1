@@ -18,11 +18,11 @@ typedef struct{
 // Set init qty of assets
 SDL_AssetVector * createAssetVector(int size);
 
-//SDL_Asset * getAssets(SDL_AssetVector * vector, int );
-
-int getQtyActiveAssets(SDL_AssetVector * vector);
+int getAssetIndex(SDL_AssetVector * vector, char * name);
 
 SDL_Asset * getAssetByName(SDL_AssetVector * vector, char * name);
+
+int getQtyActiveAssets(SDL_AssetVector * vector);
 
 void modifyAssetImage(SDL_AssetVector * vector , char * name, double rotate, double zoom );
 

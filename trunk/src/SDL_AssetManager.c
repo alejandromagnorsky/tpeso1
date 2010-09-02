@@ -27,6 +27,19 @@ int getQtyActiveAssets(SDL_AssetVector * vector){
 	return i;
 }
 
+int getAssetIndex(SDL_AssetVector * vector, char * name){
+
+	int i;
+	// Look for asset
+	for(i=0;i<vector->size && vector->assets[i].original !=NULL && strcmp(name, vector->assets[i].name);i++);
+
+	// check last one
+	if( i == vector->size && vector->assets[i].original != NULL && !strcmp(name, vector->assets[i-1].name))
+		return -1;
+
+	return  i;
+}
+
 SDL_Asset * getAssetByName(SDL_AssetVector * vector,char * name){
 
 	int i;

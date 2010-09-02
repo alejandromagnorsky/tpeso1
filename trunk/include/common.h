@@ -88,9 +88,9 @@ Sent by backend
 	Returned by frontend
 
 REGISTER - SET = Register ant at pos
+REGISTER - OK = Finished registering
 
-MOVE - SET = Position ant at pos with trace
-MOVE - EMPTY = Tell the frontend that pos is empty
+MOVE - SET = Move ant to fromPos+pos
 
 FOOD - SET = Position small food at pos.
 FOOD - BIG = Position big food at pos.
@@ -124,6 +124,8 @@ typedef struct{
 	OpCodeParam param;
 	Pos pos;
 	double trace;
+
+	Pos fromPos; // FRONTEND ONLY
 } Message;
 
 Message * createMessage(int keyFrom, int keyTo, OpCode opCode, OpCodeParam param, Pos pos, double trace );

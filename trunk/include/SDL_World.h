@@ -2,28 +2,53 @@
 #include "SDL_utils.h" 
 #include "SDL_AssetManager.h"
 
+#define LAYERS 2
+
+#define ANIMATED 1
+
+#define ORIENTED 1
+
+#define SPRITE_UP 1
+#define SPRITE_DOWN 2
+#define SPRITE_LEFT 3
+#define SPRITE_RIGHT 4
+
+typedef struct{
+	int id;
+	int animated;
+	int oriented;
+	int frame;
+	double offsetX, offsetY;	// offset for moving between grids
+} GridObject;
+
 typedef struct {
-	int h,w;		//size
+	int sizeX,sizeY;		//size
 	int cameraX, cameraY;	//camera position
-	double cameraRotation;
-	int gridSize;
+
 	double zoomFactor;
 	SDL_Surface * bgimage;
-	SDL_Rect bg;
 	Uint32 bgcolor;
 	SDL_AssetVector * vector;
 
-	int * * * objects; // A matrix with layers, each element represents its index in AssetVector
-} SDLWorld;
+	int gridSize;
+	GridObject * * grid[LAYERS]; // A matrix with layers, each element represents its index in AssetVector
+} SDL_World;
 
-SDLWorld * getWorld(int h, int w, char * filename, char * ext, Uint32 bgcolor);
+SDL_World * getWorld(int h, int w, char * filename, char * ext, Uint32 bgcolor);
 
-void zoom(SDLWorld * world, double z);
+void zoom(SDL_World * world, double z);
 
-void endWorld(SDLWorld * world);	// libera recursos!! IMPORTANTE
+void endWorld(SDL_World * world);	// libera recursos!! IMPORTANTE
 
-void renderSDLWorld(SDLWorld * world, SDL_Surface * screen);	// Por ahora, redibuja todo...
+void renderSDLWorld(SDL_World * world, SDL_Surface * screen);	// Por ahora, redibuja todo...
 
-void translateCamera(SDLWorld * world, int x, int y);
+void translateCamera(SDL_World * world, int x, int y);
 
-void renderObject(SDL_Surface *screen, SDLWorld * world, SDL_Surface * s, int xGrid, int yGrid);
+// Strings may be inefficient, should change later ( soy un colgado )
+void addObject(SDL_World * world, char * id, int x, int y, int layer, int animated, int oriented );
+
+// Just object, not asset
+void deleteObject(SDL_World * world, int x, int y, int layer );
+
+// Move objects in same layer
+int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int layer);
