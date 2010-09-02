@@ -34,7 +34,6 @@ void destroyIPC(){
 void openIPC(){
 	if ( ( queueID = msgget(SERVERKey,O_RDONLY | O_CREAT | IPC_CREAT |0666)) == -1 )
 		errorLog("msgget");
-	printf("HOLA: %d\n", queueID);
 }
 
 // Close IPC resource
@@ -43,15 +42,14 @@ void closeIPC(){
 }
 
 
-Message * receiveMessage(NodeType from){
+Message * receiveMessage(NodeType from, int key){
 
 	int prio;
 	Message * out = NULL;
 	msgbuf buf;
 
-
 	if( from == SERVER )
-		prio = getpid(); // CLIENTs receive (from SERVER) in queue getpid()
+		prio = key; // CLIENTs receive (from SERVER) in queue key
 	else prio = 1; // SERVER receives in queue 1
 
 	// Receive

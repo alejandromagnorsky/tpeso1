@@ -10,7 +10,7 @@ void openIPC();
 void closeIPC();
 
 // Returns a Message on success, NULL on error
-Message * receiveMessage(NodeType from);
+Message * receiveMessage(NodeType from, int key);
 
 // Returns 0 on success, -1 on error
 int sendMessage(NodeType to, Message * msg);

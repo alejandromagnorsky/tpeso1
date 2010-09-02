@@ -44,6 +44,7 @@ typedef struct World{
 	int turnsLeft;
 } World;
 
+void * mapMain(void * arg);
 
 World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos anthillPos, int frontendID);
 
@@ -70,5 +71,7 @@ void getWorldPosition(Message * msg,World * world);
 void setFoodAtAnthill(Message * msg, World * world);
 
 void getFoodFromWorld(Message * msg, World * world);
+
+int withinMapRange(World * world, Pos pos);
 
 #endif

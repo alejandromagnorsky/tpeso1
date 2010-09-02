@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <mqueue.h>
 #include <signal.h>
+#include <pthread.h>
 
 #define SIZE_X 15
 #define SIZE_Y 15
@@ -133,7 +134,6 @@ bool exists(int pid,World * world){
  * Tell the client if the ant is registered, return its position
 */
 void checkRegistered(Message * msg, World * world){
-	int i;
 	Message * ans;
 
 	ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, NOT_OK, msg->pos, msg->trace);
@@ -147,12 +147,10 @@ void checkRegistered(Message * msg, World * world){
  * Check if cell at pos is occupied.
 */
 bool isOccupied(Pos * pos, World * world){
-	printf("OCCUPIED?\n");
 	return world->cells[pos->x][pos->y].type != EMPTY_CELL;
 }
 
 bool verifyPosition(Pos pos){
-	printf("VERIFY\n");
 	if((abs(pos.x) == 1 && pos.y == 0) 
         || (abs(pos.y) == 1 && pos.x == 0) )
 		return true;
@@ -223,7 +221,6 @@ int antExistsInAnthill(World * world, int pid){
 }
 
 int withinMapRange(World * world, Pos pos){
-	printf("WITHIN\n");
 	if( pos.x >= 0 && pos.x < world->sizeX && pos.y >= 0 && pos.y < world->sizeY)
 		return 1;
 	else return 0;
@@ -232,7 +229,6 @@ int withinMapRange(World * world, Pos pos){
 void setWorldPosition(Message * msg,World * world){
 
 	Message * ans;
-	int i;
 	ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
 
 	Pos antPos = getAntCellByPID(world,msg->keyFrom )->pos;
@@ -303,7 +299,7 @@ void setFoodAtAnthill(Message * msg, World * world){
 
 		// If desired pos is anthill and ant is neighbor of anthill...
 		if( withinMapRange(world, desiredPos) && verifyPosition(msg->pos) 
-			&& desiredPos.x == world->anthill.pos.x && desiredPos.y == world->anthill.pos.y)
+			&& desiredPos.x == world->anthill.pos.x && desiredPos.y == world->anthill.pos.y){
 			// Now check if ant has food to deliver
 			if( antCell->foodType == NO_FOOD )
 				ans = createMessage( MAP_ID, msg->keyFrom, FOOD, EMPTY, msg->pos, msg->trace);
@@ -311,7 +307,7 @@ void setFoodAtAnthill(Message * msg, World * world){
 				ans = createMessage( MAP_ID, msg->keyFrom, FOOD, OK, msg->pos, msg->trace);
 
 				// Now give food to anthill
-				Message * sendFood;
+	//			Message * sendFood;
 
 				switch( antCell->foodType){
 					case BIG_FOOD:
@@ -320,12 +316,14 @@ void setFoodAtAnthill(Message * msg, World * world){
 					case SMALL_FOOD:
 						//sendFood =  createMessage( getpid(), anthillPID, FOOD, BIG, msg->pos, msg->trace);
 						break;
+					default: break;
 				}
 //				sendMessage(ANTHILL, sendFood);
 
 				// And take food from ant
 				antCell->foodType = NO_FOOD;
 			}
+		}
 	}
 
 	sendMessage(CLIENT, ans);
@@ -429,6 +427,7 @@ void parseMessage(Message * msg, World * world){
 			if(msg->param == SET)
 				broadcastShout(msg,world);
 				break;
+		default: break;
 	}
 }
 
@@ -487,24 +486,19 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos a
 	return out;
 }
 
-int main(int argc, char * argv[]){
+void * mapMain(void * arg){
 
 	signal(SIGINT, sigHandler);
 	Message * sndMsg;
 	Message * rcvMsg;
 
-	int frontendPID;
-	sscanf(argv[1], "%d", &frontendPID);
-	printf("Frontend PID: %d \n", frontendPID);
-
-
-	openIPC();
+	int frontendKey = *(int*)arg;
+	printf("Frontend Key: %d \n", frontendKey);
 
 	// MAP LOADER HERE
-
 	World * world;
 	Pos pos = { 3, 5 };
-	world = getWorld(SIZE_X, SIZE_Y, MAX_CONNECTIONS, MAX_TURNS, pos, frontendPID);	
+	world = getWorld(SIZE_X, SIZE_Y, MAX_CONNECTIONS, MAX_TURNS, pos, frontendKey);	
 	
 	printf("Anthill position: %d, %d\n", pos.x, pos.y);
 	
@@ -514,20 +508,20 @@ int main(int argc, char * argv[]){
 		sndMsg = NULL;
 		rcvMsg = NULL;
 
-		printf("Waiting to receive...\n\n");
-		rcvMsg = receiveMessage(CLIENT);
+//		printf("Waiting to receive...\n\n");
+		rcvMsg = receiveMessage(CLIENT,MAP_ID);
 
-		printf("Message received. \n\n");
+//		printf("Message received. \n\n");
 
-		printMessage(rcvMsg);
+		//printMessage(rcvMsg);
 
 		parseMessage(rcvMsg, world);
 
-		printWorld(world);
-		printWorldData(world);
+	//	printWorld(world);
+	//	printWorldData(world);
 
 	}
 
-	closeIPC();
-	destroyIPC();
- }
+	pthread_exit(NULL);
+	return NULL;
+}

@@ -6,6 +6,7 @@
 #include "../include/SDL_AssetManager.h"
 #include "../include/GameLogic.h"
 #include "../include/communication.h"
+#include "../include/map.h"
 #include <pthread.h>
 
 #define SCREEN_WIDTH 644
@@ -17,28 +18,6 @@ int cleanUp( int err )
 	return err;
 }
 
-void startMapEngine(){
-
-	int frontendPID = getpid();
-
-	int pid = fork();
-	char * argPID = malloc(10*sizeof(char));
-
-	sprintf(argPID, "%d", frontendPID);
-
-	switch(pid){
-		case -1: 
-			printf("can't fork\n");
-			exit(-1);	
-			break;
-		case 0 : // this is the code the child runs 
-			execl ("./map","map",argPID, NULL);
-			break;
-		default: // this is the code the parent runs 
-			// Get back to frontend
-			break;
-	}
-}
 
 SDL_Surface * initSDL(int argc, char * argv[]){
 	SDL_Surface * screen;
@@ -63,9 +42,23 @@ SDL_Surface * initSDL(int argc, char * argv[]){
 	return screen;
 }
 
+
+void startMapEngine(){
+
+	int * frontendKey = malloc(sizeof(int));
+
+	*frontendKey = 2;
+
+	pthread_t mapThread;
+
+	pthread_create(&mapThread, NULL, mapMain, (void *)frontendKey);
+}
+
 int main(int argc, char * argv[]){
 
 	signal(SIGINT, sigHandler);
+
+	openIPC();
 
 	startMapEngine();
 
@@ -74,6 +67,11 @@ int main(int argc, char * argv[]){
 	startGame(screen);
 
 //	endWorld(world);
+
+
+	closeIPC();
+	destroyIPC();
+
 	SDL_FreeSurface(screen);
 	return cleanUp(1);
 }
