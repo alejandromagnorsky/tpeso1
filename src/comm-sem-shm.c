@@ -15,7 +15,7 @@
 
 #define SIZE sizeof(Message)
 #define semKey "/mutex"
-#define CLIENTQUANT 8 // NECESITO RECIBIR LA CANTIDAD DE CLIENTS
+#define CLIENTQUANT 9 // NECESITO RECIBIR LA CANTIDAD DE CLIENTS
 
 // Semaphore
 sem_t * sd;
@@ -37,7 +37,8 @@ destroyIPC(){
 	shm_unlink("/client");	
 }
 
-void openIPC(){
+void 
+openIPC(){
 	if ( !(sd = sem_open(semKey, O_RDWR|O_CREAT, 0666, 1)) )	// Create and initialize the semaphore if isn't exists
 		errorLog("sem_open");
 	
