@@ -20,6 +20,11 @@ Anthill: ANTHILL_CELL, n/a
 
 #define INVALID_ID -1
 
+typedef struct Client{
+	int key;
+	bool turnLeft;
+} Client;
+
 typedef struct Cell{
 	double trace;
 	Pos pos;		// UNMUTABLE In this way, it doesn't matter the structure used by map
@@ -40,7 +45,7 @@ typedef struct World{
 	int frontendID;
 	int sizeX, sizeY;
 	int maxConnections;
-	int * clients;
+	Client * clients;
 	int turnsLeft;
 } World;
 

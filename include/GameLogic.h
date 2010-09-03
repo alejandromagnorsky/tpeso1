@@ -19,7 +19,9 @@ typedef struct{
 	int valid;
 } MoveCommand;
 
-void startGame(SDL_Surface * screen);
+void startGame(SDL_Surface * screen, int key);
+
+void registerAnts(SDL_World * gameWorld);
 
 SDL_World * initGame(SDL_Surface * screen);
 

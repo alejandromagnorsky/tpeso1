@@ -60,6 +60,7 @@ Message * receiveMessage(NodeType from, int key){
 	out = createMessage(buf.msg.keyFrom,buf.msg.keyTo, buf.msg.opCode,  buf.msg.param, buf.msg.pos,buf.msg.trace);
 	out->fromPos.x = buf.msg.fromPos.x;
 	out->fromPos.y = buf.msg.fromPos.y;
+
 	return out;
 }
 

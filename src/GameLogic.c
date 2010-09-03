@@ -2,18 +2,45 @@
 
 Message * frontendMessage = NULL;
 
-void startGame(SDL_Surface * screen){
+void startGame(SDL_Surface * screen, int key){
 
 	SDL_World * gameWorld = initGame(screen);
+
+	int * frontendKey = malloc(sizeof(int));
+	*frontendKey = key;
+
+	// Constantly get input from backend, parallel to rendering
+	pthread_t backendInputThread;
+	pthread_create(&backendInputThread, NULL, getBackendInput, (void *) frontendKey);
 
 	gameLoop(gameWorld, screen);
 
 	// exit Game ( destroy thread )
 }
 
-// Returns 1 if not finished registering
-// Returns 0 if finished registering
-int registerAnts(SDL_World * gameWorld){
+/* Just get messages from server */
+void * getBackendInput(void * arg){
+
+	int frontendKey = *((int *)arg);
+
+	while(1){
+		if(frontendMessage == NULL){
+			frontendMessage = receiveMessage(SERVER,frontendKey);
+
+			// If message is invalid semantically...
+			if(frontendMessage->opCode != MOVE && 
+			frontendMessage->opCode != TURN &&
+			frontendMessage->opCode != REGISTER)
+				frontendMessage = NULL;
+		}
+	}
+
+	pthread_exit(NULL);
+
+	return NULL;
+}
+
+void registerAnts(SDL_World * gameWorld){
 
 	if(frontendMessage != NULL &&
 	   frontendMessage->opCode == REGISTER)
@@ -23,14 +50,10 @@ int registerAnts(SDL_World * gameWorld){
 		if(frontendMessage->param == SET){
 			addObject(gameWorld, "Flare", pos.x, pos.y, 1, ANIMATED,!ORIENTED);
 			frontendMessage = NULL;
-			return 1;
-		}
-		if(frontendMessage->param == OK){
-			frontendMessage = NULL;
-			return 0;
+			return;
 		}
 	}	
-	return 1;
+	return;
 }
 
 SDL_World * initGame(SDL_Surface * screen){
@@ -53,26 +76,6 @@ SDL_World * initGame(SDL_Surface * screen){
 	return out;
 }
 
-
-/* Just get messages from server */
-void * getBackendInput(void * threadid){
-
-	while(1){
-		if(frontendMessage == NULL){
-			frontendMessage = receiveMessage(SERVER,2);
-
-			// If message is invalid semantically...
-			if(frontendMessage->opCode != MOVE && 
-			frontendMessage->opCode != TURN &&
-			frontendMessage->opCode != REGISTER)
-				frontendMessage = NULL;
-		}
-	}
-
-	pthread_exit(NULL);
-
-	return NULL;
-}
 
 // Add commands to the queue
 void addMoveCommand(MoveCommand * commands, int size){
@@ -137,22 +140,6 @@ int checkEOT(){
 
 void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 
-	// Constantly get input from backend, parallel to rendering
-	pthread_t backendInputThread;
-	pthread_create(&backendInputThread, NULL, getBackendInput, NULL);
-
-	// Render temporary world while loading.
-	while(registerAnts(gameWorld)){
-		// Pan & zoom
-		if(getUserInput(gameWorld) == -1)
-			return;
-		
-		renderSDLWorld(gameWorld, screen);
-		/* Update screen */
-		SDL_Flip(screen);  
-	}
-
-
 	int i;
 	int antQty = 10;
 	MoveCommand * commands = calloc(antQty, sizeof(MoveCommand));
@@ -164,6 +151,8 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 	int turn = 0;
 
 	while(1){
+
+		registerAnts(gameWorld);
 
 		// Pan & zoom
 		if(getUserInput(gameWorld) == -1)
