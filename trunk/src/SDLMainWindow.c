@@ -6,6 +6,9 @@
 #include "../include/SDL_AssetManager.h"
 #include "../include/GameLogic.h"
 #include "../include/communication.h"
+
+#include "../include/ant.h"
+#include "../include/anthill.h"
 #include "../include/map.h"
 #include <pthread.h>
 
@@ -42,29 +45,23 @@ SDL_Surface * initSDL(int argc, char * argv[]){
 	return screen;
 }
 
-
-void startMapEngine(){
-
-	int * frontendKey = malloc(sizeof(int));
-
-	*frontendKey = 2;
-
-	pthread_t mapThread;
-
-	pthread_create(&mapThread, NULL, mapMain, (void *)frontendKey);
-}
-
 int main(int argc, char * argv[]){
 
 	signal(SIGINT, sigHandler);
 
 	openIPC();
 
-	startMapEngine();
+	int * frontendKey = malloc(sizeof(int));
+	*frontendKey = 2;
+
+	pthread_t mapThread;
+	pthread_create(&mapThread, NULL, mapMain, (void *)frontendKey);
+
+	
 
 	SDL_Surface * screen = initSDL(argc, argv);
+	startGame(screen, *frontendKey);
 
-	startGame(screen);
 
 //	endWorld(world);
 

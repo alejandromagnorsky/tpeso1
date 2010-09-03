@@ -110,8 +110,15 @@ typedef enum {  SERVER, CLIENT } NodeType;
 
 typedef enum { false, true } bool;
 
-#define MAX_CONNECTIONS 50
 #define MAX_TURNS 10000
+
+#define MAP_ID -1
+
+
+typedef struct{
+	int key;
+	void * args;
+} PThreadArg;
 
 typedef struct{
 	int x;

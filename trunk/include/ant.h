@@ -11,10 +11,10 @@ typedef struct{
 	FoodType food;
 	Pos mov;
 	Pos anthill;
+	int key;
 }Ant;
 
-int vecMov[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // Represents: up, right, down and left
-
+void * antMain(void * arg);
 
 int action(Ant * ant);
 
@@ -26,12 +26,12 @@ bool getNearFood(Ant * ant);
 
 bool randomMove(Ant * ant);
 
-bool move(Pos to, bool trace);
+bool move(Pos to, bool trace, int key);
 
 Cardinal getCardinal(Pos from, Pos to);
 
 void setRegister(Ant * ant);
 
-bool setFood(Pos to);
+bool setFood(Pos to, int key);
 
-Pos getCurrentPos(void);
+Pos getCurrentPos(int key);

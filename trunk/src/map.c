@@ -1,6 +1,7 @@
 #include "../include/common.h"
 #include "../include/communication.h"
 #include "../include/map.h"
+#include "../include/anthill.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,19 +16,6 @@
 #define SIZE_X 15
 #define SIZE_Y 15
 
-#define MAP_ID -1
-
-void putAntFrontend(World * world, Pos pos){
-	Message * ans;
-	ans = createMessage( MAP_ID, world->frontendID, MOVE, SET, pos, 0);
-	sendMessage(CLIENT, ans);
-}
-
-void eraseAntFrontend(World * world, Pos pos){
-	Message * ans;
-	ans = createMessage( MAP_ID, world->frontendID, MOVE, EMPTY, pos, 0);
-	sendMessage(CLIENT, ans);
-}
 
 void printWorld(World * w){
 	printf("\n");
@@ -61,7 +49,7 @@ void printWorldData(World * w){
 	int i;
 	printf("Registered ants: ");
 	for(i=0;i<w->maxConnections;i++)
-		printf("%d ", w->clients[i]);
+		printf("K:%d T:%d |", w->clients[i].key,w->clients[i].turnLeft);
 	printf("\n");
 
 	printf("Ants inside anthill: ");
@@ -91,24 +79,17 @@ void registerAnt(Message * msg, World * world){
 
 	if(!exists(msg->keyFrom, world)){
 		// Get next empty ant slot on map
-		for(i=0;i<world->maxConnections && world->clients[i] != INVALID_ID;i++);
+		for(i=0;i<world->maxConnections && world->clients[i].key != INVALID_ID;i++);
 	
 		// Get next empty ant slot on anthill		
 		for(j=0;j<world->anthill.maxPopulation && world->anthill.ants[j] != INVALID_ID;j++);
 		
 		// Register ant on map and anthill
-		if( i != world->maxConnections && world->clients[i] == INVALID_ID &&
+		if( i != world->maxConnections && world->clients[i].key == INVALID_ID &&
 		    j != world->anthill.maxPopulation && world->anthill.ants[i] == INVALID_ID ){
-			world->clients[i] = msg->keyFrom;
+			world->clients[i].key = msg->keyFrom;
+			world->clients[i].turnLeft = true;
 			world->anthill.ants[j] = msg->keyFrom;
-
-			// First, register this on frontend
-			ans = createMessage( MAP_ID, world->frontendID, REGISTER, SET, anthillPos, 0);
-			sendMessage(CLIENT, ans);
-			// TMP
-			ans = createMessage( MAP_ID, world->frontendID, REGISTER, OK, anthillPos, 0);
-			sendMessage(CLIENT, ans);
-
 
 			ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, anthillPos, 0);
 			printf("Registered ant %d at (%d,%d) \n", msg->keyFrom, world->anthill.pos.x, world->anthill.pos.y);
@@ -122,10 +103,10 @@ void registerAnt(Message * msg, World * world){
 /*
  * Check if client exists
 */
-bool exists(int pid,World * world){
+bool exists(int key,World * world){
 	int i;
 	for(i=0;i<world->maxConnections;i++)
-		if(world->clients[i] == pid)
+		if(world->clients[i].key == key)
 			return true;
 	return false;
 }
@@ -231,53 +212,64 @@ void setWorldPosition(Message * msg,World * world){
 	Message * ans;
 	ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
 
-	Pos antPos = getAntCellByPID(world,msg->keyFrom )->pos;
-	Pos desiredPos = addPositions(antPos, msg->pos);
+	// First, check if ant exists...
+	if( exists(msg->keyFrom, world) ){
+		Cell * antCell = getAntCellByPID(world,msg->keyFrom );
 
-	// If cell is empty, move is valid and ant is registered
-	if(withinMapRange(world,desiredPos) &&!isOccupied(&desiredPos, world) && verifyPosition(msg->pos) 
-	&& exists(msg->keyFrom, world) )
-		{
-		// If leaves or not trace 
-		if((int)msg->trace == 1 || (int) msg->trace == 0){
+		Pos antPos = antCell->pos;
+		Pos desiredPos = addPositions(antPos, msg->pos);
+
+		// If cell is empty and move is valid
+		if(withinMapRange(world,desiredPos) &&!isOccupied(&desiredPos, world) 
+		&& verifyPosition(msg->pos))
+			{
+			// If leaves or not trace 
+			if((int)msg->trace == 1 || (int) msg->trace == 0){
 			
-			int antIndex =  antExistsInAnthill(world, msg->keyFrom);
-			Cell * nextCell = &world->cells[desiredPos.x][desiredPos.y];
+				int antIndex =  antExistsInAnthill(world, msg->keyFrom);
+				Cell * nextCell = &world->cells[desiredPos.x][desiredPos.y];
 
-			// Prepare message for frontend
-			ans = createMessage( MAP_ID, world->frontendID, MOVE, SET, msg->pos, 0);
 
-			// Check if ant is in anthill, then erase it from anthill
-			if( antIndex >= 0){
-				world->anthill.ants[antIndex] = INVALID_ID;
-				ans->fromPos = world->anthill.pos;  //Tell frontend from where to move
-			} else {
-				// If ant is in world, erase old cell data, and if food is carried, keep carrying
-				Cell * oldCell = getAntCellByPID(world, msg->keyFrom );
+				// Check if ant is in anthill, then erase it from anthill
+				if( antIndex >= 0){
+					world->anthill.ants[antIndex] = INVALID_ID;
+
+					// NOTE: This is to prevent multilayering of ants on frontend 
+					// Tell the frontend ant exists in pos + anthill.pos
+					ans = createMessage( MAP_ID, world->frontendID, REGISTER, SET, world->anthill.pos, 0);
+					ans->pos.x += msg->pos.x;
+					ans->pos.y += msg->pos.y;
 				
-				oldCell->type = EMPTY_CELL;
-				oldCell->typeID = INVALID_ID;
-				nextCell->foodType = oldCell->foodType; // carry food if possible
+				} else {
+					// If ant is in world, erase old cell data, and if food is carried, keep carrying
+					Cell * oldCell = getAntCellByPID(world, msg->keyFrom );
+				
+					oldCell->type = EMPTY_CELL;
+					oldCell->typeID = INVALID_ID;
+					nextCell->foodType = oldCell->foodType; // carry food if possible
 
-				ans->fromPos = oldCell->pos; 	//Tell frontend from where to move
+					// Ant just moved, already exists
+					ans = createMessage( MAP_ID, world->frontendID, MOVE, SET, msg->pos, 0);
+					ans->fromPos = oldCell->pos; 	//Tell frontend from where to move
+				}
+
+				// Tell frontend ant's new position
+				sendMessage(CLIENT, ans);
+
+
+				// TMP!
+				ans = createMessage( MAP_ID, world->frontendID, TURN, SET, msg->pos, 0);
+				sendMessage(CLIENT, ans);
+
+				// Set next cell data
+				nextCell->type = ANT_CELL;
+
+				// If trace 1 change it, if not, leave it unchanged
+				nextCell->trace =( (int) msg->trace == 1) ? msg->trace : nextCell->trace;
+				nextCell->typeID = msg->keyFrom;
+
+				ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OK, msg->pos, msg->trace);
 			}
-
-			// Tell frontend ant's new position
-			sendMessage(CLIENT, ans);
-
-
-			// TMP!
-			ans = createMessage( MAP_ID, world->frontendID, TURN, SET, msg->pos, 0);
-			sendMessage(CLIENT, ans);
-
-			// Set next cell data
-			nextCell->type = ANT_CELL;
-
-			// If trace 1 change it, if not, leave it unchanged
-			nextCell->trace =( (int) msg->trace == 1) ? msg->trace : nextCell->trace;
-			nextCell->typeID = msg->keyFrom;
-
-			ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OK, msg->pos, msg->trace);
 		}
 	}
 
@@ -330,6 +322,7 @@ void setFoodAtAnthill(Message * msg, World * world){
 }
 
 int nextTurn(World * world){
+
 
 	// Here traces are decreased.
 	int i,j;
@@ -390,8 +383,8 @@ void broadcastShout(Message * msg, World * world){
 
 		// For each ant, send a shout
 		for(i=0;i<world->maxConnections;i++)
-			if(world->clients[i] != INVALID_ID && world->clients[i] != msg->keyFrom){
-				ans = createMessage( MAP_ID,world->clients[i], SHOUT, SET, msg->pos, msg->trace);
+			if(world->clients[i].key != INVALID_ID && world->clients[i].key != msg->keyFrom){
+				ans = createMessage( MAP_ID,world->clients[i].key, SHOUT, SET, msg->pos, msg->trace);
 				sendMessage(CLIENT, ans);
 			}
 
@@ -451,9 +444,11 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos a
 	for(i=0;i<maxConnections;i++)
 		out->anthill.ants[i] = INVALID_ID;
 
-	out->clients = malloc(maxConnections * sizeof(int));
-	for(i=0;i<maxConnections;i++)
-		out->clients[i] = INVALID_ID;
+	out->clients = malloc(maxConnections * sizeof(Client));
+	for(i=0;i<maxConnections;i++){
+		out->clients[i].key = INVALID_ID;
+		out->clients[i].turnLeft = false;
+	}
 
 	out->cells = malloc(sizeX * sizeof(Cell *));
 	for(i=0;i<sizeX;i++)
@@ -486,6 +481,16 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos a
 	return out;
 }
 
+int getQtyRegistered(World * world){
+	int i, out;
+	out = 0;
+	for(i=0;i<world->maxConnections;i++)
+		if(world->clients[i].key != INVALID_ID)
+			out++;
+
+	return out;
+}
+
 void * mapMain(void * arg){
 
 	signal(SIGINT, sigHandler);
@@ -495,10 +500,20 @@ void * mapMain(void * arg){
 	int frontendKey = *(int*)arg;
 	printf("Frontend Key: %d \n", frontendKey);
 
+	PThreadArg * anthillArgs = malloc(sizeof(PThreadArg));
+	anthillArgs->key = 3;
+	anthillArgs->args = malloc(sizeof(int));
+	*(int * )(anthillArgs->args) = 10; // 10 ants
+
+	pthread_t anthillThread;
+	pthread_create(&anthillThread, NULL, anthillMain, (void *)anthillArgs);
+	
+
+
 	// MAP LOADER HERE
 	World * world;
 	Pos pos = { 3, 5 };
-	world = getWorld(SIZE_X, SIZE_Y, MAX_CONNECTIONS, MAX_TURNS, pos, frontendKey);	
+	world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS, pos, frontendKey);	
 	
 	printf("Anthill position: %d, %d\n", pos.x, pos.y);
 	
@@ -517,8 +532,8 @@ void * mapMain(void * arg){
 
 		parseMessage(rcvMsg, world);
 
-	//	printWorld(world);
-	//	printWorldData(world);
+		printWorld(world);
+		printWorldData(world);
 
 	}
 

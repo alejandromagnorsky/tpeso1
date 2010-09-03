@@ -128,7 +128,6 @@ void renderSDLWorld(SDL_World * world, SDL_Surface * screen){
 }
 
 int verifyGrid(SDL_World * world, int x, int y, int layer){
-
 	if( x >= 0 && x < world->sizeX && y >= 0 && y < world->sizeY && layer < LAYERS )
 		return 1;
 	return 0;
