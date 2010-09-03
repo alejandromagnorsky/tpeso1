@@ -92,6 +92,8 @@ goAnthill(Ant * ant){
 
 bool
 randomMove(Ant * ant){
+	Message * send;
+	Message * received;
 	int index, count = 0;
 	Pos pos;
 	bool tried[4] = {false, false, false, false};	// Verify if the ant tried to go to the i direction
@@ -106,6 +108,15 @@ randomMove(Ant * ant){
 		tried[index] = true;
 		count++;
 
+		send = createMessage(ant->key, MAP_ID, MOVE, GET, pos, 1);
+		sendMessage(SERVER, send);
+		received = receiveMessage(SERVER, ant->key);
+		if(received->opCode == FOOD && received->param == OCCUPIED){
+			ant->mov = pos;
+			getNearFood(ant);
+			return true;
+		}
+			
 	} while(!move(pos, false, ant->key) && count < 4);
 	
 	if(count == 4)
