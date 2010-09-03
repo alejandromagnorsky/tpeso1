@@ -14,13 +14,14 @@
 #include "../include/communication.h"
 
 #define SIZE sizeof(Message)
-#define ANTQUANT 5
+#define semKey "/mutex"
+#define CLIENTQUANT 8 // NECESITO RECIBIR LA CANTIDAD DE CLIENTS
 
-static char * semKey = "/mutex";
-static sem_t * sd;
+// Semaphore
+sem_t * sd;
 // For the shm
-static int serverFd; 
-static int clientFd;
+int serverFd; 
+int clientFd;
 
 void 
 sigHandler(){
@@ -42,20 +43,19 @@ void openIPC(){
 	
 	if ( (serverFd = shm_open("/server", O_RDWR|O_CREAT, 0666)) == -1 )
 		errorLog("sh_open");
-	ftruncate(serverFd, ANTQUANT*SIZE);
+	ftruncate(serverFd, CLIENTQUANT*SIZE);
 
 	if ( (clientFd = shm_open("/client", O_RDWR|O_CREAT, 0666)) == -1 )
 		errorLog("sh_open");
-	ftruncate(clientFd, ANTQUANT*SIZE);
+	ftruncate(clientFd, CLIENTQUANT*SIZE);
 
-	Message * memClt;
-	Message * memSrv;
-	if ( !(memClt = mmap(NULL, ANTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, clientFd, 0)) )
+	Message * mem;
+	if ( !(mem = mmap(NULL, CLIENTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, clientFd, 0)) )
 			errorLog("mmap");
-	memset(memClt, 0, ANTQUANT*SIZE);
-	if ( !(memSrv = mmap(NULL, ANTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, serverFd, 0)) )
+	memset(mem, 0,  CLIENTQUANT*SIZE);
+	if ( !(mem = mmap(NULL, CLIENTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, serverFd, 0)) )
 			errorLog("mmap");
-	memset(memSrv, 0, ANTQUANT*SIZE);
+	memset(mem, 0, CLIENTQUANT*SIZE);
 }
 
 
@@ -68,38 +68,50 @@ closeIPC(){
 
 
 Message * 
-receiveMessage(NodeType from){
+receiveMessage(NodeType from, int key){
 
 	Message * mem;
 	Message * out = NULL;
-	Message * aux;
-	int fd, i = 1;
+
+	int fd, i;
 
 	if(from == SERVER) // Ant case
 		fd = clientFd;
 	else				// Map case
 		fd = serverFd;
 
-	printf("FD: %d. PID: %d\n", fd, getpid());
-	if ( !(mem = mmap(NULL, ANTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
+	printf("Recibiendo de FD: %d. Key: %d\n", fd, key);
+	if ( !(mem = mmap(NULL, CLIENTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
 		errorLog("mmap");
 	
-	aux = mem;		
-	printf("Recibiendo\n");
-
-	//Block the condition in the while, the assigment of out and the readed flag
-	sem_wait(sd);
-	while( !( mem->keyTo == getpid() || (from == CLIENT && mem->keyTo == -1) ) ){ // While the msg is readed or is for another ant and it isn't from the server
-		mem = aux+SIZE*(i%ANTQUANT);
-		sem_post(sd);
-		sleep(1);
-		printf("PID: %d. Recibio mensaje? %d.KeyFrom:%d KeyTo:%d \n", getpid(), i%ANTQUANT, mem->keyFrom, mem->keyTo);
+	if(from == SERVER){ // The ant has to retrieve the message from an specific position in /client determinated by his key
+		mem = mem + SIZE*key;
 		sem_wait(sd);
-		i++;
+		// Block the condition in the while, the assigment of out and the readed flag
+		while(mem->keyTo != key){  // While the msg is read
+			sem_post(sd);
+			sleep(1);
+			sem_wait(sd);
+		}
+	} else { // The map has to search the /server to verify if any ant send a message
+		Message * aux;
+		aux = mem;
+		printf("Mapa recibiendo\n");	
+		
+		sem_wait(sd);
+		for(i = 0; mem->keyTo != key; i++){ // While the msg is read
+			mem = aux + SIZE * (i%CLIENTQUANT);
+			sem_post(sd);
+			sleep(1);
+			printf("Key: %d. Recibio mensaje? FD: %d. Index: %d. KeyFrom:%d KeyTo:%d \n", key,  fd, i%CLIENTQUANT, mem->keyFrom, mem->keyTo);
+			sem_wait(sd);
+		}
 	}
 
-	// A copy must be made, because mem is deallocated after this function
 	out = createMessage(mem->keyFrom, mem->keyTo, mem->opCode,  mem->param, mem->pos, mem->trace);
+	//FRONTEND ONLY
+	out->fromPos.x = mem->fromPos.x;
+	out->fromPos.y = mem->fromPos.y;
 
 	mem->keyTo = 0; // Mark the message as readed
 	
@@ -112,31 +124,24 @@ int
 sendMessage(NodeType to, Message * msg){
 
 	Message * mem;	
-	Message * aux;
-	int fd, i;
+	int fd, index;
 	
 	if(to == SERVER)
 		fd = serverFd;	
 	else
 		fd = clientFd;
-	printf("FD: %d. PID: %d\n", fd, getpid());
+	printf("Enviando a FD: %d. Key: %d\n", fd, msg->keyFrom);
 	
-	if ( !(mem = mmap(NULL, ANTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
+	if ( !(mem = mmap(NULL, CLIENTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
 		errorLog("mmap");
 
-	aux = mem;
-	sem_wait(sd);
-	for(i = 1; mem->keyTo != 0; i++){ // Search for a space readed
-		mem = aux+SIZE*(i%ANTQUANT);
-		sem_post(sd);
-		//sleep(1);
-		printf("Buscando donde dejar mensaje\n");
-		sem_wait(sd);
-	}
+	if(to == SERVER)
+		index = msg->keyFrom;
+	else
+		index = msg->keyTo;
 
-	printf("Mensaje mandado a %d\n", i-1%ANTQUANT);
-	sem_post(sd);
-
+	mem = mem + SIZE*index;
+	
 	// Block this zone of code
 	sem_wait(sd);
 
@@ -144,20 +149,7 @@ sendMessage(NodeType to, Message * msg){
 
 	sem_post(sd);
 
+	printf("Mensaje mandado a %d. Enviado con keyTo = %d\n", index, mem->keyTo);
+
 	return 0;
 }
-/*
-int
-getid(int pid){
-	if(_vecPid == NULL)
-		_vecPid = calloc(ANTQUANT*sizeof(int));
-
-	int i, ans = -1;
-	for(i = 0; i < ANTQUANT; i++)
-		if(_vecPid[i] == 0 || _vecPid[i] == pid){
-			_vecPid[i] = pid;
-			ans = i;
-			break;
-		}
-	return ans;
-}*/
