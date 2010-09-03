@@ -503,7 +503,7 @@ void * mapMain(void * arg){
 	PThreadArg * anthillArgs = malloc(sizeof(PThreadArg));
 	anthillArgs->key = 3;
 	anthillArgs->args = malloc(sizeof(int));
-	*(int * )(anthillArgs->args) = 10; // 10 ants
+	*(int * )(anthillArgs->args) = 5; // 5 ants
 
 	pthread_t anthillThread;
 	pthread_create(&anthillThread, NULL, anthillMain, (void *)anthillArgs);
