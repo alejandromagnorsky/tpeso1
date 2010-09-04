@@ -9,85 +9,89 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <errno.h>
-
 #include "../include/communication.h"
 
-typedef struct {
-	long int type;
-	Message msg;
-} msgbuf;
+#define CLIENTQUANT 20		// I DO need this.
 
-// TENGO QUE VER ESTO, PORQUE MI SIGHANDLER TIENE QUE RECIBER ANT, aANTHILL O MAP
+// FIFOs file descriptors
+int serverFd; 
+int clientFds[CLIENTQUANT];
+
+int digits(int n){
+	return ((n/10)==0) ? 1 : 1 + digits(n/10);
+}
+
 void sigHandler(){
-	closeNode(0);
+	destroyIPC();
 	exit(1);
 }
 
-
-void closeNode(NodeType t){
-	char * fifoName = NULL;
-
-	if( t == MAP )
-		sprintf(fifoName, "/tmp/fifo_map");
-	else if( t == ANT )
-		sprintf(fifoName, "/tmp/fifo_%d", getpid());
-	else
-		sprintf(fifoName, "/tmp/fifo_anthill");
-
-	if ( unlink(fifoName) == -1 )
-		printf("%s could not be unlinked", fifoName);
-	return;
+// Destroy IPC resources
+void destroyIPC(){
+	if ( unlink("/server") == -1 )
+                errorLog("Server's FIFO could not be unlinked.\n");
+	int i;
+	char * clientfifo;
+	if ( (clientfifo = malloc(8 + digits(CLIENTQUANT-1))) == NULL )	// 8 = strlen("/client_")
+		errorLog("Memory allocation error in client's FIFO creation.\n");
+	for (i=0; i<CLIENTQUANT; i++){
+		sprintf(clientfifo, "/client_%d", i);
+		if ( unlink(clientfifo) == -1 )
+              		errorLog("A client's FIFO could not be unlinked.\n");
+	}
 }
 
+// Open & initialize IPC resource
+void openIPC(){
+	if ( access("/server", 0) == -1 && mknod("/server", S_IFIFO | 0666, 0) == -1 )
+		errorLog("Server's FIFO could not be created.\n");
+	if ( (serverFd = open("/server", O_RDWR)) == -1 )
+		errorLog("Server's FIFO could not be opened.\n");
 
+	char * clientfifo;
+	if ( (clientfifo = malloc(8 + digits(CLIENTQUANT-1))) == NULL )	// 8 = strlen("/client_")
+		errorLog("Memory allocation error in client's FIFO creation.\n");
+	int i;
+	for (i=0; i<CLIENTQUANT; i++){
+		sprintf(clientfifo, "/client_%d", i);
+		if ( access(clientfifo, 0) == -1 && mknod(clientfifo, S_IFIFO | 0666, 0) == -1 )
+			errorLog("Client's FIFO could not be created.\n");
+		if ( (clientFds[i] = open(clientfifo, O_RDWR)) == -1 )
+			errorLog("Client's FIFO could not be opened.\n");
+	}
+}
 
-Message * receiveMessage(NodeType from){
+// Close IPC resource
+void closeIPC(){
+	if ( close(serverFd) == -1 )
+		errorLog("Server's FIFO could not be closed.\n");
+	int i;
+	for (i=0; i<CLIENTQUANT; i++)
+		if ( close(clientFds[i]) == -1 )
+			errorLog("A client's FIFO could not be closed.\n");
+}
+
+Message * receiveMessage(NodeType from, int key){
 	int fd;
-	char * fifoName = NULL;
 	Message * out = malloc(sizeof(Message));
 
-	if( from == ANT )
-		fifoName = "/tmp/fifo_map";
-	else if( from == MAP ){
-		// VER QUE ONDA ESTE MALLOC SI LO PUEDO SACAR DE ALGUN MANERA
-		fifoName = malloc(16 * sizeof(char));
-		sprintf(fifoName, "/tmp/fifo_%d", getpid());
-	} else
-		fifoName = "/tmp/fifo_anthill";
+	if (from == CLIENT)	// I'm server and have to read from my FIFO.
+		fd = serverFd;
+	else
+		fd = clientFds[key];	// I'm client and have to read from my portion of FIFO.
 
-	if ( access(fifoName, 0) == -1 && mknod(fifoName, S_IFIFO | 0666, 0) == -1 ){
-		printf("%s could not be created", fifoName);
-		return NULL;
-	}
-
-	fd = open(fifoName, O_RDONLY);
 	read(fd, out, sizeof(Message));
-
-	close(fd);
 	return out;
 }
 
 int sendMessage(NodeType to, Message * msg){
 	int fd;
-	char * fifoName = NULL;
 
-	if( to == MAP )
-		fifoName = "/tmp/fifo_map";
-	else if( to == ANT ){
-		// VER QUE ONDA ESTE MALLOC SI LO PUEDO SACAR DE ALGUN MANERA
-		fifoName = malloc(16 * sizeof(char));
-		sprintf(fifoName, "/tmp/fifo_%d", msg->pidTo);
-	} else
-		fifoName = "/tmp/fifo_anthill";
+	if (to == SERVER)	// I'm client and have to write in server's FIFO.
+		fd = serverFd;
+	else 
+		fd = clientFds[msg->keyTo];	// I'm server and have to write in client's FIFO.
 
-	if ( access(fifoName, 0) == -1 && mknod(fifoName, S_IFIFO | 0666, 0) == -1 ){
-		printf("%s could not be created", fifoName);
-		return -1;
-	}
-
-	fd = open(fifoName, O_WRONLY);
 	write(fd, msg, sizeof(Message));
-
-	close(fd);
 	return 0;
 }
