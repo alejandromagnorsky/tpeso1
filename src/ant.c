@@ -19,26 +19,27 @@ int vecMov[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // Represents: up, right, dow
 void * antMain(void * arg){
 
 	int key = (int)arg;
-	printf("Ant Key: %d \n", key);
+//	printf("Ant Key: %d \n", key);
 
 	//SET REGISTER -----------------------------
 	
 	Ant * ant = malloc(sizeof(Ant));	
 	
-
-
-	
 	ant->food = NO_FOOD;
 	ant->opCode = -1;
 	ant->key = key;
 
-	getchar();
 	setRegister(ant);
 
-
-	
-	while(getchar() != 'q')
-		action(ant);
+	Message * received;
+	while(1){
+		//printf("Termine el turno, ahora a esperar...\n");
+		received = receiveMessage(SERVER, ant->key);
+		if(received->opCode == TURN && received->param == SET){
+		//	printf("Eh! tengo turno\n");
+			action(ant);
+		}
+	}
 
 	pthread_exit(NULL);
 }
@@ -75,10 +76,10 @@ goAnthill(Ant * ant){
 	Pos currentPos = getCurrentPos(ant->key);
 	Cardinal card = getCardinal(currentPos, anthill) % 4;	// If NW then go to N, NE go to E, SE go to S and SW go to W
 	Pos to;
-	printf("CARDINAL: %d\n", card);
+	//printf("CARDINAL: %d\n", card);
 	to.x = vecMov[card][0];
 	to.y = vecMov[card][1];	
-	printf("CURRENT: %d, %d.    ANTHILL: %d, %d.    TO: %d, %d\n", currentPos.x, currentPos.y, anthill.x, anthill.y, to.x, to.y);
+//	printf("CURRENT: %d, %d.    ANTHILL: %d, %d.    TO: %d, %d\n", currentPos.x, currentPos.y, anthill.x, anthill.y, to.x, to.y);
 	// If the ant is going to arrive to the anthill
 	if( anthill.x == currentPos.x+to.x && anthill.y == currentPos.y+to.y ){
 		if(setFood(to, ant->key))
@@ -130,7 +131,7 @@ move(Pos to, bool trace, int key){
 	Message * send;	
 	Message * received;
 
-	printf("I want to move to (%d,%d) \n", to.x, to.y);
+//	printf("I want to move to (%d,%d) \n", to.x, to.y);
 	if(trace)
 		send = createMessage(key, MAP_ID, MOVE, SET, to, 1);
 	else
@@ -143,11 +144,11 @@ move(Pos to, bool trace, int key){
 //	printf("Message received.\n");
 //	printMessage(received);
 	if(received->opCode == MOVE && received->param == OK ){
-		printf("I moved! \n");		
+//		printf("I moved! \n");		
 		return true;
 	}
 	else {
-		printf("Couldn't move! =( \n");
+//		printf("Couldn't move! =( \n");
 		return false;
 	}
 }
@@ -175,10 +176,10 @@ setRegister(Ant * ant){
 
 	Pos pos = {0,0};
 
-	printf("REGISTER KEY2: %d\n", ant->key);
+//	printf("REGISTER KEY2: %d\n", ant->key);
 
 	// Sending first register
-	printf("Trying to register... \n");
+//	printf("Trying to register... \n");
 	send = createMessage(ant->key, MAP_ID, REGISTER, SET, pos, 0);
 //	printMessage(send);
 	sendMessage(SERVER, send);
@@ -187,7 +188,7 @@ setRegister(Ant * ant){
 //	printf("Message received.\n");
 //	printMessage(received);
 	if(received->opCode == REGISTER && received->param == OK ){
-		printf("Register successful.\n");
+//		printf("Register successful.\n");
 		ant->anthill.x = received->pos.x;
 		ant->anthill.y = received->pos.y;
 	} else
@@ -207,7 +208,7 @@ search(Ant * ant){
 	for(i = 0; i < 4; i++){
 		to.x = vecMov[i][0];
 		to.y = vecMov[i][1];
-		printf("I want to search food from (%d,%d) \n", to.x, to.y);
+	//	printf("I want to search food from (%d,%d) \n", to.x, to.y);
 		send = createMessage(ant->key, MAP_ID, MOVE, GET, to, 0);  
 	//	printMessage(send);
 		sendMessage(SERVER, send);
@@ -258,7 +259,7 @@ getNearFood(Ant * ant){
 	Message * send;	
 	Message * received;
 	
-	printf("I want to get food from (%d,%d) \n", to.x, to.y);
+//	printf("I want to get food from (%d,%d) \n", to.x, to.y);
 	send = createMessage(ant->key, MAP_ID, FOOD, GET, to, 0);
 	//printMessage(send);
 	sendMessage(SERVER, send);
@@ -267,7 +268,7 @@ getNearFood(Ant * ant){
 	//printf("Message received.\n");
 	//printMessage(received);
 	if(received->opCode == FOOD && received->param == OK){
-			printf("I get food! \n");
+//			printf("I get food! \n");
 			ant->food = SMALL_FOOD;
 			return true;
 	} else if(received->opCode == FOOD && received->param == BIG)
@@ -284,7 +285,7 @@ setFood(Pos to, int key){
 	Message * send;	
 	Message * received;
 	
-	printf("I want to leave food on anthill in (%d,%d) \n", to.x, to.y);
+//	printf("I want to leave food on anthill in (%d,%d) \n", to.x, to.y);
 	send = createMessage(key, MAP_ID, FOOD, SET, to, 0);
 	//printMessage(send);
 	sendMessage(SERVER, send);

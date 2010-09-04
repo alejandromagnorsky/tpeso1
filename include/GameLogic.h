@@ -13,11 +13,14 @@
 
 #define DELAY 15	// delay in ms
 
+typedef enum { MoveCommand, RegisterCommand } CommandOp;
+
 typedef struct{
 	int fromX,fromY;
 	int toX,toY;	
 	int valid;
-} MoveCommand;
+	CommandOp op;
+} Command;
 
 void startGame(SDL_Surface * screen, int key);
 
@@ -31,7 +34,10 @@ int getUserInput(SDL_World * gameWorld);
 
 void * getBackendInput(void * threadid);
 
-int executeMoveCommands(SDL_World * gameWorld, MoveCommand * commands, int size);
+int executeMoveCommands(SDL_World * gameWorld, Command * commands, int size);
+
+void addRegisterCommand(Command * command, int size);
+
 
 int checkEOT();
 
