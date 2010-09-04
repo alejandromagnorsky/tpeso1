@@ -81,30 +81,30 @@ receiveMessage(NodeType from, int key){
 	else				// Map case
 		fd = serverFd;
 
-	printf("Recibiendo de FD: %d. Key: %d\n", fd, key);
+	//printf("Recibiendo de FD: %d. Key: %d\n", fd, key);
 	if ( !(mem = mmap(NULL, CLIENTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
 		errorLog("mmap");
 	
 	if(from == SERVER){ // The ant has to retrieve the message from an specific position in /client determinated by his key
-		mem = mem + SIZE*key;
+		mem += key;
 		sem_wait(sd);
 		// Block the condition in the while, the assigment of out and the readed flag
 		while(mem->keyTo != key){  // While the msg is read
 			sem_post(sd);
-			sleep(1);
+		//	sleep(1);
 			sem_wait(sd);
 		}
 	} else { // The map has to search the /server to verify if any ant send a message
 		Message * aux;
 		aux = mem;
-		printf("Mapa recibiendo\n");	
+		//printf("Mapa recibiendo\n");	
 		
 		sem_wait(sd);
 		for(i = 0; mem->keyTo != key; i++){ // While the msg is read
-			mem = aux + SIZE * (i%CLIENTQUANT);
+			mem = aux + i%CLIENTQUANT;
 			sem_post(sd);
-			sleep(1);
-			printf("Key: %d. Recibio mensaje? FD: %d. Index: %d. KeyFrom:%d KeyTo:%d \n", key,  fd, i%CLIENTQUANT, mem->keyFrom, mem->keyTo);
+		//	sleep(1);
+		//	printf("Key: %d. Recibio mensaje? FD: %d. Index: %d. KeyFrom:%d KeyTo:%d \n", key,  fd, i%CLIENTQUANT, mem->keyFrom, mem->keyTo);
 			sem_wait(sd);
 		}
 	}
@@ -131,7 +131,7 @@ sendMessage(NodeType to, Message * msg){
 		fd = serverFd;	
 	else
 		fd = clientFd;
-	printf("Enviando a FD: %d. Key: %d\n", fd, msg->keyFrom);
+	//printf("Enviando a FD: %d. Key: %d\n", fd, msg->keyFrom);
 	
 	if ( !(mem = mmap(NULL, CLIENTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
 		errorLog("mmap");
@@ -141,16 +141,21 @@ sendMessage(NodeType to, Message * msg){
 	else
 		index = msg->keyTo;
 
-	mem = mem + SIZE*index;
+	mem += index;
 	
+
 	// Block this zone of code
 	sem_wait(sd);
-
+	
+	while(mem->keyTo != 0){ // While the msg is not read	
+		sem_post(sd);
+		sem_wait(sd);
+	}
 	memcpy(mem, msg, SIZE);
 
 	sem_post(sd);
 
-	printf("Mensaje mandado a %d. Enviado con keyTo = %d\n", index, mem->keyTo);
+	//printf("Mensaje mandado a %d. Enviado con keyTo = %d\n", index, mem->keyTo);
 
 	return 0;
 }
