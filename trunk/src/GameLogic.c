@@ -40,21 +40,6 @@ void * getBackendInput(void * arg){
 	return NULL;
 }
 
-void registerAnts(SDL_World * gameWorld){
-
-	if(frontendMessage != NULL &&
-	   frontendMessage->opCode == REGISTER)
-	{
-		Pos pos = frontendMessage->pos;
-
-		if(frontendMessage->param == SET){
-			addObject(gameWorld, "Flare", pos.x, pos.y, 1, ANIMATED,!ORIENTED);
-			frontendMessage = NULL;
-			return;
-		}
-	}	
-	return;
-}
 
 SDL_World * initGame(SDL_Surface * screen){
 	SDL_World * out = getSDLWorld(15, 15, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
@@ -77,8 +62,34 @@ SDL_World * initGame(SDL_Surface * screen){
 }
 
 
+void addRegisterCommand(Command * commands, int size){
+
+	if(frontendMessage != NULL &&
+	   frontendMessage->opCode == REGISTER
+	  && frontendMessage->param == SET)
+	{
+		Pos pos = frontendMessage->pos;
+		printf("REGISTER SET!!!\n");
+		int i;
+		for(i=0;i<size;i++)
+			if(commands[i].valid == 0 ){
+				commands[i].fromX = pos.x;
+				commands[i].fromY = pos.y;
+				
+				commands[i].op = RegisterCommand;
+				commands[i].valid = 1;
+				frontendMessage = NULL;	// Message received, done
+				return;	// Command added
+			}
+
+		//addObject(gameWorld, "Flare", pos.x, pos.y, 1, ANIMATED,!ORIENTED);
+	}	
+	return;
+}
+
+
 // Add commands to the queue
-void addMoveCommand(MoveCommand * commands, int size){
+void addMoveCommand(Command * commands, int size){
 	int i;
 
 	if(frontendMessage != NULL &&
@@ -99,8 +110,8 @@ void addMoveCommand(MoveCommand * commands, int size){
 				commands[i].fromY = from.y;
 				commands[i].toX = to.x;
 				commands[i].toY = to.y;
-
 				
+				commands[i].op = MoveCommand;
 				commands[i].valid = 1;
 				frontendMessage = NULL;	// Message received, done
 				return;	// Command added
@@ -112,20 +123,35 @@ void addMoveCommand(MoveCommand * commands, int size){
 // Basically execute commands.
 // Return 0 when commands yet not executed
 // Return 1 when all commands executed
-int executeMoveCommands(SDL_World * gameWorld, MoveCommand * commands, int size){
+int executeMoveCommands(SDL_World * gameWorld, Command * commands, int size){
 
 	int i;
 	int finished = 1;
 	int finishedTotal = 1;
 	for(i=0;i<size;i++)
-		if(commands[i].valid == 1 ){
-			finished = moveObject(gameWorld, commands[i].fromX, commands[i].fromY,commands[i].toX, commands[i].toY, 1); // Ants work in layer 1
-			if(finished)
-				commands[i].valid = 0;
-			finishedTotal = finishedTotal && finished;
+		if(commands[i].valid == 1 && commands[i].op == MoveCommand){
+				finished = moveObject(gameWorld, commands[i].fromX, commands[i].fromY,commands[i].toX, commands[i].toY, 1); // Ants work in layer 1
+				if(finished)
+					commands[i].valid = 0;
+				finishedTotal = finishedTotal && finished;
+		}
+	return finishedTotal;
+}
+
+
+
+// Basically execute commands.
+// Return 0 when commands yet not executed
+// Return 1 when all commands executed
+void executeRegisterCommands(SDL_World * gameWorld, Command * commands, int size){
+
+	int i;
+	for(i=0;i<size;i++)
+		if(commands[i].valid == 1 && commands[i].op == RegisterCommand ){
+			addObject(gameWorld, "Flare",commands[i].fromX, commands[i].fromY, 1, ANIMATED,!ORIENTED);
+			commands[i].valid = 0;
 		}
 
-	return finishedTotal;
 }
 
 int checkEOT(){
@@ -141,8 +167,8 @@ int checkEOT(){
 void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 
 	int i;
-	int antQty = 10;
-	MoveCommand * commands = calloc(antQty, sizeof(MoveCommand));
+	int antQty = 20;
+	Command * commands = calloc(antQty, sizeof(Command));
 
 	for(i=0;i<antQty;i++)
 		commands[i].valid = 0;
@@ -152,21 +178,22 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 
 	while(1){
 
-		registerAnts(gameWorld);
-
 		// Pan & zoom
 		if(getUserInput(gameWorld) == -1)
 			return;
 
 		// If turn hasnt ended, get commands, check EOT
 		if(!turn){
-			// Parse messages, add move commands
+			// Parse messages, add commands
+			addRegisterCommand(commands, antQty);
 			addMoveCommand(commands, antQty);						
 			turn = checkEOT();
 		// If turn has ended, wait till all commands are executed 
 		} else {		
-			if(executeMoveCommands(gameWorld,commands, antQty))
+			if(executeMoveCommands(gameWorld,commands, antQty)){
+				executeRegisterCommands(gameWorld,commands, antQty);
 				turn = 0;
+			}
 		}
 
 		// Render world

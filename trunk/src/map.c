@@ -20,8 +20,8 @@
 void printWorld(World * w){
 	printf("\n");
 	int i,j;
-	for(i=0;i<w->sizeX;i++){
-		for(j=0;j<w->sizeY;j++)
+	for(j=0;j<w->sizeY;j++){
+		for(i=0;i<w->sizeX;i++)
 			switch(w->cells[i][j].type){
 
 				case ANT_CELL:
@@ -49,7 +49,7 @@ void printWorldData(World * w){
 	int i;
 	printf("Registered ants: ");
 	for(i=0;i<w->maxConnections;i++)
-		printf("K:%d T:%d |", w->clients[i].key,w->clients[i].turnLeft);
+		printf("%d |", w->clients[i].turnLeft);
 	printf("\n");
 
 	printf("Ants inside anthill: ");
@@ -88,7 +88,7 @@ void registerAnt(Message * msg, World * world){
 		if( i != world->maxConnections && world->clients[i].key == INVALID_ID &&
 		    j != world->anthill.maxPopulation && world->anthill.ants[i] == INVALID_ID ){
 			world->clients[i].key = msg->keyFrom;
-			world->clients[i].turnLeft = true;
+			world->clients[i].turnLeft = false;
 			world->anthill.ants[j] = msg->keyFrom;
 
 			ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, anthillPos, 0);
@@ -146,7 +146,6 @@ Pos addPositions(Pos p1, Pos p2){
 	return out;
 }
 
-// A SEGUIRRRRRRR -----------------------------------
 
 // Get world position, check if its empty or not
 void getWorldPosition(Message * msg,World * world){
@@ -157,6 +156,7 @@ void getWorldPosition(Message * msg,World * world){
 
 
 	ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
+//	printWorldData(world);
 
 	// If Ant exists and move is valid
 	if(exists(msg->keyFrom, world) && withinMapRange(world, desiredPos) && verifyPosition(msg->pos)){
@@ -207,13 +207,23 @@ int withinMapRange(World * world, Pos pos){
 	else return 0;
 }
 
+int getAntIndexByKey(World * world, int key){
+	int i;
+	for(i=0;i<world->maxConnections;i++)
+		if(world->clients[i].key == key )
+			return i;
+	return -1;
+}
+
 void setWorldPosition(Message * msg,World * world){
 
 	Message * ans;
 	ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
 
+	int clientIndex = getAntIndexByKey(world,msg->keyFrom);
+
 	// First, check if ant exists...
-	if( exists(msg->keyFrom, world) ){
+	if( exists(msg->keyFrom, world) && world->clients[clientIndex].turnLeft == true ){
 		Cell * antCell = getAntCellByPID(world,msg->keyFrom );
 
 		Pos antPos = antCell->pos;
@@ -254,11 +264,6 @@ void setWorldPosition(Message * msg,World * world){
 				}
 
 				// Tell frontend ant's new position
-				sendMessage(CLIENT, ans);
-
-
-				// TMP!
-				ans = createMessage( MAP_ID, world->frontendID, TURN, SET, msg->pos, 0);
 				sendMessage(CLIENT, ans);
 
 				// Set next cell data
@@ -321,16 +326,59 @@ void setFoodAtAnthill(Message * msg, World * world){
 	sendMessage(CLIENT, ans);
 }
 
+// Qty ants registered
+int getQtyRegistered(World * world){
+	int i, out;
+	out = 0;
+	for(i=0;i<world->maxConnections;i++)
+		if(world->clients[i].key != INVALID_ID)
+			out++;
+
+	return out;
+}
+
+// Ants with turn left
+int getQtyActiveAnts(World * world){
+	int i;
+	int out = 0;
+	for(i=0;i<world->maxConnections;i++)
+		if(world->clients[i].key != INVALID_ID &&
+			world->clients[i].turnLeft == true)
+			out++;
+	return out;	
+}
+
 int nextTurn(World * world){
 
+//	printf("Activas: %d\n", getQtyActiveAnts(world));
 
-	// Here traces are decreased.
-	int i,j;
-	for(i=0;i<world->sizeX;i++)
-		for(j=0;j<world->sizeY;j++)
-			world->cells[i][j].trace -= (world->cells[i][j].trace > 0) ? 0.01 : 0;
+	if( getQtyActiveAnts(world) == 0 ){
+		// Here traces are decreased.
+		int i,j;
+		for(i=0;i<world->sizeX;i++)
+			for(j=0;j<world->sizeY;j++)
+				world->cells[i][j].trace -= (world->cells[i][j].trace > 0) ? 0.01 : 0;
+		Message * msg;		
 
-	world->turnsLeft--;
+		Pos pos ={0,0};
+
+		for(i=0;i<world->maxConnections;i++)
+			if(world->clients[i].key != INVALID_ID){
+				world->clients[i].turnLeft = true;
+
+				msg = createMessage( MAP_ID, world->clients[i].key, TURN, SET, pos, 0);
+				sendMessage(CLIENT, msg);
+			}
+
+		// TMP! To frontend!
+		msg = createMessage( MAP_ID, world->frontendID, TURN, SET, pos, 0);
+		sendMessage(CLIENT, msg);
+
+		world->turnsLeft--;
+//		printWorld(world);
+//		printf("NEXT TURN!\n\n\n\n");
+
+	}
 
 	return world->turnsLeft;
 }
@@ -396,32 +444,43 @@ void broadcastShout(Message * msg, World * world){
 /* Message parser */
 void parseMessage(Message * msg, World * world){
 
-	// Parse opCode
-	switch(msg->opCode){
-		case REGISTER:
-			if(msg->param == SET)
-				registerAnt(msg, world);
-			else if(msg->param == GET)
-				checkRegistered(msg, world);
-			break;
-		case MOVE:
-			if(msg->param == GET)
-				getWorldPosition(msg, world);
-			else if(msg->param == SET)
-				setWorldPosition(msg, world);
-			break;
-		case FOOD:
-			if(msg->param == SET)
-				setFoodAtAnthill(msg, world);
-			if(msg->param == GET)
-				getFoodFromWorld(msg, world);
-			break;
-		case SHOUT:
-			if(msg->param == SET)
-				broadcastShout(msg,world);
+	int clientIndex = getAntIndexByKey(world, msg->keyFrom);
+
+	if( (exists(msg->keyFrom, world) && world->clients[clientIndex].turnLeft == true )
+	 || !exists(msg->keyFrom, world)  ){
+		// Parse opCode
+		switch(msg->opCode){
+			case REGISTER:
+				if(msg->param == SET)
+					registerAnt(msg, world);
+				else if(msg->param == GET)
+					checkRegistered(msg, world);
 				break;
-		default: break;
+			case MOVE:
+				if(msg->param == GET)
+					getWorldPosition(msg, world);
+				else if(msg->param == SET)
+					setWorldPosition(msg, world);
+				break;
+			case FOOD:
+				if(msg->param == SET)
+					setFoodAtAnthill(msg, world);
+				if(msg->param == GET)
+					getFoodFromWorld(msg, world);
+				break;
+			case SHOUT:
+				if(msg->param == SET)
+					broadcastShout(msg,world);
+					break;
+			default: break;
+		}
+	} else {
+		Message * turn =  createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
+		sendMessage(CLIENT, turn);
+
 	}
+
+	world->clients[clientIndex].turnLeft = false;
 }
 
 World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos anthillPos, int frontendID){
@@ -481,15 +540,6 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos a
 	return out;
 }
 
-int getQtyRegistered(World * world){
-	int i, out;
-	out = 0;
-	for(i=0;i<world->maxConnections;i++)
-		if(world->clients[i].key != INVALID_ID)
-			out++;
-
-	return out;
-}
 
 void * mapMain(void * arg){
 
@@ -498,12 +548,12 @@ void * mapMain(void * arg){
 	Message * rcvMsg;
 
 	int frontendKey = *(int*)arg;
-	printf("Frontend Key: %d \n", frontendKey);
+	//printf("Frontend Key: %d \n", frontendKey);
 
 	PThreadArg * anthillArgs = malloc(sizeof(PThreadArg));
 	anthillArgs->key = 3;
 	anthillArgs->args = malloc(sizeof(int));
-	*(int * )(anthillArgs->args) = 5; // 5 ants
+	*(int * )(anthillArgs->args) = 10; // 5 ants
 
 	pthread_t anthillThread;
 	pthread_create(&anthillThread, NULL, anthillMain, (void *)anthillArgs);
@@ -515,10 +565,13 @@ void * mapMain(void * arg){
 	Pos pos = { 3, 5 };
 	world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS, pos, frontendKey);	
 	
-	printf("Anthill position: %d, %d\n", pos.x, pos.y);
+//	printf("Anthill position: %d, %d\n", pos.x, pos.y);
 	
 	// Turn management is more complex, this is a test
 	while(nextTurn(world)){
+
+	//	printWorldData(world);
+
 
 		sndMsg = NULL;
 		rcvMsg = NULL;
@@ -532,9 +585,8 @@ void * mapMain(void * arg){
 
 		parseMessage(rcvMsg, world);
 
-		printWorld(world);
-		printWorldData(world);
-
+		//printWorld(world);
+	
 	}
 
 	pthread_exit(NULL);
