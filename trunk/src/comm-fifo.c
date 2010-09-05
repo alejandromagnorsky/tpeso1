@@ -28,14 +28,14 @@ void sigHandler(){
 
 // Destroy IPC resources
 void destroyIPC(){
-	if ( unlink("/server") == -1 )
+	if ( unlink("server") == -1 )
                 errorLog("Server's FIFO could not be unlinked.\n");
 	int i;
 	char * clientfifo;
-	if ( (clientfifo = malloc(8 + digits(CLIENTQUANT-1))) == NULL )	// 8 = strlen("/client_")
+	if ( (clientfifo = malloc(7 + digits(CLIENTQUANT-1))) == NULL )	// 7 = strlen("client_")
 		errorLog("Memory allocation error in client's FIFO creation.\n");
 	for (i=0; i<CLIENTQUANT; i++){
-		sprintf(clientfifo, "/client_%d", i);
+		sprintf(clientfifo, "client_%d", i);
 		if ( unlink(clientfifo) == -1 )
               		errorLog("A client's FIFO could not be unlinked.\n");
 	}
@@ -43,17 +43,17 @@ void destroyIPC(){
 
 // Open & initialize IPC resource
 void openIPC(){
-	if ( access("/server", 0) == -1 && mknod("/server", S_IFIFO | 0666, 0) == -1 )
+	if ( access("server", 0) == -1 && mknod("server", S_IFIFO | 0666, 0) == -1 )
 		errorLog("Server's FIFO could not be created.\n");
-	if ( (serverFd = open("/server", O_RDWR)) == -1 )
+	if ( (serverFd = open("server", O_RDWR)) == -1 )
 		errorLog("Server's FIFO could not be opened.\n");
 
 	char * clientfifo;
-	if ( (clientfifo = malloc(8 + digits(CLIENTQUANT-1))) == NULL )	// 8 = strlen("/client_")
+	if ( (clientfifo = malloc(7 + digits(CLIENTQUANT-1))) == NULL )	// 7 = strlen("client_")
 		errorLog("Memory allocation error in client's FIFO creation.\n");
 	int i;
 	for (i=0; i<CLIENTQUANT; i++){
-		sprintf(clientfifo, "/client_%d", i);
+		sprintf(clientfifo, "client_%d", i);
 		if ( access(clientfifo, 0) == -1 && mknod(clientfifo, S_IFIFO | 0666, 0) == -1 )
 			errorLog("Client's FIFO could not be created.\n");
 		if ( (clientFds[i] = open(clientfifo, O_RDWR)) == -1 )
