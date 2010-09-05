@@ -68,21 +68,16 @@ void renderGrid(SDL_World * world, SDL_Surface * screen, int gridSize){
 	// Nota: tengo que saber la posicion de la camara, para desfasar todo.. es facil
 
 	int i;
-	int dX, dY; // camera position 
-
-	dX = world->cameraX % (int)( gridSize * world->zoomFactor);
-	dY = world->cameraY % (int)(gridSize * world->zoomFactor);
-
 
 	Uint32 gridColor = SDL_MapRGB( screen->format, 255, 255, 255 );
 
 	// Verticales
-	for(i=0;i<(screen->w / (gridSize * world->zoomFactor))+1;i++)
-		SDL_printLine(screen, dX+ i*gridSize * world->zoomFactor, 0, dX+ i*gridSize* world->zoomFactor, screen->h, gridColor );
+	for(i=0;i<world->sizeX+1;i++)
+		SDL_printLine(screen, world->cameraX + i*gridSize * world->zoomFactor, world->cameraY, world->cameraX + i*gridSize * world->zoomFactor, world->sizeY*world->gridSize*world->zoomFactor + world->cameraY, gridColor );
 
 	// Horizontales
-	for(i=0;i<(screen->h / (gridSize * world->zoomFactor))+1;i++)
-		SDL_printLine(screen, 0, dY+i*gridSize* world->zoomFactor, screen->w, dY+i*gridSize* world->zoomFactor, gridColor );
+	for(i=0;i<world->sizeY+1;i++)
+		SDL_printLine(screen, world->cameraX , world->cameraY + i*gridSize * world->zoomFactor, world->sizeX*world->gridSize*world->zoomFactor + world->cameraX, world->cameraY + i*gridSize * world->zoomFactor, gridColor );
 }
 
 void renderSDLWorld(SDL_World * world, SDL_Surface * screen){

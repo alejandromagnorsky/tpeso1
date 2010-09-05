@@ -51,7 +51,7 @@ typedef struct World{
 
 void * mapMain(void * arg);
 
-World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos anthillPos, int frontendID);
+World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft);
 
 int antExistsInAnthill(World * world, int pid);
 

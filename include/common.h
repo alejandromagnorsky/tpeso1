@@ -73,31 +73,17 @@ FOOD - GET = Get food from pos
 	FOOD - NOT_OK = pos not correct, occupied, or empty cell.
 	TURN - NOT_OK = Ant has to wait
 
+TURN ---------------------------------------------------
+
+TURN - GET = Try to get turn
+	TURN - OK = Ant has turn
+	TURN - NOT_OK = Ant has to wait for turn
+
 SHOUT ---------------------------------------------
 
 SHOUT - SET = Shout, broadcasting to all ants
 	SHOUT - OK = Shout broadcasted.
 	TURN - NOT_OK = Ant has to wait
-
-________________________________________________________________
-
-Protocol between frontend and backend
-(first draft)
-
-Sent by backend
-	Returned by frontend
-
-REGISTER - SET = Register ant at pos
-REGISTER - OK = Finished registering
-
-MOVE - SET = Move ant to fromPos+pos
-
-FOOD - SET = Position small food at pos.
-FOOD - BIG = Position big food at pos.
-
-TURN - SET = Turn has passed
-
-SHOUT - SET = Print a shout at pos
 
 */
 

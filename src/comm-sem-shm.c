@@ -15,7 +15,7 @@
 
 #define SIZE sizeof(Message)
 #define semKey "/mutex"
-#define CLIENTQUANT 9 // NECESITO RECIBIR LA CANTIDAD DE CLIENTS
+#define CLIENTQUANT 15 // NECESITO RECIBIR LA CANTIDAD DE CLIENTS
 
 // Semaphore
 sem_t * sd;
