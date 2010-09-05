@@ -12,6 +12,8 @@
 #include <mqueue.h>
 #include <signal.h>
 #include <pthread.h>
+#include <unistd.h>
+
 
 #define SIZE_X 15
 #define SIZE_Y 15
@@ -246,9 +248,9 @@ void setWorldPosition(Message * msg,World * world){
 
 					// NOTE: This is to prevent multilayering of ants on frontend 
 					// Tell the frontend ant exists in pos + anthill.pos
-					ans = createMessage( MAP_ID, world->frontendID, REGISTER, SET, world->anthill.pos, 0);
-					ans->pos.x += msg->pos.x;
-					ans->pos.y += msg->pos.y;
+				//	ans = createMessage( MAP_ID, world->frontendID, REGISTER, SET, world->anthill.pos, 0);
+				//	ans->pos.x += msg->pos.x;
+				//	ans->pos.y += msg->pos.y;
 				
 				} else {
 					// If ant is in world, erase old cell data, and if food is carried, keep carrying
@@ -259,12 +261,12 @@ void setWorldPosition(Message * msg,World * world){
 					nextCell->foodType = oldCell->foodType; // carry food if possible
 
 					// Ant just moved, already exists
-					ans = createMessage( MAP_ID, world->frontendID, MOVE, SET, msg->pos, 0);
-					ans->fromPos = oldCell->pos; 	//Tell frontend from where to move
+				//	ans = createMessage( MAP_ID, world->frontendID, MOVE, SET, msg->pos, 0);
+				//	ans->fromPos = oldCell->pos; 	//Tell frontend from where to move
 				}
 
 				// Tell frontend ant's new position
-				sendMessage(CLIENT, ans);
+				//sendMessage(CLIENT, ans);
 
 				// Set next cell data
 				nextCell->type = ANT_CELL;
@@ -358,21 +360,21 @@ int nextTurn(World * world){
 		for(i=0;i<world->sizeX;i++)
 			for(j=0;j<world->sizeY;j++)
 				world->cells[i][j].trace -= (world->cells[i][j].trace > 0) ? 0.01 : 0;
-		Message * msg;		
+	//	Message * msg;		
 
-		Pos pos ={0,0};
+	//	Pos pos ={0,0};
 
 		for(i=0;i<world->maxConnections;i++)
 			if(world->clients[i].key != INVALID_ID){
 				world->clients[i].turnLeft = true;
 
-				msg = createMessage( MAP_ID, world->clients[i].key, TURN, SET, pos, 0);
-				sendMessage(CLIENT, msg);
+			//	msg = createMessage( MAP_ID, world->clients[i].key, TURN, SET, pos, 0);
+				//sendMessage(CLIENT, msg);
 			}
 
 		// TMP! To frontend!
-		msg = createMessage( MAP_ID, world->frontendID, TURN, SET, pos, 0);
-		sendMessage(CLIENT, msg);
+		//msg = createMessage( MAP_ID, world->frontendID, TURN, SET, pos, 0);
+	//	sendMessage(CLIENT, msg);
 
 		world->turnsLeft--;
 //		printWorld(world);
@@ -470,7 +472,7 @@ void parseMessage(Message * msg, World * world){
 				break;
 			case SHOUT:
 				if(msg->param == SET)
-					broadcastShout(msg,world);
+				//	broadcastShout(msg,world);
 					break;
 			default: break;
 		}
@@ -483,7 +485,7 @@ void parseMessage(Message * msg, World * world){
 	world->clients[clientIndex].turnLeft = false;
 }
 
-World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos anthillPos, int frontendID){
+World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft){
 
 	int i,j;
 	World * out = malloc(sizeof(World));
@@ -492,8 +494,8 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos a
 	out->sizeY = sizeY;
 	out->turnsLeft = turnsLeft;
 	out->maxConnections = maxConnections;
-	out->frontendID = frontendID;
 
+	Pos anthillPos = { 3, 5 };
 	out->anthill.pos = anthillPos;
 	out->anthill.maxPopulation = maxConnections;
 
@@ -541,37 +543,48 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft, Pos a
 }
 
 
+void createAnthill(int antCount){
+	
+        int pid = fork();
+
+        char * antArg = malloc(10*sizeof(char));
+
+        sprintf(antArg, "%d", antCount);
+
+        switch(pid){
+                case -1: 
+                        printf("can't fork\n");
+                        exit(-1);       
+                        break;
+                case 0 : // this is the code the child runs 
+                        execl ("./anthill","anthill","2", antArg, NULL);
+                        break;
+                default: // this is the code the parent runs 
+                        // Get back to map
+                        break;
+        }
+
+}
+
+
 void * mapMain(void * arg){
 
 	signal(SIGINT, sigHandler);
 	Message * sndMsg;
 	Message * rcvMsg;
 
-	int frontendKey = *(int*)arg;
-	//printf("Frontend Key: %d \n", frontendKey);
 
-	PThreadArg * anthillArgs = malloc(sizeof(PThreadArg));
-	anthillArgs->key = 3;
-	anthillArgs->args = malloc(sizeof(int));
-	*(int * )(anthillArgs->args) = 10; // 5 ants
-
-	pthread_t anthillThread;
-	pthread_create(&anthillThread, NULL, anthillMain, (void *)anthillArgs);
-	
-
+	createAnthill(10);
 
 	// MAP LOADER HERE
 	World * world;
-	Pos pos = { 3, 5 };
-	world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS, pos, frontendKey);	
-	
-//	printf("Anthill position: %d, %d\n", pos.x, pos.y);
+	world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS);	
 	
 	// Turn management is more complex, this is a test
-	while(nextTurn(world)){
+//	while(nextTurn(world)){
+	while(1){
 
-	//	printWorldData(world);
-
+//		printWorldData(world);
 
 		sndMsg = NULL;
 		rcvMsg = NULL;
@@ -582,13 +595,12 @@ void * mapMain(void * arg){
 //		printf("Message received. \n\n");
 
 		//printMessage(rcvMsg);
-
-		parseMessage(rcvMsg, world);
+		if(rcvMsg != NULL)
+			parseMessage(rcvMsg, world);
 
 		//printWorld(world);
 	
 	}
 
 	pthread_exit(NULL);
-	return NULL;
 }

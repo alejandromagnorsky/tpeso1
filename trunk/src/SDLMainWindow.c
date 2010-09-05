@@ -51,16 +51,13 @@ int main(int argc, char * argv[]){
 
 	openIPC();
 
-	int * frontendKey = malloc(sizeof(int));
-	*frontendKey = 2;
-
 	pthread_t mapThread;
-	pthread_create(&mapThread, NULL, mapMain, (void *)frontendKey);
+	pthread_create(&mapThread, NULL, mapMain,NULL);
 
-	
+	while(1);
 
-	SDL_Surface * screen = initSDL(argc, argv);
-	startGame(screen, *frontendKey);
+//	SDL_Surface * screen = initSDL(argc, argv);
+//	startGame(screen, *frontendKey);
 
 
 //	endWorld(world);
@@ -69,6 +66,6 @@ int main(int argc, char * argv[]){
 	closeIPC();
 	destroyIPC();
 
-	SDL_FreeSurface(screen);
+//	SDL_FreeSurface(screen);
 	return cleanUp(1);
 }

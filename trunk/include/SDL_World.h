@@ -22,7 +22,7 @@ typedef struct{
 } GridObject;
 
 typedef struct {
-	int sizeX,sizeY;		//size
+	int sizeX,sizeY;		//size in grids
 	int cameraX, cameraY;	//camera position
 
 	double zoomFactor;

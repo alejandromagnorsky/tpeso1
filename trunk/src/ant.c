@@ -19,18 +19,16 @@ int vecMov[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // Represents: up, right, dow
 void * antMain(void * arg){
 
 	int key = (int)arg;
-//	printf("Ant Key: %d \n", key);
+	printf("Ant Key: %d \n", key);
 
-	//SET REGISTER -----------------------------
-	
 	Ant * ant = malloc(sizeof(Ant));	
-	
 	ant->food = NO_FOOD;
 	ant->opCode = -1;
 	ant->key = key;
 
 	setRegister(ant);
 
+/*
 	Message * received;
 	while(1){
 		//printf("Termine el turno, ahora a esperar...\n");
@@ -40,7 +38,7 @@ void * antMain(void * arg){
 			action(ant);
 		}
 	}
-
+*/
 	pthread_exit(NULL);
 }
 

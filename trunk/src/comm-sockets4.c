@@ -18,7 +18,7 @@
 
 #define LOCALHOST INADDR_LOOPBACK
 #define SERVER_IP LOCALHOST
-#define SERVER_PORT 6300
+#define SERVER_PORT 6302
 
 #define CLIENTQUANT 20		// I DO need this.
 

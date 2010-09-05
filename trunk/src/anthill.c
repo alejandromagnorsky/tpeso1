@@ -5,28 +5,27 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-void * anthillMain(void * arg){
+int main(int argc, char * argv[]){
 
-	PThreadArg parg = *((PThreadArg *)arg);
+	int ants, key,i;
 
-	int ants = *((int *) parg.args);
-	int anthillKey = parg.key;
+	sscanf(argv[1], "%d", &key);
+	sscanf(argv[2], "%d", &ants);
+	printf("Key: %d Ants: %d\n", key, ants);
 
-	printf("anthillKey: %d Ants: %d\n", anthillKey, ants);
+	openIPC();
 
 	// Create ants, with antKey > anthillKey
 	pthread_t * antThreads = malloc(sizeof(pthread_t)*ants);
 
-	PThreadArg * antArg = malloc(sizeof(PThreadArg));
-	int i;
-	for(i=0;i<ants;i++){
-		antArg->key = i + 1 + anthillKey;
-     		pthread_create(&antThreads[i], NULL, antMain, (void *)(i+1+anthillKey));
-	}
-
-
+	for(i=0;i<ants;i++)
+     		pthread_create(&antThreads[i], NULL, antMain, (void *)(i+1+key));
+	
 	// Esperar a recibir comida
+	while(1);
 
-	pthread_exit(NULL);
+	closeIPC();
+
+	return 0;
 }
 
