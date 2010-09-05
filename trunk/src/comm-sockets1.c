@@ -18,7 +18,7 @@
 
 #define LOCALHOST INADDR_LOOPBACK
 #define SERVER_IP LOCALHOST
-#define SERVER_PORT 6300
+#define SERVER_PORT 8888
 
 #define CLIENTQUANT 20		// I DO need this.
 
@@ -98,129 +98,41 @@ void closeIPC(){
 
 
 Message * receiveMessage(NodeType from, int key){
+	int csd;
 	unsigned int clientFromSize;
 	struct sockaddr_in clientFrom;
-	Message * out = malloc(sizeof(Message));
+	char * str = "I'm SERVER and I command you to receive my data.";
+	Message * out = malloc(sizeof (Message));
 
+	// I'm always SERVER and receive data from CLIENT to send it back *** the same data? ***
+	clientFromSize = sizeof clientFrom;
+	if ( (csd = accept(serverSd, (struct sockaddr *) &clientFrom, &clientFromSize)) < 0)
+		errorLog("SERVER: Failed to accept connection.");
+
+	if ( recv(csd, out, sizeof out, 0) < 0)
+		errorLog("SERVER: Failed to receive data from client.");
 	
-	if (from == SERVER) {	// I'm CLIENT and I'm receiving data from SERVER.
+	if ( send(csd, str, sizeof str, 0) < 0)
+		errorLog("SERVER: Failed to send data to client.");
 
-
-
-
-
-
-
-		if(clientUseFlags[key] == 2){
-			if ((clientSds[key] = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		   		errorLog("Failed to create client socket descriptor.");
-
-			if (connect(clientSds[key], (struct sockaddr *) &clientSide, sizeof(clientSide)) < 0)
-	             		errorLog("Failed to connect client socket to the server.");			
-		}
-
-		printf("SOY CLIENTE clientSds(%d): %d, RECIBIENDO DATA... \n", key, clientSds[key]);
-          	if (recv(clientSds[key], out, sizeof(out), 0) < 1)
-                	errorLog("Failed to receve data from server.\n");
-		printf("SOY CLIENTE clientSds(%d): %d, RECIBI DATA \n", key, clientSds[key]);
-	
-		if (--clientUseFlags[key] == 0){
-			close(clientSds[key]);
-			clientUseFlags[key] = 2;
-		}
-
-
-
-
-
-
-
-	} else {		// I'm SERVER and I'm receiving data from CLIENT.
-		
-
-		if(serverUseFlag == 2){
-			if ((serverSds = accept(serverSd, (struct sockaddr *) &clientFrom, &clientFromSize)) < 0)
-     	      	 		errorLog("SEND: Failed to accept client connection.\n");	
-		}
-
-		printf("SOY SERVER RECIBIENDO DE serverSds(%d): %d ....\n", key, serverSds);
-		if (recv(serverSds, out, sizeof(out), 0) < 0)
-	       		errorLog("Failed to receive data from client.");
-		printf("SOY SERVER RECIBI DATA DE serverSds(%d): %d \n", key, serverSds);
-		
-		if (--serverUseFlag == 0){
-			close(serverSds);
-			serverUseFlag = 2;
-		}
-
-
-
-		
-	}
 	return out;
+
 }
 
 int sendMessage(NodeType to, Message * msg){
-	//int sd;	//Server/Client socket descriptors
-	unsigned int clientFromSize;
-	struct sockaddr_in clientFrom;
+	int ssd;
+	char * str = malloc(250);
 
-	if (to == SERVER) {	// I'm CLIENT and I'm sending data to SERVER.
+	if ((ssd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+		errorLog("CLIENT: Failed to create socket.");
+	if ((connect(ssd, (struct sockaddr *) &clientSide, sizeof clientSide)) < 0)
+		errorLog("CLIENT: Failed to connect to server socket.");
 
+	if (send(ssd, msg, sizeof(msg), 0) < 0)
+                errorLog("CLIENT: Failed to send data to server.\n");
+	if (recv(ssd, str, sizeof(str), 0) < 0)
+                errorLog("CLIENT: Failed to receive data from server.\n");
 
-
-
-
-
-		if(clientUseFlags[msg->keyFrom] == 2){
-			if ((clientSds[msg->keyFrom] = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		   		errorLog("Failed to create client socket descriptor.");
-
-			if (connect(clientSds[msg->keyFrom], (struct sockaddr *) &clientSide, sizeof(clientSide)) < 0)
-	             		errorLog("Failed to connect client socket to the server.");			
-		}
-
-		printf("SOY CLIENTE clientSds(%d): %d, MANDANDO DATA... \n", msg->keyFrom, clientSds[msg->keyFrom]);
-          	if (send(clientSds[msg->keyFrom], msg, sizeof(msg), 0) < 1)
-                	errorLog("Failed to send data to server.\n");
-		printf("SOY CLIENTE clientSds(%d): %d, MANDÉ DATA \n", msg->keyFrom, clientSds[msg->keyFrom]);
-	
-		if (--clientUseFlags[msg->keyFrom] == 0){
-			close(clientSds[msg->keyFrom]);
-			clientUseFlags[msg->keyFrom] = 2;
-		}
-
-
-
-
-
-
-
-	} else {	// I'm SERVER and I'm sending data to CLIENT.
-
-
-
-
-
-		if(serverUseFlag == 2){
-			if ((serverSds = accept(serverSd, (struct sockaddr *) &clientFrom, &clientFromSize)) < 0)
-     	      	 		errorLog("Failed to accept client connection.\n");	
-		}
-
-		
-		printf("SOY SERVER MANDANDO A serverSds(%d): %d ....\n", msg->keyTo, serverSds);
-		if (send(serverSds, msg, sizeof(msg), 0) < 0)
-	       		errorLog("SEND: Failed to send data to client.\n");
-		printf("SOY SERVER MANDE DATA A serverSds(%d): %d \n", msg->keyTo, serverSds);
-		
-		if (--serverUseFlag == 0){
-			close(serverSds);
-			serverUseFlag = 2;
-		}
-
-
-
-	}
 	return 0;
 }
 
