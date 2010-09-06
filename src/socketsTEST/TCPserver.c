@@ -51,19 +51,13 @@ int main(){
         	printf("ATENDIENDO CLIENTE: %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 
        		/* Receive message from client */
-    			if ( (msgReceived = recv(csd, buffer, sizeof buffer, 0)) < 0)
-        			die("Failed to receive data from server");
+    		if ( (msgReceived = recv(csd, buffer, sizeof buffer, 0)) < 0)
+        		die("Failed to receive data from server");
 		
-			buffer[msgReceived] = '\0';
-			printf("RECIBIDO: %s\n", buffer);
+		buffer[msgReceived] = '\0';
+		printf("RECIBIDO: %s\n", buffer);
 
-//close(csd);
-//if ((csd = accept(ssd, (struct sockaddr *) &client, &clientSize)) < 0)
-//        		die("Failed to accept incoming connection");
-		/* Send the string to client */
-		if (send(csd, buffer, msgReceived, 0) != msgReceived)
-			die("Sending data error");
-		close(csd);
+
    	}
 	close(ssd);
 
