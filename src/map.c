@@ -15,10 +15,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
-
 #define SIZE_X 15
 #define SIZE_Y 15
-
 
 void printWorld(World * w){
 	printf("\n");
@@ -243,7 +241,6 @@ void setWorldPosition(Message * msg,World * world){
 				int antIndex =  antExistsInAnthill(world, msg->keyFrom);
 				Cell * nextCell = &world->cells[desiredPos.x][desiredPos.y];
 
-
 				// Check if ant is in anthill, then erase it from anthill
 				if( antIndex >= 0){
 					world->anthill.ants[antIndex] = INVALID_ID;
@@ -257,7 +254,7 @@ void setWorldPosition(Message * msg,World * world){
 					rC.valid = 1;
 
 					addRegisterCommand(rC);
-				
+
 				} else {
 					// If ant is in world, erase old cell data, and if food is carried, keep carrying
 					Cell * oldCell = getAntCellByPID(world, msg->keyFrom );
@@ -278,16 +275,14 @@ void setWorldPosition(Message * msg,World * world){
 					addMoveCommand(mC);
 				}
 
-				// Tell frontend ant's new position
-				//sendMessage(CLIENT, ans);
-
 				// Set next cell data
 				nextCell->type = ANT_CELL;
 
 				// If trace 1 change it, if not, leave it unchanged
 				nextCell->trace =( (int) msg->trace == 1) ? msg->trace : nextCell->trace;
 				nextCell->typeID = msg->keyFrom;
-
+			
+				world->clients[clientIndex].turnLeft = false;
 				ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OK, msg->pos, msg->trace);
 			}
 		}
@@ -364,27 +359,33 @@ int getQtyActiveAnts(World * world){
 
 int nextTurn(World * world){
 
-	// Wait till frontend is ready
+	// Wait till frontend is ready, use pthreads!!!
 	while(EOT);
 
-	if( getQtyActiveAnts(world) == 0 ){
+
+	//printWorldData(world);
+	int active =  getQtyActiveAnts(world);
+	Message * turn;
+
+	if( active == 0 ){
+
+		printf("NUEVO TURNO: %d \n", active);
+
+		Pos tmp = {0,0};
 		// Here traces are decreased.
 		int i,j;
 		for(i=0;i<world->sizeX;i++)
 			for(j=0;j<world->sizeY;j++)
 				world->cells[i][j].trace -= (world->cells[i][j].trace > 0) ? 0.01 : 0;
-		Message * msg;		
-		Pos pos ={0,0};
 
 		for(i=0;i<world->maxConnections;i++)
 			if(world->clients[i].key != INVALID_ID){
 				world->clients[i].turnLeft = true;
-
-				msg = createMessage( MAP_ID, world->clients[i].key, TURN, SET, pos, 0);
-				sendMessage(CLIENT, msg);
+				turn = createMessage( MAP_ID, world->clients[i].key, TURN, SET, tmp, 0);
+				sendMessage(CLIENT, turn);
 			}
 
-		printWorld(world);
+		//printWorld(world);
 		// Tell frontend turn has ended
 		EOT = 1;
 		world->turnsLeft--;
@@ -451,6 +452,18 @@ void broadcastShout(Message * msg, World * world){
 	}
 }
 
+// WASTE TURN
+void setTurn(Message *msg, World * world){
+	Message * turn =  createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
+	
+	int clientIndex = getAntIndexByKey(world, msg->keyFrom);
+	if( exists(msg->keyFrom, world) && world->clients[clientIndex].turnLeft == true ) 
+		world->clients[clientIndex].turnLeft = false;
+
+	sendMessage(CLIENT, turn);
+}
+
+
 /* Message parser */
 void parseMessage(Message * msg, World * world){
 
@@ -478,6 +491,10 @@ void parseMessage(Message * msg, World * world){
 				if(msg->param == GET)
 					getFoodFromWorld(msg, world);
 				break;
+			case TURN:
+				if(msg->param == SET)
+					setTurn(msg, world);
+				break;
 			case SHOUT:
 				if(msg->param == SET)
 				//	broadcastShout(msg,world);
@@ -490,7 +507,7 @@ void parseMessage(Message * msg, World * world){
 
 	}
 
-	world->clients[clientIndex].turnLeft = false;
+	//world->clients[clientIndex].turnLeft = false;
 }
 /*
 World * getWorld(char * filename){
@@ -621,28 +638,27 @@ void * mapMain(void * arg){
 	Message * sndMsg;
 	Message * rcvMsg;
 
-
-	createAnthill(10);
+	createAnthill(5);
 
 	// MAP LOADER HERE
 	World * world;
 	world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS);	
 	//world = getWorld("testmap");	
 	
-	// Turn management is more complex, this is a test
 	while(nextTurn(world)){
 
 		sndMsg = NULL;
 		rcvMsg = NULL;
 
-//		printf("Waiting to receive...\n\n");
+	
+		printf("Waiting to receive...\n\n");
 		rcvMsg = receiveMessage(CLIENT,MAP_ID);
-
+		printf("Received.\n");
 		//printMessage(rcvMsg);
 		if(rcvMsg != NULL)
 			parseMessage(rcvMsg, world);
 
-		//printWorld(world);
+		printWorldData(world);
 	
 	}
 

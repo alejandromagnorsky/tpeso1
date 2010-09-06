@@ -42,7 +42,6 @@ destroyIPC(){
 void 
 openServer(void * t){
 	clientquant = (int)t+4;
-	printf("CLIENTQUANT: %d\n", clientquant);
 	if ( !(sd = sem_open(semKey, O_RDWR|O_CREAT, 0666, 1)) )	// Create and initialize the semaphore if isn't exists
 		errorLog("sem_open");
 	
@@ -68,7 +67,6 @@ openServer(void * t){
 void 
 openClient(void * t){
 	clientquant = (int)t+4;
-	printf("CLIENTQUANT: %d\n", clientquant);
 	if ( !(sd = sem_open(semKey, O_RDWR|O_CREAT, 0666, 1)) )	// Create and initialize the semaphore if isn't exists
 		errorLog("sem_open");
 	
@@ -155,7 +153,7 @@ sendMessage(NodeType to, Message * msg){
 		fd = serverFd;	
 	else
 		fd = clientFd;
-	printf("Key: %d enviando a FD: %d.\n", msg->keyFrom, fd);
+//	printf("Key: %d enviando a FD: %d.\n", msg->keyFrom, fd);
 	
 	if ( !(mem = mmap(NULL, clientquant*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
 		errorLog("mmap");
