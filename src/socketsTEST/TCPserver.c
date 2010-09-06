@@ -37,15 +37,17 @@ int main(){
 	/* Mark the socket so it will listen for incoming connections */
 	if (listen(ssd, 10) < 0)
 		die("Failed to listen to socket");
-
+       	/* Set the size of the in-out parameter */
+        clientSize = sizeof(client);
+	/* Wait for a client to connect */
+        if ((csd = accept(ssd, (struct sockaddr *) &client, &clientSize)) < 0)
+        	die("Failed to accept incoming connection");
 	for (;;) /* Run forever */
   	{
-        	/* Set the size of the in-out parameter */
-        	clientSize = sizeof(client);
 
-        	/* Wait for a client to connect */
-        	if ((csd = accept(ssd, (struct sockaddr *) &client, &clientSize)) < 0)
-        		die("Failed to accept incoming connection");
+
+
+        	
 	
         	/* clntSock is connected to a client! */
         	printf("ATENDIENDO CLIENTE: %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
