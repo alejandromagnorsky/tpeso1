@@ -39,14 +39,14 @@ void closeIPC(){
 
 // Destroy IPC resources
 void destroyIPC(){
-	if ( unlink("/tmp/server") == -1 )
+	if ( unlink("server") == -1 )
                 errorLog("Server's FIFO could not be unlinked.\n");
 	int i;
 	char * clientfifo;
 	if ( (clientfifo = malloc(7 + digits(CLIENTQUANT-1))) == NULL )	// 7 = strlen("client_")
 		errorLog("Memory allocation error in client's FIFO creation.\n");
 	for (i=0; i<CLIENTQUANT; i++){
-		sprintf(clientfifo, "/tmp/client_%d", i);
+		sprintf(clientfifo, "client_%d", i);
 		if ( unlink(clientfifo) == -1 )
               		errorLog("A client's FIFO could not be unlinked.\n");
 	}
@@ -55,55 +55,72 @@ void destroyIPC(){
 
 
 void openServer(void * t){
+	clientFds = malloc(CLIENTQUANT * sizeof(int));
+ 	if ( access("/tmp/server", 0) == -1 && mknod("/tmp/server", S_IFIFO | 0666, 0) == -1 )
+                errorLog("Server's FIFO could not be created.\n");
+        if ( (serverFd = open("/tmp/server", O_RDWR)) == -1 )
+                errorLog("Server's FIFO could not be opened.\n");
 
-	// Initialize clientFds
-	int clientCount = (int) t;
-	clientFds = malloc(clientCount * sizeof(int));
+        char * clientfifo;
+        if ( (clientfifo = malloc(12 + digits(CLIENTQUANT-1))) == NULL ) // 12 = strlen("/tmp/client_")
+                errorLog("Memory allocation error in client's FIFO creation.\n");
+        int i;
+        for (i=0; i<CLIENTQUANT; i++){
+                sprintf(clientfifo, "/tmp/client_%d", i);
+                if ( access(clientfifo, 0) == -1 && mknod(clientfifo, S_IFIFO | 0666, 0) == -1 )
+                        errorLog("Client's FIFO could not be created.\n");
+                if ( (clientFds[i] = open(clientfifo, O_RDWR)) == -1 )
+                        errorLog("Client's FIFO could not be opened.\n");
+        }
+	printf("endopenSERVER\n");
+
+/*
+printf("SOY SERVER\n");
+	clientFds = malloc(CLIENTQUANT * sizeof(int));
 
 	// Server can read its FIFO
 	if ( access("/tmp/server", 0) == -1 && mknod("/tmp/server", S_IFIFO | 0666, 0) == -1 )
 		errorLog("Server's FIFO could not be created.\n");
-	if ( (serverFd = open("/tmp/server", O_RDONLY)) == -1 )
+printf("SOY SERVER\n");
+	if ( (serverFd = open("/tmp/server", O_RDWR)) == -1 )
 		errorLog("Server's FIFO could not be opened.\n");
-
+printf("SOY SERVER\n");
 	// Server can write clients' FIFO
 	char * clientfifo;
-	if ( (clientfifo = malloc(7 + digits(clientCount-1))) == NULL )	// 7 = strlen("client_")
+	if ( (clientfifo = malloc(12 + digits(CLIENTQUANT-1))) == NULL )	// 12 = strlen("/tmp/client_")
 		errorLog("Memory allocation error in client's FIFO creation.\n");
 	int i;
-	for (i=0;i<clientCount; i++){
+printf("CLIENTQUANT: %d\n", CLIENTQUANT);
+	for (i=0;i<CLIENTQUANT; i++){
 		sprintf(clientfifo, "/tmp/client_%d", i);
 		if ( access(clientfifo, 0) == -1 && mknod(clientfifo, S_IFIFO | 0666, 0) == -1 )
 			errorLog("Client's FIFO could not be created.\n");
-		if ( (clientFds[i] = open(clientfifo, O_WRONLY)) == -1 )
-			errorLog("Client's FIFO could not be opened.\n");
 	}
+	printf("endopenSERVER\n");
+*/
 }
 
 void openClient(void * t){
-
-	// Initialize clientFds
-	int clientCount = (int) t;
-	clientFds = malloc(clientCount * sizeof(int));
-
+	
+/*
+printf("SOY CLIENT\n");
 	// Client can write Server's FIFO
-	if ( access("/tmp/server", 0) == -1 && mknod("/tmp/server", S_IFIFO | 0666, 0) == -1 )
-		errorLog("Server's FIFO could not be created.\n");
-	if ( (serverFd = open("/tmp/server", O_WRONLY)) == -1 )
+	if ( (serverFd = open("/tmp/server", O_RDWR)) == -1 )
 		errorLog("Server's FIFO could not be opened.\n");
-
+printf("SOY CLIENT\n");
 	// Clients can read their FIFOs
 	char * clientfifo;
-	if ( (clientfifo = malloc(7 + digits(clientCount-1))) == NULL )	// 7 = strlen("client_")
-		errorLog("Memory allocation error in client's FIFO creation.\n");
+	if ( (clientfifo = malloc(12 + digits(CLIENTQUANT-1))) == NULL )	// 7 = strlen("client_")
+		errorLog("Memory allocation error in client's FIFO opening.\n");
 	int i;
-	for (i=0;i<clientCount; i++){
+printf("CLIENTQUANT: %d\n", CLIENTQUANT);
+	for (i=0;i<CLIENTQUANT; i++){
 		sprintf(clientfifo, "/tmp/client_%d", i);
-		if ( access(clientfifo, 0) == -1 && mknod(clientfifo, S_IFIFO | 0666, 0) == -1 )
-			errorLog("Client's FIFO could not be created.\n");
-		if ( (clientFds[i] = open(clientfifo, O_RDONLY)) == -1 )
+		if ( (clientFds[i] = open(clientfifo, O_RDWR)) == -1 )
 			errorLog("Client's FIFO could not be opened.\n");
 	}
+	printf("endopenCLIENT\n");
+*/
 }
 
 Message * receiveMessage(NodeType from, int key){
@@ -114,8 +131,10 @@ Message * receiveMessage(NodeType from, int key){
 		fd = serverFd;
 	else
 		fd = clientFds[key];	// I'm client and have to read from my portion of FIFO.
-
+	
+	printf("I'M %s READING...\n", (from==CLIENT)?"SERVER":"CLIENT" );
 	read(fd, out, sizeof(Message));
+	printf("I'M %s . I FINISH READING\n", (from==CLIENT)?"SERVER":"CLIENT" );
 	return out;
 }
 
@@ -127,6 +146,8 @@ int sendMessage(NodeType to, Message * msg){
 	else 
 		fd = clientFds[msg->keyTo];	// I'm server and have to write in client's FIFO.
 
+printf("I'M %s WRITING...\n", (to==SERVER)?"CLIENT":"SERVER" );
 	write(fd, msg, sizeof(Message));
+printf("I'M %s. I FINISHED WRITING\n", (to==SERVER)?"CLIENT":"SERVER" );
 	return 0;
 }

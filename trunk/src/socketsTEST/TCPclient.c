@@ -36,18 +36,9 @@ while(1){
 	/* Send the string to the server */
 	if (send(ssd, str, strlen(str), 0) != strlen(str))
 		die("Sending data error");
-/* Send the string to the server */
-	if (send(ssd, "PIJA", 4, 0) != 4)
-		die("Sending data error");
-
-		if ( (msgReceived = recv(ssd, buffer, sizeof buffer, 0)) < 0)
-       	 		die("Failed to receive data from server");
-		buffer[msgReceived] = '\0';
-		printf("RECIBIDO: %s\n", buffer);
 
 	close(ssd);
 }
-	close(ssd);
 	return 0;
 
 
