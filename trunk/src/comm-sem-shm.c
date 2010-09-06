@@ -15,13 +15,14 @@
 
 #define SIZE sizeof(Message)
 #define semKey "/mutex"
-#define CLIENTQUANT 15 // NECESITO RECIBIR LA CANTIDAD DE CLIENTS
+
 
 // Semaphore
 sem_t * sd;
 // For the shm
 int serverFd; 
 int clientFd;
+int clientquant;
 
 void 
 sigHandler(){
@@ -37,26 +38,53 @@ destroyIPC(){
 	shm_unlink("/client");	
 }
 
+
 void 
-openIPC(){
+openServer(void * t){
+	clientquant = (int)t+4;
+	printf("CLIENTQUANT: %d\n", clientquant);
 	if ( !(sd = sem_open(semKey, O_RDWR|O_CREAT, 0666, 1)) )	// Create and initialize the semaphore if isn't exists
 		errorLog("sem_open");
 	
 	if ( (serverFd = shm_open("/server", O_RDWR|O_CREAT, 0666)) == -1 )
 		errorLog("sh_open");
-	ftruncate(serverFd, CLIENTQUANT*SIZE);
+	ftruncate(serverFd, clientquant*SIZE);
 
 	if ( (clientFd = shm_open("/client", O_RDWR|O_CREAT, 0666)) == -1 )
 		errorLog("sh_open");
-	ftruncate(clientFd, CLIENTQUANT*SIZE);
+	ftruncate(clientFd, clientquant*SIZE);
 
 	Message * mem;
-	if ( !(mem = mmap(NULL, CLIENTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, clientFd, 0)) )
+	if ( !(mem = mmap(NULL, clientquant*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, clientFd, 0)) )
 			errorLog("mmap");
-	memset(mem, 0,  CLIENTQUANT*SIZE);
-	if ( !(mem = mmap(NULL, CLIENTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, serverFd, 0)) )
+	memset(mem, 0, clientquant*SIZE);
+	if ( !(mem = mmap(NULL, clientquant*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, serverFd, 0)) )
 			errorLog("mmap");
-	memset(mem, 0, CLIENTQUANT*SIZE);
+	memset(mem, 0, clientquant*SIZE);
+}
+
+
+
+void 
+openClient(void * t){
+	clientquant = (int)t+4;
+	printf("CLIENTQUANT: %d\n", clientquant);
+	if ( !(sd = sem_open(semKey, O_RDWR|O_CREAT, 0666, 1)) )	// Create and initialize the semaphore if isn't exists
+		errorLog("sem_open");
+	
+	if ( (serverFd = shm_open("/server", O_RDWR|O_CREAT, 0666)) == -1 )
+		errorLog("sh_open");
+	ftruncate(serverFd, clientquant*SIZE);
+
+	if ( (clientFd = shm_open("/client", O_RDWR|O_CREAT, 0666)) == -1 )
+		errorLog("sh_open");
+	ftruncate(clientFd, clientquant*SIZE);
+
+	Message * mem;
+	if ( !(mem = mmap(NULL, clientquant*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, clientFd, 0)) )
+			errorLog("mmap");
+	if ( !(mem = mmap(NULL, clientquant*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, serverFd, 0)) )
+			errorLog("mmap");
 }
 
 
@@ -82,7 +110,7 @@ receiveMessage(NodeType from, int key){
 		fd = serverFd;
 
 	//printf("Recibiendo de FD: %d. Key: %d\n", fd, key);
-	if ( !(mem = mmap(NULL, CLIENTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
+	if ( !(mem = mmap(NULL, clientquant*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
 		errorLog("mmap");
 	
 	if(from == SERVER){ // The ant has to retrieve the message from an specific position in /client determinated by his key
@@ -97,22 +125,18 @@ receiveMessage(NodeType from, int key){
 	} else { // The map has to search the /server to verify if any ant send a message
 		Message * aux;
 		aux = mem;
-		//printf("Mapa recibiendo\n");	
-		
+				
 		sem_wait(sd);
 		for(i = 0; mem->keyTo != key; i++){ // While the msg is read
-			mem = aux + i%CLIENTQUANT;
+			mem = aux + i%clientquant;
 			sem_post(sd);
-		//	sleep(1);
-		//	printf("Key: %d. Recibio mensaje? FD: %d. Index: %d. KeyFrom:%d KeyTo:%d \n", key,  fd, i%CLIENTQUANT, mem->keyFrom, mem->keyTo);
+			//sleep(1);
+			//printf("Key: %d. Recibio mensaje? FD: %d. Index: %d. KeyFrom:%d KeyTo:%d \n", key,  fd, i%clientquant, mem->keyFrom, mem->keyTo);
 			sem_wait(sd);
 		}
 	}
 
 	out = createMessage(mem->keyFrom, mem->keyTo, mem->opCode,  mem->param, mem->pos, mem->trace);
-	//FRONTEND ONLY
-	out->fromPos.x = mem->fromPos.x;
-	out->fromPos.y = mem->fromPos.y;
 
 	mem->keyTo = 0; // Mark the message as readed
 	
@@ -131,9 +155,9 @@ sendMessage(NodeType to, Message * msg){
 		fd = serverFd;	
 	else
 		fd = clientFd;
-	//printf("Enviando a FD: %d. Key: %d\n", fd, msg->keyFrom);
+	printf("Key: %d enviando a FD: %d.\n", msg->keyFrom, fd);
 	
-	if ( !(mem = mmap(NULL, CLIENTQUANT*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
+	if ( !(mem = mmap(NULL, clientquant*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0)) )
 		errorLog("mmap");
 
 	if(to == SERVER)
@@ -143,14 +167,13 @@ sendMessage(NodeType to, Message * msg){
 
 	mem += index;
 	
-
-	// Block this zone of code
-	sem_wait(sd);
+	while(mem->keyTo != 0) // While the msg is not read	
+		printf("HOLAAAAAAAAAAAAAA\n");
+		
 	
-	while(mem->keyTo != 0){ // While the msg is not read	
-		sem_post(sd);
-		sem_wait(sd);
-	}
+	// Block this zone of code
+	sem_wait(sd);	
+
 	memcpy(mem, msg, SIZE);
 
 	sem_post(sd);

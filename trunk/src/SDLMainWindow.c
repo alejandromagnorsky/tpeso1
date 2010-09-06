@@ -49,7 +49,7 @@ int main(int argc, char * argv[]){
 
 	signal(SIGINT, sigHandler);
 
-	openServer(NULL);
+	openServer((void *)10);
 
 	pthread_t mapThread;
 	pthread_create(&mapThread, NULL, mapMain,NULL);
