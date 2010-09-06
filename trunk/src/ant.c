@@ -2,6 +2,7 @@
 #include "../include/common.h"
 #include <time.h>
 #include <pthread.h>
+#include <unistd.h>
 
 
 int vecMov[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // Represents: up, right, down and left
@@ -30,14 +31,28 @@ void * antMain(void * arg){
 
 	setRegister(ant);
 
-
+	Pos to = {0,1};
+	Message * send;
 	Message * received;
+
 	while(1){
-		//printf("Termine el turno, ahora a esperar...\n");
+
 		received = receiveMessage(SERVER, ant->key);
+
 		if(received->opCode == TURN && received->param == SET){
-		//	printf("Eh! tengo turno\n");
-			action(ant);
+			printf("Tengo turno: %d\n", key);
+
+			send = createMessage(key, MAP_ID, MOVE, SET, to, 0);
+			sendMessage(SERVER, send);
+
+			received = receiveMessage(SERVER, key);
+
+			if(received->opCode == MOVE && received->param != OK){
+				send = createMessage(key, MAP_ID, TURN, SET, to, 0);
+				sendMessage(SERVER, send);
+
+				received = receiveMessage(SERVER, key);
+			}
 		}
 	}
 

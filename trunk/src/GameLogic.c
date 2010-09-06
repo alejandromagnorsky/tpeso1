@@ -37,10 +37,8 @@ SDL_World * initGame(SDL_Surface * screen){
 void addRegisterCommand(Command c){
 
 	// Wait till frontend executed commands
-	while(turn)
-		printf("eh!\n");
+	while(turn);
 
-	printf("REGISTER SET!!!\n");
 	int i;
 	for(i=0;i<commandsSize;i++)
 		if(commands[i].valid == 0 ){
@@ -57,8 +55,6 @@ void addRegisterCommand(Command c){
 // Add commands to the queue
 void addMoveCommand(Command c){
 	int i;
-
-	printf("Moverrr!\n");
 
 	// Wait till frontend executed commands
 	while(turn);
@@ -141,7 +137,7 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 			turn = checkEOT();
 		// If turn has ended, wait till all commands are executed 
 		} else if(executeMoveCommands(gameWorld)){
-				printf("EOT!\n");
+	//			printf("EOT!\n");
 				executeRegisterCommands(gameWorld);
 				turn = 0;
 			}
