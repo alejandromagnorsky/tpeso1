@@ -49,15 +49,14 @@ int main(int argc, char * argv[]){
 
 	signal(SIGINT, sigHandler);
 
-	openIPC();
+	openServer(NULL);
 
 	pthread_t mapThread;
 	pthread_create(&mapThread, NULL, mapMain,NULL);
 
-	while(1);
+	SDL_Surface * screen = initSDL(argc, argv);
+	startGame(screen);
 
-//	SDL_Surface * screen = initSDL(argc, argv);
-//	startGame(screen, *frontendKey);
 
 
 //	endWorld(world);

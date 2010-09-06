@@ -11,9 +11,9 @@ int main(int argc, char * argv[]){
 
 	sscanf(argv[1], "%d", &key);
 	sscanf(argv[2], "%d", &ants);
-	printf("Key: %d Ants: %d\n", key, ants);
+	printf("Anthill Key: %d Ants: %d\n", key, ants);
 
-	openIPC();
+	openClient((void*)ants);
 
 	// Create ants, with antKey > anthillKey
 	pthread_t * antThreads = malloc(sizeof(pthread_t)*ants);

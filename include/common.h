@@ -118,7 +118,6 @@ typedef struct{
 	Pos pos;
 	double trace;
 
-	Pos fromPos; // FRONTEND ONLY
 } Message;
 
 Message * createMessage(int keyFrom, int keyTo, OpCode opCode, OpCodeParam param, Pos pos, double trace );

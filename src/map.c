@@ -2,6 +2,7 @@
 #include "../include/communication.h"
 #include "../include/map.h"
 #include "../include/anthill.h"
+#include "../include/GameLogic.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -151,28 +152,29 @@ Pos addPositions(Pos p1, Pos p2){
 
 // Get world position, check if its empty or not
 void getWorldPosition(Message * msg,World * world){
+
 	Message * ans;
-
-	Pos antPos = getAntCellByPID(world,msg->keyFrom )->pos;
-	Pos desiredPos = addPositions(antPos, msg->pos);
-
-
 	ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
-//	printWorldData(world);
 
-	// If Ant exists and move is valid
-	if(exists(msg->keyFrom, world) && withinMapRange(world, desiredPos) && verifyPosition(msg->pos)){
+	if(exists(msg->keyFrom, world)){
 
-		double trace = world->cells[desiredPos.x][desiredPos.y].trace;
+		Pos antPos = getAntCellByPID(world,msg->keyFrom )->pos;
+		Pos desiredPos = addPositions(antPos, msg->pos);
 
-		ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OCCUPIED, msg->pos, msg->trace);
+		// If move is valid
+		if(withinMapRange(world, desiredPos) && verifyPosition(msg->pos)){
 
-		// And cell is empty
-		if(!isOccupied(&desiredPos, world))
-				ans = createMessage( MAP_ID, msg->keyFrom, MOVE, EMPTY, msg->pos, trace);
-		// Or has food
-		else if( world->cells[desiredPos.x][desiredPos.y].type == FOOD_CELL )
-				ans = createMessage(MAP_ID, msg->keyFrom, FOOD, OCCUPIED, msg->pos, trace);
+			double trace = world->cells[desiredPos.x][desiredPos.y].trace;
+
+			ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OCCUPIED, msg->pos, msg->trace);
+
+			// And cell is empty
+			if(!isOccupied(&desiredPos, world))
+					ans = createMessage( MAP_ID, msg->keyFrom, MOVE, EMPTY, msg->pos, trace);
+			// Or has food
+			else if( world->cells[desiredPos.x][desiredPos.y].type == FOOD_CELL )
+					ans = createMessage(MAP_ID, msg->keyFrom, FOOD, OCCUPIED, msg->pos, trace);
+		}
 	}
 	sendMessage(CLIENT, ans);
 }
@@ -246,11 +248,15 @@ void setWorldPosition(Message * msg,World * world){
 				if( antIndex >= 0){
 					world->anthill.ants[antIndex] = INVALID_ID;
 
-					// NOTE: This is to prevent multilayering of ants on frontend 
-					// Tell the frontend ant exists in pos + anthill.pos
-				//	ans = createMessage( MAP_ID, world->frontendID, REGISTER, SET, world->anthill.pos, 0);
-				//	ans->pos.x += msg->pos.x;
-				//	ans->pos.y += msg->pos.y;
+					// Tell frontend to register ant at new pos,
+					// to prevent multi layering.
+					Command rC;
+					rC.fromX = world->anthill.pos.x + msg->pos.x;
+					rC.fromY = world->anthill.pos.y + msg->pos.y;
+					rC.op = RegisterCommand;	
+					rC.valid = 1;
+
+					addRegisterCommand(rC);
 				
 				} else {
 					// If ant is in world, erase old cell data, and if food is carried, keep carrying
@@ -260,9 +266,16 @@ void setWorldPosition(Message * msg,World * world){
 					oldCell->typeID = INVALID_ID;
 					nextCell->foodType = oldCell->foodType; // carry food if possible
 
-					// Ant just moved, already exists
-				//	ans = createMessage( MAP_ID, world->frontendID, MOVE, SET, msg->pos, 0);
-				//	ans->fromPos = oldCell->pos; 	//Tell frontend from where to move
+					// Tell frontend to move ant
+					Command mC;
+					mC.fromX = oldCell->pos.x;
+					mC.fromY = oldCell->pos.y;
+					mC.toX = msg->pos.x + oldCell->pos.x;
+					mC.toY = msg->pos.y + oldCell->pos.y;
+					mC.op = MoveCommand;	
+					mC.valid = 1;
+
+					addMoveCommand(mC);
 				}
 
 				// Tell frontend ant's new position
@@ -327,7 +340,6 @@ void setFoodAtAnthill(Message * msg, World * world){
 
 	sendMessage(CLIENT, ans);
 }
-
 // Qty ants registered
 int getQtyRegistered(World * world){
 	int i, out;
@@ -352,7 +364,8 @@ int getQtyActiveAnts(World * world){
 
 int nextTurn(World * world){
 
-//	printf("Activas: %d\n", getQtyActiveAnts(world));
+	// Wait till frontend is ready
+	while(EOT);
 
 	if( getQtyActiveAnts(world) == 0 ){
 		// Here traces are decreased.
@@ -360,26 +373,21 @@ int nextTurn(World * world){
 		for(i=0;i<world->sizeX;i++)
 			for(j=0;j<world->sizeY;j++)
 				world->cells[i][j].trace -= (world->cells[i][j].trace > 0) ? 0.01 : 0;
-	//	Message * msg;		
-
-	//	Pos pos ={0,0};
+		Message * msg;		
+		Pos pos ={0,0};
 
 		for(i=0;i<world->maxConnections;i++)
 			if(world->clients[i].key != INVALID_ID){
 				world->clients[i].turnLeft = true;
 
-			//	msg = createMessage( MAP_ID, world->clients[i].key, TURN, SET, pos, 0);
-				//sendMessage(CLIENT, msg);
+				msg = createMessage( MAP_ID, world->clients[i].key, TURN, SET, pos, 0);
+				sendMessage(CLIENT, msg);
 			}
 
-		// TMP! To frontend!
-		//msg = createMessage( MAP_ID, world->frontendID, TURN, SET, pos, 0);
-	//	sendMessage(CLIENT, msg);
-
+		printWorld(world);
+		// Tell frontend turn has ended
+		EOT = 1;
 		world->turnsLeft--;
-//		printWorld(world);
-//		printf("NEXT TURN!\n\n\n\n");
-
 	}
 
 	return world->turnsLeft;
@@ -484,7 +492,7 @@ void parseMessage(Message * msg, World * world){
 
 	world->clients[clientIndex].turnLeft = false;
 }
-
+/*
 World * getWorld(char * filename){
 	FILE *	fd;
 	Pos	anthillPos;
@@ -501,32 +509,31 @@ World * getWorld(char * filename){
 
 	out->anthill.pos = anthillPos;
 
-printf("worldColumns: %d\n", out->sizeY);
-printf("worldRows: %d\n", out->sizeX);
-printf("anthill: x: %d - y:%d\n", out->anthill.pos.x, out->anthill.pos.y);
-printf("ants: %d\n", out->maxConnections);
-printf("smallFood: %d\n", smallFood);
+	printf("worldColumns: %d\n", out->sizeY);
+	printf("worldRows: %d\n", out->sizeX);
+	printf("anthill: x: %d - y:%d\n", out->anthill.pos.x, out->anthill.pos.y);
+	printf("ants: %d\n", out->maxConnections);
+	printf("smallFood: %d\n", smallFood);
 
-	int temp;/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	int temp;
 	for (i=0; i<smallFood; i++){
 		if (fscanf(fd, "%d,%d\n", &temp, &temp) == EOF)
 			errorLog("Failed to read world's small food positions. Corrupted file.");
-	}////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	}
 	if (fscanf(fd, "%d\n", &bigFood) == EOF)
 		errorLog("Failed to read world's big food quantity. Corrupted file.");
 
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	for (i=0; i<bigFood; i++){
 		if (fscanf(fd, "%d,%d\n", &temp, &temp) == EOF)
 			errorLog("Failed to read world's big food positions. Corrupted file.");
-	}////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	}
 
 	printf("\nFINISH\n");
 	fclose(fd);
 	return out;
 }
+*/
 
-/*
 World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft){
 
 	int i,j;
@@ -575,7 +582,6 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft){
 		out->cells[anthillPos.x][anthillPos.y].type = ANTHILL_CELL;
 	else
 		return NULL; // WTF
-	// Here, gotta fork to create the anthill and get its pid
 	
 	// Testing!
 	out->cells[7][5].type = FOOD_CELL;
@@ -583,7 +589,7 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft){
 
 	return out;
 }
-*/
+
 
 void createAnthill(int antCount){
 	
@@ -620,22 +626,17 @@ void * mapMain(void * arg){
 
 	// MAP LOADER HERE
 	World * world;
-	//world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS);	
-	world = getWorld("testmap");	
+	world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS);	
+	//world = getWorld("testmap");	
 	
 	// Turn management is more complex, this is a test
-//	while(nextTurn(world)){
-	while(1){
-
-//		printWorldData(world);
+	while(nextTurn(world)){
 
 		sndMsg = NULL;
 		rcvMsg = NULL;
 
 //		printf("Waiting to receive...\n\n");
 		rcvMsg = receiveMessage(CLIENT,MAP_ID);
-
-//		printf("Message received. \n\n");
 
 		//printMessage(rcvMsg);
 		if(rcvMsg != NULL)
