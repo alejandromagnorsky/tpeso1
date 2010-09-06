@@ -34,7 +34,7 @@ void * antMain(void * arg){
 	Pos to = {0,1};
 	Message * send;
 	Message * received;
-
+/*
 	while(1){
 
 		received = receiveMessage(SERVER, ant->key);
@@ -55,7 +55,7 @@ void * antMain(void * arg){
 			}
 		}
 	}
-
+*/
 	pthread_exit(NULL);
 }
 
