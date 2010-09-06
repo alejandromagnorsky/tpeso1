@@ -24,21 +24,23 @@ int main(int argc, char * argv[]){
    	server.sin_family      = AF_INET;             /* Internet address family */
   	server.sin_addr.s_addr = htonl(SERVER_IP);   /* Server IP address */
     	server.sin_port        = htons(SERVER_PORT); /* Server port */
-while(1){
-	/* Create socket for incoming connections */
+/* Create socket for incoming connections */
 	if ((ssd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         	die("Failed to create socket");
 
 	/* Establish the connection to the echo server */
 	if (connect(ssd, (struct sockaddr *) &server, sizeof(server)) < 0)
         	die("Failed to connect to server");
+while(1){
+	
 
 	/* Send the string to the server */
 	if (send(ssd, str, strlen(str), 0) != strlen(str))
 		die("Sending data error");
 
-	close(ssd);
+	
 }
+close(ssd);
 	return 0;
 
 
