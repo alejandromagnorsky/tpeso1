@@ -28,7 +28,7 @@ void * antMain(void * arg){
 
 	setRegister(ant);
 
-/*
+
 	Message * received;
 	while(1){
 		//printf("Termine el turno, ahora a esperar...\n");
@@ -38,7 +38,7 @@ void * antMain(void * arg){
 			action(ant);
 		}
 	}
-*/
+
 	pthread_exit(NULL);
 }
 

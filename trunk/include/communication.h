@@ -3,11 +3,17 @@
 // Destroy communication channel
 void destroyIPC();
 
+
+void openServer(void * t);
+
+void openClient(void * t);
+
 // Open & initialize IPC resource
 void openIPC();
 
 // Close IPC resource
 void closeIPC();
+
 
 // Returns a Message on success, NULL on error
 Message * receiveMessage(NodeType from, int key);

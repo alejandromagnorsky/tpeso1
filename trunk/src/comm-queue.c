@@ -31,9 +31,18 @@ void destroyIPC(){
 }
 
 // Open & initialize IPC resource
-void openIPC(){
+void queue_open(){
 	if ( ( queueID = msgget(SERVERKey,O_RDONLY | O_CREAT | IPC_CREAT |0666)) == -1 )
 		errorLog("msgget");
+}
+
+
+void openServer(void * t){
+	queue_open();
+}
+
+void openClient(void * t){
+	queue_open();
 }
 
 // Close IPC resource
@@ -58,8 +67,6 @@ Message * receiveMessage(NodeType from, int key){
 
 	// A copy must be made, because buf is deallocated after this function
 	out = createMessage(buf.msg.keyFrom,buf.msg.keyTo, buf.msg.opCode,  buf.msg.param, buf.msg.pos,buf.msg.trace);
-	out->fromPos.x = buf.msg.fromPos.x;
-	out->fromPos.y = buf.msg.fromPos.y;
 
 	return out;
 }

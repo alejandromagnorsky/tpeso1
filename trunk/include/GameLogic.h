@@ -22,7 +22,9 @@ typedef struct{
 	CommandOp op;
 } Command;
 
-void startGame(SDL_Surface * screen, int key);
+extern int EOT; // End of turn
+
+void startGame(SDL_Surface * screen);
 
 void registerAnts(SDL_World * gameWorld);
 
@@ -32,12 +34,14 @@ void gameLoop(SDL_World * world, SDL_Surface * screen);
 
 int getUserInput(SDL_World * gameWorld);
 
-void * getBackendInput(void * threadid);
+int executeMoveCommands(SDL_World * gameWorld);
 
-int executeMoveCommands(SDL_World * gameWorld, Command * commands, int size);
 
-void addRegisterCommand(Command * command, int size);
+void executeRegisterCommands(SDL_World * gameWorld);
 
+void addRegisterCommand(Command c);
+
+void addMoveCommand(Command c);
 
 int checkEOT();
 
