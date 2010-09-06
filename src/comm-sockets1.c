@@ -13,7 +13,7 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <arpa/inet.h>
-
+#include <poll.h>
 #include "../include/communication.h"
 
 #define LOCALHOST INADDR_LOOPBACK
@@ -24,14 +24,14 @@
 
 // Socket descriptors
 int serverSd;
-int serverSds;
-int clientSds[CLIENTQUANT];
-int clientUseFlags[CLIENTQUANT];
-int serverUseFlag;
+int * clientSds; //[CLIENTQUANT];
+int * acceptedClients;//[CLIENTQUANT];
 
 // Socket structures
 struct sockaddr_in serverSide;
 struct sockaddr_in clientSide;
+
+struct pollfd * toRead;
 
 int digits(int n){
 	return ((n/10)==0) ? 1 : 1 + digits(n/10);
@@ -48,23 +48,16 @@ void destroyIPC(){
 }
 
 // Open & initialize IPC resource
-void openIPC(){
-	int optionValue = 1;
+void openServer(void *t){
 
-	/* Initialize vectors with -1 */
-	int i;
-	for(i=0; i<CLIENTQUANT; i++){
-	//	serverSds[i] = -1;
-		clientSds[i] = -1;
-		clientUseFlags[i] = 2;
-	}
-	serverUseFlag = 2;
+	printf("Server\n");
+	int i, optionValue = 1;
 
 	/* Fill serverSide structure */
 	memset(&serverSide, 0, sizeof(struct sockaddr_in));	/* Zeroes struct */
-	serverSide.sin_family = AF_INET;		/* IP protocol */
-	serverSide.sin_addr.s_addr = INADDR_ANY;  	/* Server IP address */
-	serverSide.sin_port = htons(SERVER_PORT);	/* Server port */
+	serverSide.sin_family = AF_INET;			/* IP protocol */
+	serverSide.sin_addr.s_addr = INADDR_ANY;  		/* Server IP address */
+	serverSide.sin_port = htons(SERVER_PORT);		/* Server port */
 
 	/* Fill clientSide structure */
 	memset(&clientSide, 0, sizeof(struct sockaddr_in));
@@ -87,6 +80,45 @@ void openIPC(){
 	/* Mark server socket so it will listen for incoming connections */
 	if (listen(serverSd, CLIENTQUANT) < 0)
 		errorLog("Failed to listen to socket");
+
+	printf("My pid=%d", getpid());
+	clientSds = malloc(CLIENTQUANT * sizeof(int));
+	toRead = malloc(CLIENTQUANT * sizeof(struct pollfd));
+	
+	acceptedClients = malloc(CLIENTQUANT * sizeof(int));
+
+	for (i=0; i<CLIENTQUANT; i++){
+		if ((clientSds[i] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+		       	errorLog("Could not create client socket.");
+		
+		if (connect(clientSds[i], (struct sockaddr *) &clientSide, sizeof(clientSide)) < 0)
+        		errorLog("Failed to connect to server.");
+
+		if ((acceptedClients[i] = accept(serverSd, NULL, NULL)) < 0)
+			errorLog("Failed to accept connection from client.");
+
+		toRead[i].fd = acceptedClients[i];
+		toRead[i].events = POLLIN;
+		toRead[i].revents = 0;
+	}
+
+	printf("Termino el server\n");
+}
+
+void openClient(void *t){
+	printf("Cliente\n");
+/*	int i;
+	for (i=0; i<CLIENTQUANT; i++){
+		if ((clientSds[i] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+	        	errorLog("Could not create client socket.");
+
+		if (connect(clientSds[i], (struct sockaddr *) &clientSide, sizeof(clientSide)) < 0)
+        		errorLog("Failed to connect to server.");
+
+		if (accept(serverSd, NULL, NULL) < 0)
+			errorLog("Failed to accept connection from client.");
+	}*/
+	printf("Termino cliente\n");
 }
 
 // Close IPC resource
@@ -98,40 +130,56 @@ void closeIPC(){
 
 
 Message * receiveMessage(NodeType from, int key){
-	int csd;
-	unsigned int clientFromSize;
-	struct sockaddr_in clientFrom;
-	char * str = "I'm SERVER and I command you to receive my data.";
 	Message * out = malloc(sizeof (Message));
+	int sd;
+	int polled;
+	int i;
+	for(i=0; i<CLIENTQUANT; i++){
+		printf("clientSds(%d): %d  -  acceptedCLients(%d): %d\n", i, clientSds[i], i, acceptedClients[i]);
+	}
 
-	// I'm always SERVER and receive data from CLIENT to send it back *** the same data? ***
-	clientFromSize = sizeof clientFrom;
-	if ( (csd = accept(serverSd, (struct sockaddr *) &clientFrom, &clientFromSize)) < 0)
-		errorLog("SERVER: Failed to accept connection.");
-
-	if ( recv(csd, out, sizeof out, 0) < 0)
-		errorLog("SERVER: Failed to receive data from client.");
-	
-	if ( send(csd, str, sizeof str, 0) < 0)
-		errorLog("SERVER: Failed to send data to client.");
+	//printf("My pid=%d", getpid());
+	if (from == CLIENT){	// I'm SERVER and I receive from CLIENT.
+		polled = poll(toRead, CLIENTQUANT, 5000);
+		printf("POLL: %d\n", polled);
+		for (i = 0; i<polled && toRead[i].revents != POLLIN; i++){
+			
+		}
+		
+		if ( recv(toRead[i].fd, out, sizeof out, 0) < 0)
+			errorLog("SERVER: Failed to receive data from client.");
+		printf("SOY SERVER RECIBI DATA\n");
+	} else {		// I'm CLIENT and I receive from SERVER.
+		printf("SOY CLIENTE RECBIENDO DATA\n");
+		if ( recv(clientSds[key], out, sizeof out, 0) < 0)
+			errorLog("CLIENT: Failed to receive data from server.");
+		printf("SOY CLIENTE RECBIENDO DATA\n");
+	}
 
 	return out;
 
 }
 
 int sendMessage(NodeType to, Message * msg){
-	int ssd;
-	char * str = malloc(250);
 
-	if ((ssd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		errorLog("CLIENT: Failed to create socket.");
-	if ((connect(ssd, (struct sockaddr *) &clientSide, sizeof clientSide)) < 0)
-		errorLog("CLIENT: Failed to connect to server socket.");
+	int i;
+	for(i=0; i<CLIENTQUANT; i++){
+		printf("clientSds(%d): %d  -  acceptedCLients(%d): %d\n", i, clientSds[i], i, acceptedClients[i]);
+	}
 
-	if (send(ssd, msg, sizeof(msg), 0) < 0)
-                errorLog("CLIENT: Failed to send data to server.\n");
-	if (recv(ssd, str, sizeof(str), 0) < 0)
-                errorLog("CLIENT: Failed to receive data from server.\n");
+	//printf("My pid=%d", getpid());
+	printf("SOY CLIENTE? %d . Mi KEY ES: %d. Y MI SD ES: %d - ACCEPTED: %d\n", 1-to, msg->keyFrom+1, clientSds[msg->keyFrom], clientSds[msg->keyFrom]);
+	if (to == CLIENT){	// I'm SERVER and I send to CLIENT.	
+		printf("SOY SERVER MANDANDO DATA\n");
+		if ( send(acceptedClients[msg->keyTo], msg, sizeof msg, 0) < 0)
+			errorLog("SERVER: Failed to send data to client.");
+		printf("SOY SERVER MANDE DATA\n");
+	} else {		// I'm CLIENT and I send to SERVER.
+		printf("SOY CLIENTE MANDANDO DATA\n");
+		if ( send(clientSds[msg->keyFrom], msg, sizeof msg, 0) < 0)
+			errorLog("CLIENT: Failed to send data to server.");
+		printf("SOY CLIENTE MANDE DATA\n");
+	}
 
 	return 0;
 }
