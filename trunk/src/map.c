@@ -485,6 +485,48 @@ void parseMessage(Message * msg, World * world){
 	world->clients[clientIndex].turnLeft = false;
 }
 
+World * getWorld(char * filename){
+	FILE *	fd;
+	Pos	anthillPos;
+	int	i;
+	int	smallFood;
+	int	bigFood;
+	World *	out = malloc(sizeof(World));
+
+	if ( (fd = fopen(filename, "r")) < 0 )
+		errorLog("Failed to load world attributes.");
+
+	if ( fscanf(fd, "%d,%d\n%d,%d\n%d\n%d\n", &out->sizeY, &out->sizeX, &anthillPos.y, &anthillPos.x, &out->maxConnections, &smallFood) == EOF)
+		errorLog("Failed to read world's file. Corrupted file.");
+
+	out->anthill.pos = anthillPos;
+
+printf("worldColumns: %d\n", out->sizeY);
+printf("worldRows: %d\n", out->sizeX);
+printf("anthill: x: %d - y:%d\n", out->anthill.pos.x, out->anthill.pos.y);
+printf("ants: %d\n", out->maxConnections);
+printf("smallFood: %d\n", smallFood);
+
+	int temp;/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	for (i=0; i<smallFood; i++){
+		if (fscanf(fd, "%d,%d\n", &temp, &temp) == EOF)
+			errorLog("Failed to read world's small food positions. Corrupted file.");
+	}////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (fscanf(fd, "%d\n", &bigFood) == EOF)
+		errorLog("Failed to read world's big food quantity. Corrupted file.");
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	for (i=0; i<bigFood; i++){
+		if (fscanf(fd, "%d,%d\n", &temp, &temp) == EOF)
+			errorLog("Failed to read world's big food positions. Corrupted file.");
+	}////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	printf("\nFINISH\n");
+	fclose(fd);
+	return out;
+}
+
+/*
 World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft){
 
 	int i,j;
@@ -541,7 +583,7 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft){
 
 	return out;
 }
-
+*/
 
 void createAnthill(int antCount){
 	
@@ -578,7 +620,8 @@ void * mapMain(void * arg){
 
 	// MAP LOADER HERE
 	World * world;
-	world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS);	
+	//world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS);	
+	world = getWorld("testmap");	
 	
 	// Turn management is more complex, this is a test
 //	while(nextTurn(world)){
