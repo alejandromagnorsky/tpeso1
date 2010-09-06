@@ -6,10 +6,13 @@
 
 typedef enum { north, east, south, west, northwest, northeast, southeast, southwest } Cardinal;
 
+// If the variable Pos is called mov it refers to relative positions (up, down, left or right)
+// Else, the variable Pos is an absolut position
+
 typedef struct{
 	OpCode opCode;
 	FoodType food;
-	Pos mov;
+	Pos auxPos;
 	Pos anthill;
 	int key;
 }Ant;
@@ -24,7 +27,7 @@ void search(Ant * ant);
 
 bool getNearFood(Ant * ant);
 
-bool randomMove(Ant * ant);
+bool randomMove(Ant * ant, bool trace);
 
 bool move(Pos to, bool trace, int key);
 
