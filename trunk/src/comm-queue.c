@@ -52,7 +52,6 @@ void closeIPC(){
 
 
 Message * receiveMessage(NodeType from, int key){
-
 	int prio;
 	Message * out = NULL;
 	msgbuf buf;
@@ -67,12 +66,10 @@ Message * receiveMessage(NodeType from, int key){
 
 	// A copy must be made, because buf is deallocated after this function
 	out = createMessage(buf.msg.keyFrom,buf.msg.keyTo, buf.msg.opCode,  buf.msg.param, buf.msg.pos,buf.msg.trace);
-
 	return out;
 }
 
 int sendMessage(NodeType to, Message * msg){
-
 	msgbuf buf;
 	buf.msg = *msg;
 
@@ -82,6 +79,5 @@ int sendMessage(NodeType to, Message * msg){
 		buf.type = msg->keyTo; // SERVER sends to CLIENT by its pid
 
 	msgsnd(queueID, &buf, sizeof(msgbuf), 0);
-
 	return 0;
 }

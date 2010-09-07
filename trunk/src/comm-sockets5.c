@@ -85,7 +85,7 @@ void openServer(void *t){
 	toRead = malloc(CLIENTQUANT * sizeof(struct pollfd));
 	acceptedClients = malloc(CLIENTQUANT * sizeof(int));
 
-	int flags;
+	//int flags;
 	for (i=0; i<CLIENTQUANT; i++){
 		if ((clientSds[i] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
 		       	errorLog("Could not create client socket.");
@@ -124,60 +124,64 @@ void closeIPC(){
 
 
 Message * receiveMessage(NodeType from, int key){
-printf("***********************ENTRE A RECEIVE AL PRINCIPIO DE TODO******************* NODETYPE: %d\n", from);
+printf("SOY: %s Y ENTRE A RECEIVE *******************\n", (from == CLIENT)?"SERVER":"CLIENT");
 	Message * out = malloc(sizeof (Message));
-/*	int sd;
-	int polled;
-	int result;
-	int i;
-//	for(i=0; i<CLIENTQUANT; i++){
-//		printf("clientSds(%d): %d  -  acceptedCLients(%d): %d\n", i, clientSds[i], i, acceptedClients[i]);
-//	}
 
+// TEST PRINT
+int j;
+for (j=0; j<CLIENTQUANT; j++)
+	printf("RECEIVE:\tclientSds(%d): %d  -  acceptedClients(%d): %d  -  toRead(%d).fd: %d\n", j, clientSds[j], j, acceptedClients[j], j, toRead[j].fd);
+
+	int sd, i, polled;
 	if (from == CLIENT){	// I'm SERVER and I receive from CLIENT.
-		polled = poll(toRead, CLIENTQUANT, 3000);
+		polled = poll(toRead, CLIENTQUANT, 5000);
 		printf("POLL: %d\n", polled);
-		for (i = 0; i<polled && toRead[i].revents != POLLIN; i++);
+		if (polled == 0)
+			errorLog("poll() timed out.");
+		else if (polled < 0)
+			errorLog("Failed to poll()");
+		for (i = 0; i<CLIENTQUANT; i++){
+			if (toRead[i].revents & POLLIN)
+				sd = toRead[i].fd;
+		}
 		printf("SOY SERVER RECIBIENDO DATA.............\n");
-		if ( recv(toRead[i].fd, out, sizeof out, 0) < 0)
+		if ( recv(sd, out, sizeof out, 0) < 0)
 			errorLog("SERVER: Failed to receive data from client.");
-	
-		//if ( recv(sd, out, sizeof out, 0) < 0)
-		//	errorLog("SERVER: Failed to receive data from client.");
+		toRead[i].revents = 0;
 		printf("SOY SERVER RECIBI DATA\n");
 	} else {		// I'm CLIENT and I receive from SERVER.
-		printf("SOY CLIENTE %d RECBIENDO DATA\n", key);
 		if ( recv(clientSds[key], out, sizeof out, 0) < 0)
 			errorLog("CLIENT: Failed to receive data from server.");
-		printf("SOY CLIENTE %d RECBIENDO DATA\n", key);
 	}
-printf("***********************SALI DE RECEIVE *******************\n");*/
-	return out;
 
+
+
+printf("SOY %s Y SALI DE RECEIVE *******************\n", (from == CLIENT)?"SERVER":"CLIENT");
+	return out;
 }
 
 int sendMessage(NodeType to, Message * msg){
-printf("||||||||||||");
-	int i;
-	for(i=0; i<CLIENTQUANT; i++){
-		printf("*************clientSds(%d): %d  -  acceptedCLients(%d): %d\n", i, clientSds[i], i, acceptedClients[i]);
-	}
-	printf("SOY %s Y ESTOT TRATANDO DE MANDAR ALGO.\n", (to==CLIENT)?"SERVER": "CLIENTE");
-	printf("MI KEY ES: %d Y QUIERO MANDAR A: %d\n", msg->keyFrom, msg->keyTo);
-	printf("El SD al que voy a mandar pertenece a %s\n", (to==CLIENT)?"acceptedClients":"clientSds");
-	//printf("Su valor es: %d\n", (to==CLIENT)?acceptedClients[msg->keyTo]:"clientSds[msg->keyFrom]");
+printf("SOY: %s Y ENTRE A SEND ******************\n", (to == CLIENT)?"SERVER":"CLIENT");
+//int i;
+//for (i=0; i<CLIENTQUANT; i++){
+	//printf("SEND:\tclientSds(%d): %d  -  acceptedClients(%d): %d  -  toRead(%d).fd: %d\n", i, clientSds[i], i, acceptedClients[i], i, toRead[i].fd);
+//}
+
+//int a = clientSds[msg->keyFrom];
+//printf("clientSds %d\n", a);
+printf("clientSds %d\n", msg->keyFrom);
+
 	if (to == CLIENT){	// I'm SERVER and I send to CLIENT.	
-		printf("SOY SERVER MANDANDO DATA\n");
 		if ( send(acceptedClients[msg->keyTo], msg, sizeof msg, 0) < 0)
 			errorLog("SERVER: Failed to send data to client.");
-		printf("SOY SERVER MANDE DATA\n");
 	} else {		// I'm CLIENT and I send to SERVER.
-		printf("SOY CLIENTE MANDANDO DATA\n");
+		printf("I AM CLIENT %d AND I AM ABOUT TO SEND TO SERVER %d\n", msg->keyFrom, msg->keyTo);
 		if ( send(clientSds[msg->keyFrom], msg, sizeof msg, 0) < 0)
 			errorLog("CLIENT: Failed to send data to server.");
-		printf("SOY CLIENTE MANDE DATA\n");
+		printf("I AM CLIENT %d AND I SENT TO SERVER %d\n", msg->keyFrom, msg->keyTo);
 	}
-printf("***********************SALI DE SEND ******************\n");
+
+printf("SOY %s Y SALI DE SEND *******************\n", (to == CLIENT)?"SERVER":"CLIENT");
 	return 0;
 }
 
