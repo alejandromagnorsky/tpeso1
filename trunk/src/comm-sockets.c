@@ -21,7 +21,7 @@
 #define SERVER_IP LOCALHOST
 #define SERVER_PORT 9000
 #define INVALID_SOCKET -1
-#define CLIENT_BASE_KEY 3	// Map key: 1. Anthill key: 2.
+#define CLT_KEY_BASE 3	// Map key: 1. Anthill key: 2.
 
 int clientCount = 0;
 
@@ -52,7 +52,7 @@ void destroyIPC(){
 
 void * acceptClients(void * t){
 	int i;
-	for (i=CLIENT_BASE_KEY-1; i<clientCount; i++){
+	for (i=CLT_KEY_BASE-1; i<clientCount; i++){
 		if ((acceptedClients[i] = accept(serverSd, NULL, NULL)) < 0)
 			errorLog("Failed to accept connection from client.");
 
@@ -68,7 +68,7 @@ void * acceptClients(void * t){
 // Open & initialize IPC resource
 void openServer(void *t){
 	int i, optionValue = 1;
-	clientCount = (int) t + CLIENT_BASE_KEY;
+	clientCount = (int) t + CLT_KEY_BASE;
 
 	/* Fill serverSide structure */
 	memset(&serverSide, 0, sizeof(struct sockaddr_in));	/* Zeroes struct */
@@ -95,7 +95,7 @@ void openServer(void *t){
 	toRead = malloc(clientCount * sizeof(struct pollfd));
 	acceptedClients = malloc(clientCount * sizeof(int));
 
-	for (i=CLIENT_BASE_KEY-1; i<clientCount; i++)
+	for (i=CLT_KEY_BASE-1; i<clientCount; i++)
 		toRead[i].fd = INVALID_SOCKET;
 
 	pthread_t acceptClientThread;
@@ -104,7 +104,7 @@ void openServer(void *t){
 }
 
 void openClient(void *t){
-	clientCount = (int) t + CLIENT_BASE_KEY;
+	clientCount = (int) t + CLT_KEY_BASE;
 
 	/* Fill clientSide structure */
 	memset(&clientSide, 0, sizeof(struct sockaddr_in));
@@ -115,7 +115,7 @@ void openClient(void *t){
 	int i;
 	clientSds = malloc(clientCount * sizeof(int));
 
-	for (i=CLIENT_BASE_KEY-1; i<clientCount; i++){
+	for (i=CLT_KEY_BASE-1; i<clientCount; i++){
 		if ((clientSds[i] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
 		       	errorLog("Could not create client socket.");
 
@@ -145,7 +145,7 @@ Message * receiveMessage(NodeType from, int key){
 			errorLog("SERVER: Failed to poll() connections.");
 
 		/* See which socket is the one ready to be read. */
-		for (i = CLIENT_BASE_KEY-1; i<clientCount; i++){
+		for (i = CLT_KEY_BASE-1; i<clientCount; i++){
 			if (toRead[i].revents & POLLIN){
 				sd = toRead[i].fd;
 				toRead[i].revents = 0;
