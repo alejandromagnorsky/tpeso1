@@ -369,7 +369,7 @@ int nextTurn(World * world){
 
 	if( active == 0 ){
 
-		printf("NUEVO TURNO: %d \n", active);
+	//	printf("NUEVO TURNO: %d \n", active);
 
 		Pos tmp = {0,0};
 		// Here traces are decreased.
@@ -647,18 +647,20 @@ void * mapMain(void * arg){
 	
 	while(nextTurn(world)){
 
+		printWorldData(world);
+
 		sndMsg = NULL;
 		rcvMsg = NULL;
-
+		getchar();
 	
 		printf("Waiting to receive...\n\n");
 		rcvMsg = receiveMessage(CLIENT,MAP_ID);
 		printf("Received.\n");
-		//printMessage(rcvMsg);
+	//	printMessage(rcvMsg);
 		if(rcvMsg != NULL)
 			parseMessage(rcvMsg, world);
 
-		printWorldData(world);
+	//	printWorldData(world);
 	
 	}
 

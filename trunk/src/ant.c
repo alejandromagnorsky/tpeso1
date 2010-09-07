@@ -22,18 +22,19 @@ int vecMov[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // Represents: up, right, dow
 void * antMain(void * arg){
 
 	int key = (int)arg;
-	printf("Ant Key: %d \n", key);
+//	printf("Ant Key: %d \n", key);
 
 	Ant * ant = malloc(sizeof(Ant));	
 	ant->food = NO_FOOD;
 	ant->opCode = -1;
 	ant->key = key;
 
+
 	setRegister(ant);
 
-	Pos to = {0,1};
-	Message * send;
-	Message * received;
+//	Pos to = {0,1};
+///	Message * send;
+//	Message * received;
 /*
 	while(1){
 
@@ -56,6 +57,7 @@ void * antMain(void * arg){
 		}
 	}
 */
+	printf("Hormiga muriendo!\n");
 	pthread_exit(NULL);
 }
 
