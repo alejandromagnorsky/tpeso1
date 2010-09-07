@@ -10,7 +10,6 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/sem.h>
-#include <semaphore.h>
 #include "../include/communication.h"
 
 #define SIZE sizeof(Message)
@@ -47,7 +46,7 @@ destroyIPC(){
 void 
 openServer(void * t){
 	int i;
-	clientquant = (int)t+3; // MODIFICAR
+	clientquant = (int)t+3;
 		
 	if( (semRead = semget(keyRead, clientquant, 0666 | IPC_CREAT)) == -1) // Clientquant must take values between 500 and 2000
 		errorLog("semget");
@@ -80,7 +79,7 @@ openServer(void * t){
 
 void 
 openClient(void * t){
-	clientquant = (int)t+3; // MODIFICAR
+	clientquant = (int)t+3;
 	
 	if( (semRead = semget(keyRead, clientquant, 0666 | IPC_CREAT)) == -1)
 		errorLog("semget");
