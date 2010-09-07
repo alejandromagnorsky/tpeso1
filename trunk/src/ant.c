@@ -1,21 +1,13 @@
 #include "../include/ant.h"
 #include "../include/common.h"
-#include <time.h>
-#include <pthread.h>
-#include <unistd.h>
-
 
 int vecMov[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // Represents: up, right, down and left
-
-
-
 
 //---------------------------------------------
 //FALTA:
 //REGISTER GET NO TIENE QUE GASTAR TURNO YA QUE SIRVE PARA OBTENER LA CURRENTPOS
 
-//VERIFICAR EL TRACE QUE SE HACE NEGATIVO Y A VECES DECRECE MAS RAPIDO
-//DEFINIR LOS LIMITES Y LA INTERACCION ENTRE HORMIGAS JUNTAS
+//DEFINIR LA INTERACCION ENTRE HORMIGAS JUNTAS
 //AGREGAR EL COMPORTAMIENTO PARA LAS BIG INCLUYENDO EL SHOUT
 //---------------------------------------------
 
@@ -56,37 +48,52 @@ void * antMain(void * arg){
 			}
 		}
 	}
+
+	while(1){
+
+		received = receiveMessage(SERVER, ant->key);
+
+		if(received->opCode == TURN && received->param == SET){
+			printf("Tengo turno: %d\n", key);
+
+			if(!action(ant)){ // If the ant didn't take any action that consumes a turn, then waste it
+				send = createMessage(key, MAP_ID, TURN, SET, to, 0);
+				sendMessage(SERVER, send);
+
+				received = receiveMessage(SERVER, key);		
+			}
+		}
+	}
 */
 	printf("Hormiga muriendo!\n");
 	pthread_exit(NULL);
 }
 
 
-int
+bool
 action(Ant * ant){
 	if(ant->opCode == -1){	// If the ant 	
 		if(ant->food != NO_FOOD)	// If the ant is carrying food
-			goAnthill(ant);
+			return goAnthill(ant);
 		else {
-			if(rand()%10 > 6)
+			if(rand()%10 > 6){
 				search(ant);
-			else
-				randomMove(ant, false);		
+				return false;
+			} else
+				return randomMove(ant, false);
 		}
 	} else {
-		if(ant->opCode == FOOD)
-			getNearFood(ant);
-		else
-			move(ant->auxPos, false, ant->key);
-
 		ant->opCode = -1;
+		if(ant->opCode == FOOD)
+			return getNearFood(ant, ant->auxPos);	// Get the food that the ant found in the previous turn
+		else
+			return move(ant->auxPos, false, ant->key);	// Follows the trace
 	}
-	return 1;
 }
 
 
 /* In addition of approach to the anthill, the ant leaves trace */
-void
+bool
 goAnthill(Ant * ant){
 	Pos anthill = ant->anthill;
 	Pos currentPos = getCurrentPos(ant->key);
@@ -100,19 +107,18 @@ goAnthill(Ant * ant){
 	to.y = currentPos.y+mov.y;
 	// If the ant is going to arrive to the anthill
 	if( anthill.x == to.x && anthill.y == to.y ){
-		if(setFood(to, ant->key))
-			ant->food = NO_FOOD;
+		return setFood(ant, to);
 	}
 	// Tries to move closer, but if it can't then, move to another direction
-	else if( !move(to, true, ant->key) )
-		randomMove(ant, true);	
+	else if( !move(to, true, ant->key) ){
+		return randomMove(ant, true);
+	}
+	return true;
 }
 
 
 bool
 randomMove(Ant * ant, bool trace){
-	Message * send;
-	Message * received;
 	Pos currentPos = getCurrentPos(ant->key);
 	int index, count = 0;
 	Pos to;
@@ -128,19 +134,12 @@ randomMove(Ant * ant, bool trace){
 		tried[index] = true;
 		count++;
 
-		send = createMessage(ant->key, MAP_ID, MOVE, GET, to, 1);
-		sendMessage(SERVER, send);
-		received = receiveMessage(SERVER, ant->key);
-		if(received->opCode == FOOD && received->param == OCCUPIED){
-			ant->auxPos = to;
-			getNearFood(ant);
-			return true;
-		}
-			
+		if(getNearFood(ant, to))
+			return true; // The ant took food
 	} while(!move(to, trace, ant->key) && count < 4);
 	
 	if(count == 4)
-		return false;	// It didn't move
+		return false;	// It didn't move or take food
 	return true;	// The ant moved
 }
 
@@ -169,10 +168,9 @@ move(Pos to, bool trace, int key){
 	printf("Message received.\n");
 	printMessage(received);
 	if(received->opCode == MOVE && received->param == OK ){
-		printf("I moved! \n");		
+		printf("I moved! \n");	
 		return true;
-	}
-	else {
+	} else {
 		printf("Couldn't move! =( \n");
 		return false;
 	}
@@ -195,38 +193,35 @@ getCurrentPos(int key){
 
 void 
 setRegister(Ant * ant){
-
 	Message * send;
 	Message * received;
 
 	Pos pos = {0,0};
 
 	// Sending first register
-//	printf("Trying to register... \n");
+	//printf("Trying to register... \n");
 	send = createMessage(ant->key, MAP_ID, REGISTER, SET, pos, 0);
-//	printMessage(send);
+	//printMessage(send);
 	sendMessage(SERVER, send);
 
 	received = receiveMessage(SERVER, ant->key);
-//	printf("Message received.\n");
-//	printMessage(received);
+	//printf("Message received.\n");
+	//printMessage(received);
 	if(received->opCode == REGISTER && received->param == OK ){
-//		printf("Register successful.\n");
+		//printf("Register successful.\n");
 		ant->anthill.x = received->pos.x;
 		ant->anthill.y = received->pos.y;
 	} else
 		printf("Register failed.\n");
 }
 
-
 void
 search(Ant * ant){
-
 	int i;
 	Pos currentPos = getCurrentPos(ant->key);
 	Pos mov, to;
 	Message * send;	
-	Message * received;
+	Message * received[4];
 	
 	// Search food
 	for(i = 0; i < 4; i++){
@@ -239,14 +234,14 @@ search(Ant * ant){
 		printMessage(send);
 		sendMessage(SERVER, send);
 
-		received = receiveMessage(SERVER, ant->key);
+		received[i] = receiveMessage(SERVER, ant->key);
 		printf("Message received.\n");
-		printMessage(received);
-		if(received->opCode == FOOD && received->param == OCCUPIED){
+		printMessage(received[i]);
+		if(received[i]->opCode == FOOD && received[i]->param == OCCUPIED){
 				ant->opCode = FOOD;
 				ant->auxPos = to;
 				return;
-		} else if(received->opCode == FOOD && received->param == BIG) // FALTA IMPLEMENTAR
+		} else if(received[i]->opCode == FOOD && received[i]->param == BIG) // FALTA IMPLEMENTAR
 			printf("I found food, but is too big! \n");
 		else 
 			printf("I didn't find food =( \n");
@@ -258,31 +253,24 @@ search(Ant * ant){
 	for(i = 0; i < 4; i++){
 		mov.x = vecMov[i][0];
 		mov.y = vecMov[i][1];
-		send = createMessage(ant->key,MAP_ID, MOVE, GET, mov, 0); // Obtain the trace and verifies if the cell is empty
-		printMessage(send);
-		sendMessage(SERVER, send);
-
-		received = receiveMessage(SERVER, ant->key);
-		printMessage(received);
-		
-		if(received->param == EMPTY && received->trace > trace){
-				trace = received->trace;
+			
+		if(received[i]->param == EMPTY && received[i]->trace > trace){
+				trace = received[i]->trace;
 				tmpPos.x = currentPos.x + mov.x;
 				tmpPos.y = currentPos.y + mov.y;
 		}
 	}
-	if(trace != 0){
+	if(trace > 0){
 		ant->opCode = TRACE;
 		ant->auxPos = tmpPos;
 	}	
 }
 
 
-/* Tries to take food from a near cell*/
+/* Tries to take food */
 bool 
-getNearFood(Ant * ant){
+getNearFood(Ant * ant, Pos to){
 	Pos currentPos = getCurrentPos(ant->key);
-	Pos to = ant->auxPos;
 	Pos mov;
 	Message * send;	
 	Message * received;
@@ -303,7 +291,7 @@ getNearFood(Ant * ant){
 			printf("I get food! \n");
 			ant->food = SMALL_FOOD;
 			return true;
-	} else if(received->opCode == FOOD && received->param == BIG)
+	} else if(received->opCode == FOOD && received->param == BIG) // FALTA IMPLEMENTAR
 			printf("I cannot get food, too big! \n");
 	else 
 			printf("I cannot get food =( \n");
@@ -312,8 +300,8 @@ getNearFood(Ant * ant){
 
 
 bool 
-setFood(Pos to, int key){
-	Pos currentPos = getCurrentPos(key);
+setFood(Ant * ant, Pos to){
+	Pos currentPos = getCurrentPos(ant->key);
 	Pos mov;
 	Message * send;	
 	Message * received;
@@ -323,15 +311,16 @@ setFood(Pos to, int key){
 	mov.y = vecMov[card][1];
 	
 	printf("I want to leave food on anthill in (%d,%d) \n", mov.x, mov.y);
-	send = createMessage(key, MAP_ID, FOOD, SET, mov, 0);
+	send = createMessage(ant->key, MAP_ID, FOOD, SET, mov, 0);
 	printMessage(send);
 	sendMessage(SERVER, send);
 
-	received = receiveMessage(SERVER,key);
+	received = receiveMessage(SERVER, ant->key);
 	printf("Message received.\n");
 	printMessage(received);
 	if(received->opCode == FOOD && received->param == OK ){
 		printf("I left food at anthill!\n");
+		ant->food = NO_FOOD;
 		return true;
 	} else {
 		printf("I have no food! \n");

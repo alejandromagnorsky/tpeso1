@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <pthread.h>
+#include <unistd.h>
 #include "../include/common.h"
 #include "../include/communication.h"
 #include "../include/map.h"
@@ -19,13 +22,11 @@ typedef struct{
 
 void * antMain(void * arg);
 
-int action(Ant * ant);
+bool action(Ant * ant);
 
-void goAnthill(Ant * ant);
+bool goAnthill(Ant * ant);
 
 void search(Ant * ant);
-
-bool getNearFood(Ant * ant);
 
 bool randomMove(Ant * ant, bool trace);
 
@@ -35,6 +36,8 @@ Cardinal getCardinal(Pos from, Pos to);
 
 void setRegister(Ant * ant);
 
-bool setFood(Pos to, int key);
+bool getNearFood(Ant * ant, Pos to);
+
+bool setFood(Ant * ant, Pos to);
 
 Pos getCurrentPos(int key);
