@@ -11,7 +11,7 @@ int main(int argc, char * argv[]){
 
 	sscanf(argv[1], "%d", &key);
 	sscanf(argv[2], "%d", &ants);
-	printf("Anthill Key: %d Ants: %d\n", key, ants);
+//	printf("Anthill Key: %d Ants: %d\n", key, ants);
 
 	openClient((void*)ants);
 
