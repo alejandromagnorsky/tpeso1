@@ -53,8 +53,10 @@ openServer(void * t){
 	if( (semWrite = semget(keyWrite, clientquant, 0666 | IPC_CREAT)) == -1) // Clientquant must take values between 500 and 2000
 		errorLog("semget");
 
-	for(i = 0; i < clientquant; i++)
+	for(i = 0; i < clientquant; i++){
 		semctl(semWrite, i, SETVAL, 1);
+		semctl(semRead, i, SETVAL, 0);
+	}
 
 
 	if ( (serverFd = shm_open("/server", O_RDWR|O_CREAT, 0666)) == -1 )

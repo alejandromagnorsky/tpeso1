@@ -92,7 +92,7 @@ void registerAnt(Message * msg, World * world){
 
 			ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, anthillPos, 0);
 			printf("Registered ant %d at (%d,%d) \n", msg->keyFrom, world->anthill.pos.x, world->anthill.pos.y);
-			shout();
+		//	shout();
 		}
 	}
 
@@ -377,12 +377,11 @@ int getQtyActiveAnts(World * world){
 
 int nextTurn(World * world){
 
-
 	//printWorldData(world);
 	int active =  getQtyActiveAnts(world);
 	Message * turn;
 
-	printf("Active: %d\n", active);
+//	printf("Active: %d\n", active);
 	if( active == 0 ){
 		printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
@@ -605,64 +604,6 @@ World * getWorld(char * filename){
 	return out;
 }
 
-/*
-World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft){
-
-	int i,j;
-	World * out = malloc(sizeof(World));
-
-	out->sizeX = sizeX;
-	out->sizeY = sizeY;
-	out->turnsLeft = turnsLeft;
-	out->maxConnections = maxConnections;
-
-	Pos anthillPos = { 3, 5 };
-	out->anthill.pos = anthillPos;
-	out->anthill.maxPopulation = maxConnections;
-
-
-	// Allocation of collections
-	out->anthill.ants = malloc(maxConnections * sizeof(int));
-	for(i=0;i<maxConnections;i++)
-		out->anthill.ants[i] = INVALID_ID;
-
-	out->clients = malloc(maxConnections * sizeof(Client));
-	for(i=0;i<maxConnections;i++){
-		out->clients[i].key = INVALID_ID;
-		out->clients[i].turnLeft = false;
-	}
-
-	out->cells = malloc(sizeX * sizeof(Cell *));
-	for(i=0;i<sizeX;i++)
-		out->cells[i] = malloc(sizeY * sizeof(Cell));
-
-	// Temporary init of cells
-	Cell basicCell;
-	basicCell.trace = 0;
-	basicCell.foodType = 0;
-	basicCell.type = EMPTY_CELL;
-	basicCell.typeID = INVALID_ID;
-
-	for(i=0;i<sizeX;i++)
-		for(j=0;j<sizeY;j++){
-			out->cells[i][j] = basicCell;
-			Pos pos = {i,j};
-			out->cells[i][j].pos = pos;
-		}
-
-	if(anthillPos.x < sizeX && anthillPos.y < sizeY)
-		out->cells[anthillPos.x][anthillPos.y].type = ANTHILL_CELL;
-	else
-		return NULL; // WTF
-	
-	// Testing!
-	out->cells[7][5].type = FOOD_CELL;
-	out->cells[7][5].foodType = SMALL_FOOD;
-
-	return out;
-}
-*/
-
 void createAnthill(int antCount){
 	
         int pid = fork();
@@ -703,15 +644,15 @@ void * mapMain(void * arg){
 		sndMsg = NULL;
 		rcvMsg = NULL;
 
-
-//		printf("Waiting to receive...\n\n");
+//		printWorldData(world);		
+	//	printf("Waiting to receive...\n\n");
 		rcvMsg = receiveMessage(CLIENT,MAP_ID);
-//		printf("Received.\n");
+	//	printf("Received.\n");
 	//	printMessage(rcvMsg);
 		if(rcvMsg != NULL)
 			parseMessage(rcvMsg, world);
-
-		//printWorld(world);
+//		printf("Parsed\n");
+	//	printWorldData(world);
 	
 	}
 
