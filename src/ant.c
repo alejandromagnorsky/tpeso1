@@ -24,16 +24,16 @@ void * antMain(void * arg){
 
 	setRegister(ant);
 
-//	Pos to = {0,1};
-///	Message * send;
-//	Message * received;
-/*
+	Pos to = {0,1};
+	Message * send;
+	Message * received;
+
 	while(1){
 
 		received = receiveMessage(SERVER, ant->key);
 
 		if(received->opCode == TURN && received->param == SET){
-			printf("Tengo turno: %d\n", key);
+		//	printf("Tengo turno: %d\n", key);
 
 			send = createMessage(key, MAP_ID, MOVE, SET, to, 0);
 			sendMessage(SERVER, send);
@@ -64,7 +64,7 @@ void * antMain(void * arg){
 			}
 		}
 	}
-*/
+
 	printf("Hormiga muriendo!\n");
 	pthread_exit(NULL);
 }
@@ -99,7 +99,7 @@ goAnthill(Ant * ant){
 	Pos currentPos = getCurrentPos(ant->key);
 	Cardinal card = getCardinal(currentPos, anthill) % 4;	// If NW then go to N, NE go to E, SE go to S and SW go to W
 	Pos mov, to;
-	printf("LLENDO AL HORMIGUERO\n");
+	printf("LLENDO AL HORMIGUERO\n"); // SE DICE YENDO!!!!!
 	mov.x = vecMov[card][0]; 
 	mov.y = vecMov[card][1];
 	

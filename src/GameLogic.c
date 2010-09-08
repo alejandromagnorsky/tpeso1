@@ -1,9 +1,14 @@
 #include "../include/GameLogic.h"
 
+pthread_mutex_t EOT_mutex =  PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t EOT_cond = PTHREAD_COND_INITIALIZER;
+
 Command * commands = NULL;
 int commandsSize;
-int EOT = 1;
-int turn = 0;
+
+int EOT = 0;
+
+
 
 void startGame(SDL_Surface * screen){
 
@@ -36,9 +41,8 @@ SDL_World * initGame(SDL_Surface * screen){
 
 void addRegisterCommand(Command c){
 
-	// Wait till frontend executed commands
-	while(turn);
-
+	// Note: No mutex needed because this function will only be called by map
+	// It SHOULDN't be called by frontend
 	int i;
 	for(i=0;i<commandsSize;i++)
 		if(commands[i].valid == 0 ){
@@ -56,9 +60,8 @@ void addRegisterCommand(Command c){
 void addMoveCommand(Command c){
 	int i;
 
-	// Wait till frontend executed commands
-	while(turn);
-
+	// Note: No mutex needed because this function will only be called by map
+	// It SHOULDN't be called by frontend
 	for(i=0;i<commandsSize;i++)
 		if(commands[i].valid == 0 ){
 			commands[i].fromX = c.fromX;
@@ -105,42 +108,37 @@ void executeRegisterCommands(SDL_World * gameWorld){
 
 }
 
-int checkEOT(){
-	if(EOT){
-		EOT = 0;
-		return 1;
-	}
-	return 0;
-}
-
 void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 
 	int i;
 	int antQty = 20;
 
-	// Initialize commands 	
+	// Initialize commands, should use mutex
 	commandsSize = antQty;
 	commands = calloc(antQty, sizeof(Command));
 	for(i=0;i<antQty;i++)
 		commands[i].valid = 0;
-		
-	turn = 0;
 
+		
 	while(1){
 
 		// Pan & zoom
 		if(getUserInput(gameWorld) == -1)
 			return;
+	
+		pthread_mutex_lock(&EOT_mutex);
 
-		// Check if turn has ended
-		if(!turn){
-			turn = checkEOT();
 		// If turn has ended, wait till all commands are executed 
-		} else if(executeMoveCommands(gameWorld)){
-	//			printf("EOT!\n");
+		if(EOT)
+			if(executeMoveCommands(gameWorld)){
 				executeRegisterCommands(gameWorld);
-				turn = 0;
+				EOT = 0;
+				// Signal map that frontend finished executing.
+				pthread_cond_signal(&EOT_cond);
 			}
+
+		pthread_mutex_unlock(&EOT_mutex);
+
 		// Render world
 		renderSDLWorld(gameWorld, screen);
 
