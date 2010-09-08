@@ -513,48 +513,102 @@ void parseMessage(Message * msg, World * world){
 
 	//world->clients[clientIndex].turnLeft = false;
 }
-/*
+
 World * getWorld(char * filename){
 	FILE *	fd;
 	Pos	anthillPos;
-	int	i;
-	int	smallFood;
-	int	bigFood;
-	World *	out = malloc(sizeof(World));
+	int	i, j, x, y, smallFood, bigFood;
+	World *	out;
+
+	if ((out = malloc(sizeof(World))) == NULL)
+		errorLog("Memory allocation error in world loading.");
 
 	if ( (fd = fopen(filename, "r")) < 0 )
 		errorLog("Failed to load world attributes.");
 
 	if ( fscanf(fd, "%d,%d\n%d,%d\n%d\n%d\n", &out->sizeY, &out->sizeX, &anthillPos.y, &anthillPos.x, &out->maxConnections, &smallFood) == EOF)
-		errorLog("Failed to read world's file. Corrupted file.");
+		errorLog("Failed to read world's file.");
+	
+	/* Validates world dimensions */
+	if (out->sizeX < 0 || out->sizeY < 0)
+		errorLog("Feel the power of my parser.");
+
+	/* Validates anthill coordinates */
+	if (anthillPos.x < 0 || anthillPos.x >= out->sizeX || anthillPos.y < 0 || anthillPos.y >= out->sizeY)
+		errorLog("Luke, I am your parser.");
+
+	/* Validates small food quantity and max connections value */	///////// QUE PASA SI METO MAS FOOD QUE CELDAS ????????????????????
+	if (smallFood < 0 || out->maxConnections < 0)
+		errorLog("I've been waiting for you Obi-Wan. We meet again, at last. The circle is now complete.\nWhen I left you, I was but the learner; now I am the parser.");
 
 	out->anthill.pos = anthillPos;
+	out->anthill.maxPopulation = out->maxConnections;
+	out->turnsLeft = MAX_TURNS;
 
-	printf("worldColumns: %d\n", out->sizeY);
-	printf("worldRows: %d\n", out->sizeX);
-	printf("anthill: x: %d - y:%d\n", out->anthill.pos.x, out->anthill.pos.y);
-	printf("ants: %d\n", out->maxConnections);
-	printf("smallFood: %d\n", smallFood);
+	/* Ants initialization */
+	out->anthill.ants = malloc(out->maxConnections * sizeof(int));
+	for(i=0;i<out->maxConnections;i++)
+		out->anthill.ants[i] = INVALID_ID;
 
-	int temp;
+	out->clients = malloc(out->maxConnections * sizeof(Client));
+	for(i=0;i<out->maxConnections;i++){
+		out->clients[i].key = INVALID_ID;
+		out->clients[i].turnLeft = false;
+	}
+
+	/* Blank cell initialization */
+	Cell blankCell;
+	blankCell.trace = 0;
+	blankCell.foodType = NO_FOOD;
+	blankCell.type = EMPTY_CELL;
+	blankCell.typeID = INVALID_ID;
+
+	if ( (out->cells = malloc(out->sizeX * sizeof(Cell *))) == NULL)
+		errorLog("Memory allocation error in world loading.");
+
+	for(i=0;i<out->sizeX;i++){
+		if ( (out->cells[i] = malloc(out->sizeY * sizeof(Cell))) == NULL)
+			errorLog("Memory allocation error in world loading.");
+		for(j=0;j<out->sizeY;j++){
+			out->cells[i][j] = blankCell;
+			Pos pos = {i,j};
+			out->cells[i][j].pos = pos;
+		}
+	}
+
+	/* Validate and set small food cells */
 	for (i=0; i<smallFood; i++){
-		if (fscanf(fd, "%d,%d\n", &temp, &temp) == EOF)
-			errorLog("Failed to read world's small food positions. Corrupted file.");
+		if (fscanf(fd, "%d,%d\n", &y, &x) == EOF)
+			errorLog("Failed to read world's small food positions.");
+		if (x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
+			errorLog("I find your lack of faith in my parser disturbing.");
+		out->cells[x][y].type = FOOD_CELL;
+		out->cells[x][y].foodType = SMALL_FOOD;
 	}
+
+	/* Read world's big food quantity, then validate it*/
 	if (fscanf(fd, "%d\n", &bigFood) == EOF)
-		errorLog("Failed to read world's big food quantity. Corrupted file.");
+		errorLog("Failed to read world's big food quantity.");
+	if (bigFood < 0)	///////// QUE PASA SI METO MAS FOOD QUE CELDAS ????????????????????
+		errorLog("Use the Parser, Luke.");
 
+	/* Validate and set big food cells */
 	for (i=0; i<bigFood; i++){
-		if (fscanf(fd, "%d,%d\n", &temp, &temp) == EOF)
-			errorLog("Failed to read world's big food positions. Corrupted file.");
+		if (fscanf(fd, "%d,%d\n", &y, &x) == EOF)
+			errorLog("Failed to read world's big food positions.");
+		if (x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
+			errorLog("May the parser be with you.");
+		out->cells[x][y].type = FOOD_CELL;
+		out->cells[x][y].foodType = BIG_FOOD;
 	}
 
-	printf("\nFINISH\n");
-	fclose(fd);
+	if ( fclose(fd) < 0 )
+		errorLog("Failed to close world's file descriptor.");
+
 	return out;
 }
-*/
 
+/*
 World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft){
 
 	int i,j;
@@ -610,7 +664,7 @@ World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft){
 
 	return out;
 }
-
+*/
 
 void createAnthill(int antCount){
 	
@@ -646,11 +700,9 @@ void * mapMain(void * arg){
 
 	// MAP LOADER HERE
 	World * world;
-	world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS);	
-	//world = getWorld("testmap");	
-	
+	//world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS);
+	world = getWorld("testmap");
 	while(nextTurn(world)){
-
 		sndMsg = NULL;
 		rcvMsg = NULL;
 
