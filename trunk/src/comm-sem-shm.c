@@ -136,16 +136,17 @@ receiveMessage(NodeType from, int key){
 	struct sembuf semOpRead; // Operation for the write semaphore
 	semOpRead.sem_num = index; // Number of semaphore in the array
 	semOpRead.sem_op = -1;	
+	semOpRead.sem_flg = 0; // Set to wait
 
 	struct sembuf semOpWrite; // Operation for the write semaphore
 	semOpWrite.sem_num = index; // Number of semaphore in the array
 	semOpWrite.sem_op = 1;
-
+	semOpWrite.sem_flg = 0; // Set to wait
 
 	semop(semRead, &semOpRead, 1);
 
 	out = createMessage(mem->keyFrom, mem->keyTo, mem->opCode,  mem->param, mem->pos, mem->trace);
-
+	//printf("%d leyo de %d\n", out->keyTo, out->keyFrom);
 	semop(semWrite, &semOpWrite, 1);
 
 
@@ -174,15 +175,17 @@ sendMessage(NodeType to, Message * msg){
 	struct sembuf semOpWrite; // Operation for the write semaphore
 	semOpWrite.sem_num = index; // Number of semaphore in the array
 	semOpWrite.sem_op = -1;
+	semOpWrite.sem_flg = 0; // Set to wait
 	
 	struct sembuf semOpRead; // Operation for the write semaphore
 	semOpRead.sem_num = index; // Number of semaphore in the array
 	semOpRead.sem_op = 1;
+	semOpRead.sem_flg = 0; // Set to wait
 
 	semop(semWrite, &semOpWrite, 1);
-
+	//printf("%d quiere escribir a %d\n", msg->keyFrom, msg->keyTo);
 	memcpy(mem, msg, SIZE);
-
+	//printf("%d escribio en %d\n", msg->keyFrom, msg->keyTo);
 	semop(semRead, &semOpRead, 1);
 
 	//printf("Mensaje mandado a %d. Enviado con keyTo = %d\n", index, mem->keyTo);

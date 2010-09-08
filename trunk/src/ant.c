@@ -47,7 +47,7 @@ void * antMain(void * arg){
 			}
 		}
 	}
-*
+*/
 	while(1){
 
 		received = receiveMessage(SERVER, ant->key);
@@ -63,7 +63,7 @@ void * antMain(void * arg){
 			}
 		}
 	}
-*/
+
 	printf("Hormiga muriendo!\n");
 	pthread_exit(NULL);
 }
