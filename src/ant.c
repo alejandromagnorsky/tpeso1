@@ -27,7 +27,7 @@ void * antMain(void * arg){
 	Pos to = {0,1};
 	Message * send;
 	Message * received;
-
+/*
 	while(1){
 
 		received = receiveMessage(SERVER, ant->key);
@@ -48,13 +48,13 @@ void * antMain(void * arg){
 			}
 		}
 	}
-
+*/
 	while(1){
 
 		received = receiveMessage(SERVER, ant->key);
 
 		if(received->opCode == TURN && received->param == SET){
-			printf("Tengo turno: %d\n", key);
+		//	printf("Tengo turno: %d\n", key);
 
 			if(!action(ant)){ // If the ant didn't take any action that consumes a turn, then waste it
 				send = createMessage(key, MAP_ID, TURN, SET, to, 0);
@@ -155,18 +155,18 @@ move(Pos to, bool trace, int key){
 	mov.x = vecMov[card][0];
 	mov.y = vecMov[card][1];	
 
-	printf("I want to move to (%d,%d) \n", mov.x, mov.y);
+	//printf("I want to move to (%d,%d) \n", mov.x, mov.y);
 	if(trace)
 		send = createMessage(key, MAP_ID, MOVE, SET, mov, 1);
 	else
 		send = createMessage(key, MAP_ID, MOVE, SET, mov, 0);
-	printMessage(send);
+	//printMessage(send);
 	sendMessage(SERVER, send);
-	printf("Sent message.\n");
+	//printf("Sent message.\n");
 
 	received = receiveMessage(SERVER, key);
-	printf("Message received.\n");
-	printMessage(received);
+	//printf("Message received.\n");
+//	printMessage(received);
 	if(received->opCode == MOVE && received->param == OK ){
 		printf("I moved! \n");	
 		return true;
@@ -229,14 +229,14 @@ search(Ant * ant){
 		mov.y = vecMov[i][1];
 		to.x = currentPos.x + mov.x;
 		to.y = currentPos.y + mov.y;
-		printf("I want to search food from (%d,%d) \n", mov.x, mov.y);
+	//	printf("I want to search food from (%d,%d) \n", mov.x, mov.y);
 		send = createMessage(ant->key, MAP_ID, MOVE, GET, mov, 0);  
-		printMessage(send);
+	//	printMessage(send);
 		sendMessage(SERVER, send);
 
 		received[i] = receiveMessage(SERVER, ant->key);
-		printf("Message received.\n");
-		printMessage(received[i]);
+	//	printf("Message received.\n");
+	//	printMessage(received[i]);
 		if(received[i]->opCode == FOOD && received[i]->param == OCCUPIED){
 				ant->opCode = FOOD;
 				ant->auxPos = to;
@@ -279,14 +279,14 @@ getNearFood(Ant * ant, Pos to){
 	mov.x = vecMov[card][0];
 	mov.y = vecMov[card][1];
 
-	printf("I want to get food from (%d,%d) \n", mov.x, mov.y);
+	//printf("I want to get food from (%d,%d) \n", mov.x, mov.y);
 	send = createMessage(ant->key, MAP_ID, FOOD, GET, mov, 0);
-	printMessage(send);
+	//printMessage(send);
 	sendMessage(SERVER, send);
 
 	received = receiveMessage(SERVER, ant->key);
-	printf("Message received.\n");
-	printMessage(received);
+	//printf("Message received.\n");
+//	printMessage(received);
 	if(received->opCode == FOOD && received->param == OK){
 			printf("I get food! \n");
 			ant->food = SMALL_FOOD;

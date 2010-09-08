@@ -20,9 +20,13 @@ Anthill: ANTHILL_CELL, n/a
 
 #define INVALID_ID -1
 
+#define NO_TURN 0
+#define LEFT_TURN 1
+#define GHOST_TURN 2
+
 typedef struct Client{
 	int key;
-	bool turnLeft;
+	int turnLeft;
 } Client;
 
 typedef struct Cell{
@@ -79,5 +83,7 @@ void setFoodAtAnthill(Message * msg, World * world);
 void getFoodFromWorld(Message * msg, World * world);
 
 int withinMapRange(World * world, Pos pos);
+
+int getAntIndexByKey(World * world, int key);
 
 #endif
