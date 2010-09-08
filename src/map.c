@@ -92,6 +92,7 @@ void registerAnt(Message * msg, World * world){
 
 			ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, anthillPos, 0);
 			printf("Registered ant %d at (%d,%d) \n", msg->keyFrom, world->anthill.pos.x, world->anthill.pos.y);
+			shout();
 		}
 	}
 
@@ -531,7 +532,7 @@ World * getWorld(char * filename){
 	if (anthillPos.x < 0 || anthillPos.x >= out->sizeX || anthillPos.y < 0 || anthillPos.y >= out->sizeY)
 		errorLog("Luke, I am your parser.");
 
-	/* Validates small food quantity and max connections value */	///////// QUE PASA SI METO MAS FOOD QUE CELDAS ????????????????????
+	/* Validates small food quantity and max connections value */
 	if (smallFood < 0 || out->maxConnections < 0)
 		errorLog("I've been waiting for you Obi-Wan. We meet again, at last. The circle is now complete.\nWhen I left you, I was but the learner; now I am the parser.");
 
@@ -557,8 +558,6 @@ World * getWorld(char * filename){
 	blankCell.type = EMPTY_CELL;
 	blankCell.typeID = INVALID_ID;
 
-
-
 	if ( (out->cells = malloc(out->sizeX * sizeof(Cell *))) == NULL)
 		errorLog("Memory allocation error in world loading.");
 
@@ -572,11 +571,13 @@ World * getWorld(char * filename){
 		}
 	}
 
+	out->cells[anthillPos.x][anthillPos.y].type = ANTHILL_CELL;
+
 	/* Validate and set small food cells */
 	for (i=0; i<smallFood; i++){
 		if (fscanf(fd, "%d,%d\n", &y, &x) == EOF)
-			errorLog("Failed to read world's small food positions.");
-		if (x == anthillPos.x || y == anthillPos.y || x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
+			errorLog("Failed to read world's small food positions."); /////////////////////////////////////////////////
+		if (out->cells[x][y].type == ANTHILL_CELL || x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
 			errorLog("I find your lack of faith in my parser disturbing.");
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = SMALL_FOOD;
@@ -585,21 +586,18 @@ World * getWorld(char * filename){
 	/* Read world's big food quantity, then validate it*/
 	if (fscanf(fd, "%d\n", &bigFood) == EOF)
 		errorLog("Failed to read world's big food quantity.");
-	if (bigFood < 0)	///////// QUE PASA SI METO MAS FOOD QUE CELDAS ????????????????????
+	if (bigFood < 0)
 		errorLog("Use the Parser, Luke.");
 
 	/* Validate and set big food cells */
 	for (i=0; i<bigFood; i++){
 		if (fscanf(fd, "%d,%d\n", &y, &x) == EOF)
-			errorLog("Failed to read world's big food positions.");
-		if (x == anthillPos.x || y == anthillPos.y ||x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
+			errorLog("Failed to read world's big food positions."); /////////////////////////////////////////////////
+		if (out->cells[x][y].type == ANTHILL_CELL || x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
 			errorLog("May the parser be with you.");
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = BIG_FOOD;
 	}
-
-	out->cells[anthillPos.x][anthillPos.y].type = ANTHILL_CELL;
-
 
 	if ( fclose(fd) < 0 )
 		errorLog("Failed to close world's file descriptor.");

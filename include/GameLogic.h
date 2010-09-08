@@ -1,10 +1,17 @@
 #include <SDL.h>
+#include <SDL_audio.h>
+#include <SDL_mixer.h>
 #include <SDL_rotozoom.h>
 #include "../include/SDL_utils.h"
 #include "../include/SDL_World.h"
 #include "../include/SDL_AssetManager.h"
 #include "../include/communication.h"
 #include <pthread.h>
+
+#define AVL_SOUND_CHANNEL -1
+#define CHANNEL AVL_SOUND_CHANNEL
+#define PLAYS 1
+#define LOOP PLAYS-1
 
 #define SCREEN_WIDTH 644
 #define SCREEN_HEIGHT 480
@@ -46,6 +53,12 @@ void executeRegisterCommands(SDL_World * gameWorld);
 void addRegisterCommand(Command c);
 
 void addMoveCommand(Command c);
+
+// SDL SOUNDS
+void shout();
+Mix_Chunk * openSound(char * file);
+void playSound(Mix_Chunk * sound);
+void closeSounds(/*Mix_Chunk * sound*/);
 
 int checkEOT();
 
