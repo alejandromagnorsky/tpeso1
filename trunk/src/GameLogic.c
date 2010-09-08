@@ -175,4 +175,34 @@ int getUserInput(SDL_World * gameWorld){
 	return 0;
 }
 
+void shout(){
+	struct Mix_Chunk * shout;
+	shout = openSound("test.wav");
+	playSound(shout);
+	//closeSounds(shout);
+}
+
+Mix_Chunk * openSound(char * file){
+	struct Mix_Chunk * sound;
+	if((sound = Mix_LoadWAV("test.wav")) == NULL) {
+		fprintf(stderr, "Unable to load WAV file: %s\n", Mix_GetError());
+		exit(1);
+	}
+	return sound;
+}
+void playSound(Mix_Chunk * sound){
+	int channel;
+	channel = Mix_PlayChannel(CHANNEL, sound, LOOP);
+	if(channel == -1) {
+		fprintf(stderr, "Unable to play WAV file: %s\n", Mix_GetError());
+		exit(1);
+	}
+
+	while(Mix_Playing(channel) != 0);
+}
+
+void closeSounds(/*Mix_Chunk * sound*/){
+	//Mix_FreeChunk(sound);
+	Mix_CloseAudio();
+}
 
