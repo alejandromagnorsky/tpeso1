@@ -359,17 +359,13 @@ int getQtyActiveAnts(World * world){
 
 int nextTurn(World * world){
 
-	// Wait till frontend is ready, use pthreads!!!
-	while(EOT);
-
 
 	//printWorldData(world);
 	int active =  getQtyActiveAnts(world);
 	Message * turn;
 
 	if( active == 0 ){
-
-	//	printf("NUEVO TURNO: %d \n", active);
+	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
 		Pos tmp = {0,0};
 		// Here traces are decreased.
@@ -387,9 +383,17 @@ int nextTurn(World * world){
 
 		//printWorld(world);
 		// Tell frontend turn has ended
+		pthread_mutex_lock(&EOT_mutex);
+
 		EOT = 1;
+
+		pthread_cond_wait(&EOT_cond, &EOT_mutex);
+
+		pthread_mutex_unlock(&EOT_mutex);
+
 		world->turnsLeft--;
 	}
+
 
 	return world->turnsLeft;
 }
@@ -647,15 +651,12 @@ void * mapMain(void * arg){
 	
 	while(nextTurn(world)){
 
-		printWorldData(world);
-
 		sndMsg = NULL;
 		rcvMsg = NULL;
-		getchar();
-	
-		printf("Waiting to receive...\n\n");
+
+//		printf("Waiting to receive...\n\n");
 		rcvMsg = receiveMessage(CLIENT,MAP_ID);
-		printf("Received.\n");
+//		printf("Received.\n");
 	//	printMessage(rcvMsg);
 		if(rcvMsg != NULL)
 			parseMessage(rcvMsg, world);
