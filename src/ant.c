@@ -21,7 +21,6 @@ void * antMain(void * arg){
 	ant->opCode = -1;
 	ant->key = key;
 
-
 	setRegister(ant);
 
 	Pos to = {0,1};
@@ -48,7 +47,7 @@ void * antMain(void * arg){
 			}
 		}
 	}
-*/
+*
 	while(1){
 
 		received = receiveMessage(SERVER, ant->key);
@@ -64,7 +63,7 @@ void * antMain(void * arg){
 			}
 		}
 	}
-
+*/
 	printf("Hormiga muriendo!\n");
 	pthread_exit(NULL);
 }

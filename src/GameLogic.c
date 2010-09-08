@@ -20,9 +20,7 @@ void startGame(SDL_Surface * screen, int sizeX, int sizeY){
 SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
 	SDL_World * out = getSDLWorld(sizeX, sizeY, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
-	addAsset(out->vector, "assets/planta.png", "PNG", "Planta", 1);
 	addAsset(out->vector, "assets/tesoro.png", "PNG", "Tesoro", 1);
-	addAsset(out->vector, "assets/fuente.png", "PNG", "Fuente", 1);
 	addAsset(out->vector, "assets/test_flare.png", "PNG", "Flare", 1);
 
 	return out;
