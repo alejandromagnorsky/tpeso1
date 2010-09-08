@@ -61,6 +61,7 @@ int main(int argc, char * argv[]){
 
 	signal(SIGINT, sigHandler);
 
+	SDL_Surface * screen = initSDL(argc, argv);
 
 	// MAP LOADER HERE
 	World * world;
@@ -68,7 +69,6 @@ int main(int argc, char * argv[]){
 	pthread_t mapThread;
 	pthread_create(&mapThread, NULL, mapMain,(void *) world);
 
-	SDL_Surface * screen = initSDL(argc, argv);
 	startGame(screen, world->sizeX, world->sizeY);
 
 

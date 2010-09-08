@@ -91,7 +91,7 @@ void registerAnt(Message * msg, World * world){
 			world->anthill.ants[j] = msg->keyFrom;
 
 			ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, anthillPos, 0);
-			printf("Registered ant %d at (%d,%d) \n", msg->keyFrom, world->anthill.pos.x, world->anthill.pos.y);
+			//printf("Registered ant %d at (%d,%d) \n", msg->keyFrom, world->anthill.pos.x, world->anthill.pos.y);
 		//	shout();
 		}
 	}
@@ -252,19 +252,17 @@ void setWorldPosition(Message * msg,World * world){
 				int antIndex =  antExistsInAnthill(world, msg->keyFrom);
 				Cell * nextCell = &world->cells[desiredPos.x][desiredPos.y];
 
+				Command comm;
+
 				// Check if ant is in anthill, then erase it from anthill
 				if( antIndex >= 0){
 					world->anthill.ants[antIndex] = INVALID_ID;
 
 					// Tell frontend to register ant at new pos,
 					// to prevent multi layering.
-					Command rC;
-					rC.fromX = world->anthill.pos.x + msg->pos.x;
-					rC.fromY = world->anthill.pos.y + msg->pos.y;
-					rC.op = RegisterCommand;	
-					rC.valid = 1;
-
-					addRegisterCommand(rC);
+					comm.fromX = world->anthill.pos.x + msg->pos.x;
+					comm.fromY = world->anthill.pos.y + msg->pos.y;
+					comm.op = RegisterCommand;	
 
 				} else {
 					// If ant is in world, erase old cell data, and if food is carried, keep carrying
@@ -275,16 +273,14 @@ void setWorldPosition(Message * msg,World * world){
 					nextCell->foodType = oldCell->foodType; // carry food if possible
 
 					// Tell frontend to move ant
-					Command mC;
-					mC.fromX = oldCell->pos.x;
-					mC.fromY = oldCell->pos.y;
-					mC.toX = msg->pos.x + oldCell->pos.x;
-					mC.toY = msg->pos.y + oldCell->pos.y;
-					mC.op = MoveCommand;	
-					mC.valid = 1;
-
-					addMoveCommand(mC);
+					comm.fromX = oldCell->pos.x;
+					comm.fromY = oldCell->pos.y;
+					comm.toX = msg->pos.x + oldCell->pos.x;
+					comm.toY = msg->pos.y + oldCell->pos.y;
+					comm.op = MoveAntCommand;	
 				}
+
+				addCommand(comm);
 
 				// Set next cell data
 				nextCell->type = ANT_CELL;
@@ -330,6 +326,14 @@ void setFoodAtAnthill(Message * msg, World * world){
 	
 			// Waste turn
 			world->clients[clientIndex].turnLeft = NO_TURN;
+
+			// Tell frontend to destroy food
+			Command comm;
+			comm.fromX = antCell->pos.x;
+			comm.fromY = antCell->pos.y;
+
+			comm.op = DeleteFoodCommand;	
+			addCommand(comm);
 
 			// Now give food to anthill
 //			Message * sendFood;
@@ -383,7 +387,7 @@ int nextTurn(World * world){
 
 //	printf("Active: %d\n", active);
 	if( active == 0 ){
-		printf("NUEVO TURNO: %d \n", world->turnsLeft);
+	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
 		Pos tmp = {0,0};
 		// Here traces are decreased.
@@ -449,7 +453,17 @@ void getFoodFromWorld(Message * msg, World * world){
 				foodCell->type = EMPTY_CELL;
 				foodCell->foodType = NO_FOOD; // Doesn't really matter if EMPTY_CELL active
 				antCell->foodType = SMALL_FOOD;
-				
+
+				// Tell frontend to move food to ant
+				Command comm;
+				comm.fromX = foodCell->pos.x;
+				comm.fromY = foodCell->pos.y;
+
+				comm.toX = antCell->pos.x;
+				comm.toY = antCell->pos.y;
+				comm.op = MoveFoodCommand;	
+				addCommand(comm);
+
 			} else // If it has big food, warn ant
 			if(foodCell->foodType == BIG_FOOD)
 				ans = createMessage(MAP_ID, msg->keyFrom, FOOD, BIG, msg->pos, msg->trace);
@@ -627,6 +641,27 @@ void createAnthill(int antCount){
 }
 
 
+void sendDataToFrontend(World * world){
+	Command comm;
+	comm.op = RegisterFoodCommand;
+	int x,y;
+
+	for(x=0;x<world->sizeX;x++)
+		for(y=0;y<world->sizeY;y++)
+			if(world->cells[x][y].type == FOOD_CELL && world->cells[x][y].foodType == SMALL_FOOD){
+				comm.fromX = x;
+				comm.fromY = y;
+				addCommand(comm);
+			}
+
+	comm.op = RegisterAnthillCommand;
+	comm.fromX = world->anthill.pos.x;
+	comm.fromY = world->anthill.pos.y;
+
+	addCommand(comm);
+}
+
+
 void * mapMain(void * arg){
 
 	signal(SIGINT, sigHandler);
@@ -639,6 +674,9 @@ void * mapMain(void * arg){
 	openServer((void *)world->maxConnections);
 
 	createAnthill(world->maxConnections);
+
+
+	sendDataToFrontend(world);
 
 	while(nextTurn(world)){
 		sndMsg = NULL;
