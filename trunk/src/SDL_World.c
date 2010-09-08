@@ -17,7 +17,7 @@ SDL_World * getSDLWorld(int sizeX, int sizeY, char * filename, char * ext, Uint3
 	out->bgimage = getAssetImage(out->vector, "World Background");
 	out->bgcolor = bgcolor;
 
-	printf("%d, %d \n", sizeX, sizeY);
+	//printf("%d, %d \n", sizeX, sizeY);
 
 	int i,j,k;
 	for(i=0;i<LAYERS;i++)
@@ -155,9 +155,12 @@ void deleteObject(SDL_World * world, int x, int y, int layer ){
 int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int layer){
 	int index = world->grid[layer][fromX][fromY].id;
 
+	// If object doesn't exist, finish
+	if(index <0)
+		return 1;
 
 	// If asset exists and position is valid
-	if( index >= 0 && verifyGrid(world, fromX, fromY, layer) && verifyGrid(world, toX, toY, layer)
+	if( verifyGrid(world, fromX, fromY, layer) && verifyGrid(world, toX, toY, layer)
 		&& ( fromX != toX || fromY != toY )){
 
 		// Still on fromX,fromY.. moving with offset

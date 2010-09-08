@@ -1,7 +1,14 @@
 #include "../include/GameLogic.h"
 
+#define COMMAND_SIZE_THRESHOLD 20
+
 pthread_mutex_t EOT_mutex =  PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t EOT_cond = PTHREAD_COND_INITIALIZER;
+
+
+
+pthread_mutex_t commands_mutex =  PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t commands_cond = PTHREAD_COND_INITIALIZER;
 
 Command * commands = NULL;
 int commandsSize;
@@ -20,47 +27,39 @@ void startGame(SDL_Surface * screen, int sizeX, int sizeY){
 SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
 	SDL_World * out = getSDLWorld(sizeX, sizeY, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
-	addAsset(out->vector, "assets/tesoro.png", "PNG", "Tesoro", 1);
-	addAsset(out->vector, "assets/test_flare.png", "PNG", "Flare", 1);
+	addAsset(out->vector, "assets/tesoro.png", "PNG", "Anthill", ALPHA);
+	addAsset(out->vector, "assets/test_flare.png", "PNG", "Flare", ALPHA);
+	addAsset(out->vector, "assets/pescao.png", "PNG", "SmallFood", ALPHA);
+	addAsset(out->vector, "assets/draco.png", "PNG", "BigFood", ALPHA);
 
 	return out;
 }
 
-void addRegisterCommand(Command c){
-
-	// Note: No mutex needed because this function will only be called by map
-	// It SHOULDN't be called by frontend
-	int i;
-	for(i=0;i<commandsSize;i++)
-		if(commands[i].valid == 0 ){
-			commands[i].fromX = c.fromX;
-			commands[i].fromY = c.fromY;
-			
-			commands[i].op = RegisterCommand;
-			commands[i].valid = 1;
-			return;	// Command added
-		}
-	return;
-}
-
 // Add commands to the queue
-void addMoveCommand(Command c){
+// Note that this function is ALWAYS CALLED BY THE MAP THREAD
+// This may cause synchronization problems, so mutex and condvars are used
+// because map thread may try to send commands before commands vector initialized properly
+void addCommand(Command c){
 	int i;
 
-	// Note: No mutex needed because this function will only be called by map
-	// It SHOULDN't be called by frontend
+	pthread_mutex_lock(&commands_mutex);
+
+	if(commands == NULL)
+		pthread_cond_wait(&commands_cond, &commands_mutex);
+
 	for(i=0;i<commandsSize;i++)
 		if(commands[i].valid == 0 ){
 			commands[i].fromX = c.fromX;
 			commands[i].fromY = c.fromY;
 			commands[i].toX = c.toX;
 			commands[i].toY = c.toY;
-			
-			commands[i].op = MoveCommand;
+			commands[i].op = c.op;
 			commands[i].valid = 1;
+			pthread_mutex_unlock(&commands_mutex);
 			return;	// Command added
 		}
 
+	pthread_mutex_unlock(&commands_mutex);
 }
 
 // Basically execute commands.
@@ -70,43 +69,79 @@ int executeMoveCommands(SDL_World * gameWorld){
 	int i;
 	int finished = 1;
 	int finishedTotal = 1;
-	for(i=0;i<commandsSize;i++)
-		if(commands[i].valid == 1 && commands[i].op == MoveCommand){
-				finished = moveObject(gameWorld, commands[i].fromX, commands[i].fromY,commands[i].toX, commands[i].toY, 1); // Ants work in layer 1
+	for(i=0;i<commandsSize;i++){
+		if(commands[i].valid == 1 && ( commands[i].op == MoveAntCommand || commands[i].op == MoveFoodCommand )  ){
+				finished = moveObject(gameWorld, commands[i].fromX, commands[i].fromY,commands[i].toX, commands[i].toY, ANT_LAYER);
+				finished = finished && moveObject(gameWorld, commands[i].fromX, commands[i].fromY,commands[i].toX, commands[i].toY, FOOD_LAYER);
 				if(finished)
 					commands[i].valid = 0;
 				finishedTotal = finishedTotal && finished;
 		}
+	}
 	return finishedTotal;
+}
+
+void executeDeleteFood(SDL_World * gameWorld){
+	int i;
+	for(i=0;i<commandsSize;i++)
+		if(commands[i].valid == 1 && commands[i].op == DeleteFoodCommand ){
+			deleteObject(gameWorld, commands[i].fromX, commands[i].fromY,FOOD_LAYER );
+			commands[i].valid = 0;
+		}
+}
+
+// Basically execute Food commands.
+void executeRegisterFood(SDL_World * gameWorld){
+	int i;
+	for(i=0;i<commandsSize;i++)
+		if(commands[i].valid == 1 && commands[i].op == RegisterFoodCommand ){
+			addObject(gameWorld, "SmallFood",commands[i].fromX, commands[i].fromY, FOOD_LAYER, !ANIMATED,!ORIENTED);
+			commands[i].valid = 0;
+		}
+}
+
+
+// Basically execute Food commands.
+void executeRegisterAnthill(SDL_World * gameWorld){
+	int i;
+	for(i=0;i<commandsSize;i++)
+		if(commands[i].valid == 1 && commands[i].op == RegisterAnthillCommand ){
+			addObject(gameWorld, "Anthill",commands[i].fromX, commands[i].fromY, BG_LAYER, !ANIMATED,!ORIENTED);
+			commands[i].valid = 0;
+		}
 }
 
 
 
 // Basically execute commands.
-// Return 0 when commands yet not executed
-// Return 1 when all commands executed
 void executeRegisterCommands(SDL_World * gameWorld){
 	int i;
 	for(i=0;i<commandsSize;i++)
 		if(commands[i].valid == 1 && commands[i].op == RegisterCommand ){
-			addObject(gameWorld, "Flare",commands[i].fromX, commands[i].fromY, 1, ANIMATED,!ORIENTED);
+			addObject(gameWorld, "Flare",commands[i].fromX, commands[i].fromY, ANT_LAYER, ANIMATED,!ORIENTED);
 			commands[i].valid = 0;
 		}
 
 }
+
 
 void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 
 	int i;
 	int antQty = 20;
 
+	pthread_mutex_lock(&commands_mutex);
+
 	// Initialize commands, should use mutex
-	commandsSize = antQty;
-	commands = calloc(antQty, sizeof(Command));
+	commandsSize = antQty + COMMAND_SIZE_THRESHOLD;
+	commands = calloc(commandsSize, sizeof(Command));
 	for(i=0;i<antQty;i++)
 		commands[i].valid = 0;
 
-		
+	pthread_cond_signal(&commands_cond);
+
+	pthread_mutex_unlock(&commands_mutex);
+
 	while(1){
 
 		// Pan & zoom
@@ -118,7 +153,11 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 		// If turn has ended, wait till all commands are executed 
 		if(EOT)
 			if(executeMoveCommands(gameWorld)){
+
+				executeDeleteFood(gameWorld);
 				executeRegisterCommands(gameWorld);
+				executeRegisterAnthill(gameWorld);
+				executeRegisterFood(gameWorld);
 				EOT = 0;
 				// Signal map that frontend finished executing.
 				pthread_cond_signal(&EOT_cond);

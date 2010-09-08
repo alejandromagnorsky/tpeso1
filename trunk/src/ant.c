@@ -167,10 +167,10 @@ move(Pos to, bool trace, int key){
 	//printf("Message received.\n");
 //	printMessage(received);
 	if(received->opCode == MOVE && received->param == OK ){
-		printf("I moved! \n");	
+	//	printf("I moved! \n");	
 		return true;
 	} else {
-		printf("Couldn't move! =( \n");
+	//	printf("Couldn't move! =( \n");
 		return false;
 	}
 }
@@ -240,10 +240,10 @@ search(Ant * ant){
 				ant->opCode = FOOD;
 				ant->auxPos = to;
 				return;
-		} else if(received[i]->opCode == FOOD && received[i]->param == BIG) // FALTA IMPLEMENTAR
-			printf("I found food, but is too big! \n");
-		else 
-			printf("I didn't find food =( \n");
+		} //else if(received[i]->opCode == FOOD && received[i]->param == BIG) // FALTA IMPLEMENTAR
+	//		printf("I found food, but is too big! \n");
+	//	else 
+	//		printf("I didn't find food =( \n");
 	}
 
 	// If the ant didn't find food, search trace
@@ -287,13 +287,13 @@ getNearFood(Ant * ant, Pos to){
 	//printf("Message received.\n");
 //	printMessage(received);
 	if(received->opCode == FOOD && received->param == OK){
-			printf("I get food! \n");
+			//printf("I get food! \n");
 			ant->food = SMALL_FOOD;
 			return true;
-	} else if(received->opCode == FOOD && received->param == BIG) // FALTA IMPLEMENTAR
-			printf("I cannot get food, too big! \n");
-	else 
-			printf("I cannot get food =( \n");
+	} //else if(received->opCode == FOOD && received->param == BIG) // FALTA IMPLEMENTAR
+	//		printf("I cannot get food, too big! \n");
+	//else 
+//			printf("I cannot get food =( \n");
 	return false;
 }
 

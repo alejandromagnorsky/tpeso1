@@ -17,10 +17,14 @@
 #define SCREEN_HEIGHT 480
 
 #define SENSITIVITY 30
+#define DELAY 20	// delay in ms
 
-#define DELAY 5	// delay in ms
+#define ANT_LAYER 1
+#define FOOD_LAYER 2
+#define BG_LAYER 0
 
-typedef enum { MoveCommand, RegisterCommand } CommandOp;
+
+typedef enum { MoveFoodCommand, MoveAntCommand, RegisterAnthillCommand, RegisterCommand, RegisterFoodCommand, RegisterBigFoodCommand, DeleteFoodCommand } CommandOp;
 
 typedef struct{
 	int fromX,fromY;
@@ -32,8 +36,6 @@ typedef struct{
 extern int EOT; // End of turn
 extern pthread_mutex_t EOT_mutex;
 extern pthread_cond_t EOT_cond;
-
-
 
 void startGame(SDL_Surface * screen, int sizeX, int sizeY);
 
@@ -50,9 +52,7 @@ int executeMoveCommands(SDL_World * gameWorld);
 
 void executeRegisterCommands(SDL_World * gameWorld);
 
-void addRegisterCommand(Command c);
-
-void addMoveCommand(Command c);
+void addCommand(Command c);
 
 // SDL SOUNDS
 void shout();

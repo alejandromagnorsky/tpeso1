@@ -2,11 +2,11 @@
 #include "SDL_utils.h" 
 #include "SDL_AssetManager.h"
 
-#define LAYERS 2
+#define LAYERS 3
 
 #define ANIMATED 1
-
 #define ORIENTED 1
+#define ALPHA 1
 
 #define SPRITE_UP 1
 #define SPRITE_DOWN 2
