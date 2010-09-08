@@ -15,9 +15,6 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define SIZE_X 15
-#define SIZE_Y 15
-
 void printWorld(World * w){
 	printf("\n");
 	int i,j;
@@ -89,7 +86,8 @@ void registerAnt(Message * msg, World * world){
 		if( i != world->maxConnections && world->clients[i].key == INVALID_ID &&
 		    j != world->anthill.maxPopulation && world->anthill.ants[i] == INVALID_ID ){
 			world->clients[i].key = msg->keyFrom;
-			world->clients[i].turnLeft = false;
+			// Gives priority to first ant registered, due to Next Turn algorithm
+			world->clients[i].turnLeft = NO_TURN;	
 			world->anthill.ants[j] = msg->keyFrom;
 
 			ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, anthillPos, 0);
@@ -118,6 +116,7 @@ bool exists(int key,World * world){
 void checkRegistered(Message * msg, World * world){
 	Message * ans;
 
+	// This wastes no turn
 	ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, NOT_OK, msg->pos, msg->trace);
 	if(exists(msg->keyFrom, world))
 		ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, getAntCellByPID(world,msg->keyFrom )->pos, msg->trace);
@@ -154,13 +153,18 @@ void getWorldPosition(Message * msg,World * world){
 	Message * ans;
 	ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
 
-	if(exists(msg->keyFrom, world)){
+	int clientIndex = getAntIndexByKey(world,msg->keyFrom);
 
-		Pos antPos = getAntCellByPID(world,msg->keyFrom )->pos;
-		Pos desiredPos = addPositions(antPos, msg->pos);
-
-		// If move is valid
-		if(withinMapRange(world, desiredPos) && verifyPosition(msg->pos)){
+	Pos antPos = getAntCellByPID(world,msg->keyFrom )->pos;
+	Pos desiredPos = addPositions(antPos, msg->pos);
+	
+	
+	if( world->clients[clientIndex].turnLeft == NO_TURN ){
+		// This should never happen (agreement with ant)
+		ans = createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
+	// If it has left turn or ghost turn...
+	// Check if move is valid
+	} else if(withinMapRange(world, desiredPos) && verifyPosition(msg->pos)){
 
 			double trace = world->cells[desiredPos.x][desiredPos.y].trace;
 
@@ -172,8 +176,11 @@ void getWorldPosition(Message * msg,World * world){
 			// Or has food
 			else if( world->cells[desiredPos.x][desiredPos.y].type == FOOD_CELL )
 					ans = createMessage(MAP_ID, msg->keyFrom, FOOD, OCCUPIED, msg->pos, trace);
-		}
+
+			// Wasted GET turn
+			world->clients[clientIndex].turnLeft = GHOST_TURN;
 	}
+	
 	sendMessage(CLIENT, ans);
 }
 
@@ -224,8 +231,11 @@ void setWorldPosition(Message * msg,World * world){
 
 	int clientIndex = getAntIndexByKey(world,msg->keyFrom);
 
-	// First, check if ant exists...
-	if( exists(msg->keyFrom, world) && world->clients[clientIndex].turnLeft == true ){
+	// If it has turn (no ghost turn)
+	if( world->clients[clientIndex].turnLeft != LEFT_TURN ){
+		// This should never happen (agreement with ant)
+		ans = createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
+	} else {
 		Cell * antCell = getAntCellByPID(world,msg->keyFrom );
 
 		Pos antPos = antCell->pos;
@@ -234,7 +244,7 @@ void setWorldPosition(Message * msg,World * world){
 		// If cell is empty and move is valid
 		if(withinMapRange(world,desiredPos) &&!isOccupied(&desiredPos, world) 
 		&& verifyPosition(msg->pos))
-			{
+		{
 			// If leaves or not trace 
 			if((int)msg->trace == 1 || (int) msg->trace == 0){
 			
@@ -281,8 +291,8 @@ void setWorldPosition(Message * msg,World * world){
 				// If trace 1 change it, if not, leave it unchanged
 				nextCell->trace =( (int) msg->trace == 1) ? msg->trace : nextCell->trace;
 				nextCell->typeID = msg->keyFrom;
-			
-				world->clients[clientIndex].turnLeft = false;
+
+				world->clients[clientIndex].turnLeft = NO_TURN;
 				ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OK, msg->pos, msg->trace);
 			}
 		}
@@ -296,40 +306,47 @@ void setFoodAtAnthill(Message * msg, World * world){
 	Message * ans;
 	ans = createMessage( MAP_ID, msg->keyFrom, FOOD, NOT_OK, msg->pos, msg->trace);
 
-	// If ant exists
-	if(exists(msg->keyFrom, world)){
 
-		// Cell actually occupied by ant
-		Cell * antCell = getAntCellByPID(world, msg->keyFrom );
+	int clientIndex = getAntIndexByKey(world,msg->keyFrom);
 
-		Pos desiredPos = addPositions(antCell->pos, msg->pos);
+	// Cell actually occupied by ant
+	Cell * antCell = getAntCellByPID(world, msg->keyFrom );
 
-		// If desired pos is anthill and ant is neighbor of anthill...
-		if( withinMapRange(world, desiredPos) && verifyPosition(msg->pos) 
-			&& desiredPos.x == world->anthill.pos.x && desiredPos.y == world->anthill.pos.y){
-			// Now check if ant has food to deliver
-			if( antCell->foodType == NO_FOOD )
-				ans = createMessage( MAP_ID, msg->keyFrom, FOOD, EMPTY, msg->pos, msg->trace);
-			else { // DELIVERANCE!
-				ans = createMessage( MAP_ID, msg->keyFrom, FOOD, OK, msg->pos, msg->trace);
+	Pos desiredPos = addPositions(antCell->pos, msg->pos);
 
-				// Now give food to anthill
-	//			Message * sendFood;
+	// If it has no turn...
+	if( world->clients[clientIndex].turnLeft != LEFT_TURN ){
+		// This should never happen (agreement with ant)
+		ans = createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
+	// If desired pos is anthill and ant is neighbor of anthill...
+	} else if( withinMapRange(world, desiredPos) && verifyPosition(msg->pos) 
+		&& desiredPos.x == world->anthill.pos.x && desiredPos.y == world->anthill.pos.y){
+		// Now check if ant has food to deliver
+		if( antCell->foodType == NO_FOOD )
+			ans = createMessage( MAP_ID, msg->keyFrom, FOOD, EMPTY, msg->pos, msg->trace);
+		else { // DELIVERANCE!
+			ans = createMessage( MAP_ID, msg->keyFrom, FOOD, OK, msg->pos, msg->trace);
+	
+			// Waste turn
+			world->clients[clientIndex].turnLeft = NO_TURN;
 
-				switch( antCell->foodType){
-					case BIG_FOOD:
-						//sendFood =  createMessage( getpid(), anthillPID, FOOD, SET, msg->pos, msg->trace);
-						break;
-					case SMALL_FOOD:
-						//sendFood =  createMessage( getpid(), anthillPID, FOOD, BIG, msg->pos, msg->trace);
-						break;
-					default: break;
-				}
+			// Now give food to anthill
+//			Message * sendFood;
+
+
+			switch( antCell->foodType){
+				case BIG_FOOD:
+					//sendFood =  createMessage( getpid(), anthillPID, FOOD, SET, msg->pos, msg->trace);
+					break;
+				case SMALL_FOOD:
+					//sendFood =  createMessage( getpid(), anthillPID, FOOD, BIG, msg->pos, msg->trace);
+					break;
+				default: break;
+			}
 //				sendMessage(ANTHILL, sendFood);
 
-				// And take food from ant
-				antCell->foodType = NO_FOOD;
-			}
+			// And take food from ant
+			antCell->foodType = NO_FOOD;
 		}
 	}
 
@@ -352,7 +369,7 @@ int getQtyActiveAnts(World * world){
 	int out = 0;
 	for(i=0;i<world->maxConnections;i++)
 		if(world->clients[i].key != INVALID_ID &&
-			world->clients[i].turnLeft == true)
+			world->clients[i].turnLeft > 0)
 			out++;
 	return out;	
 }
@@ -364,8 +381,9 @@ int nextTurn(World * world){
 	int active =  getQtyActiveAnts(world);
 	Message * turn;
 
+	printf("Active: %d\n", active);
 	if( active == 0 ){
-	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
+		printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
 		Pos tmp = {0,0};
 		// Here traces are decreased.
@@ -376,7 +394,7 @@ int nextTurn(World * world){
 
 		for(i=0;i<world->maxConnections;i++)
 			if(world->clients[i].key != INVALID_ID){
-				world->clients[i].turnLeft = true;
+				world->clients[i].turnLeft = LEFT_TURN;
 				turn = createMessage( MAP_ID, world->clients[i].key, TURN, SET, tmp, 0);
 				sendMessage(CLIENT, turn);
 			}
@@ -403,57 +421,45 @@ void getFoodFromWorld(Message * msg, World * world){
 	Message * ans;
 	ans = createMessage( MAP_ID, msg->keyFrom, FOOD, NOT_OK, msg->pos, msg->trace);
 
-	// If ant exists
-	if(exists(msg->keyFrom, world)){
-
-		// Cell actually occupied by ant
-		Cell * antCell = getAntCellByPID(world, msg->keyFrom );
-		Pos desiredPos = addPositions(antCell->pos, msg->pos);
+	int clientIndex = getAntIndexByKey(world,msg->keyFrom);
 
 
-		// If ant doesn't have food already and requested cell is adjacent
-		if(withinMapRange(world, desiredPos) && antCell->foodType == NO_FOOD && verifyPosition(msg->pos)){
-		
-			Cell * foodCell = &world->cells[desiredPos.x][desiredPos.y];
+	// Cell actually occupied by ant
+	Cell * antCell = getAntCellByPID(world, msg->keyFrom );
+	Pos desiredPos = addPositions(antCell->pos, msg->pos);
 
-			// If foodCell has food
-			if(foodCell->type == FOOD_CELL ){
+	// If it has no turn...
+	if( world->clients[clientIndex].turnLeft != LEFT_TURN ){
+		// This should never happen (agreement with ant)
+		ans = createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
 
-				//If it has small food
-				if(foodCell->foodType == SMALL_FOOD){
-					ans = createMessage( MAP_ID, msg->keyFrom, FOOD, OK, msg->pos, msg->trace);
+	// If ant doesn't have food already and requested cell is adjacent
+	} else if(withinMapRange(world, desiredPos) && antCell->foodType == NO_FOOD && verifyPosition(msg->pos)){
+	
+		Cell * foodCell = &world->cells[desiredPos.x][desiredPos.y];
 
-					// Take food from cell, give it to ant
-					foodCell->type = EMPTY_CELL;
-					foodCell->foodType = NO_FOOD; // Doesn't really matter if EMPTY_CELL active
-					antCell->foodType = SMALL_FOOD;
-					
-				} else // If it has big food, warn ant
-				if(foodCell->foodType == BIG_FOOD)
-					ans = createMessage(MAP_ID, msg->keyFrom, FOOD, BIG, msg->pos, msg->trace);
-			}
+		// If foodCell has food
+		if(foodCell->type == FOOD_CELL ){
+
+			//If it has small food
+			if(foodCell->foodType == SMALL_FOOD){
+				ans = createMessage( MAP_ID, msg->keyFrom, FOOD, OK, msg->pos, msg->trace);
+
+				// Take food from cell, give it to ant
+				foodCell->type = EMPTY_CELL;
+				foodCell->foodType = NO_FOOD; // Doesn't really matter if EMPTY_CELL active
+				antCell->foodType = SMALL_FOOD;
+				
+			} else // If it has big food, warn ant
+			if(foodCell->foodType == BIG_FOOD)
+				ans = createMessage(MAP_ID, msg->keyFrom, FOOD, BIG, msg->pos, msg->trace);
+
+			// Either take food or wait till someone helps
+			world->clients[clientIndex].turnLeft = NO_TURN;
 		}
 	}
+
 	sendMessage(CLIENT, ans);
-}
-
-void broadcastShout(Message * msg, World * world){
-	Message * ans;
-	int i;
-
-	// If the ant that shout exists
-	if(exists(msg->keyFrom, world)){
-
-		// For each ant, send a shout
-		for(i=0;i<world->maxConnections;i++)
-			if(world->clients[i].key != INVALID_ID && world->clients[i].key != msg->keyFrom){
-				ans = createMessage( MAP_ID,world->clients[i].key, SHOUT, SET, msg->pos, msg->trace);
-				sendMessage(CLIENT, ans);
-			}
-
-		ans = createMessage( MAP_ID,msg->keyFrom, SHOUT, OK, msg->pos, msg->trace);
-		sendMessage(CLIENT, ans);
-	}
 }
 
 // WASTE TURN
@@ -461,8 +467,8 @@ void setTurn(Message *msg, World * world){
 	Message * turn =  createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
 	
 	int clientIndex = getAntIndexByKey(world, msg->keyFrom);
-	if( exists(msg->keyFrom, world) && world->clients[clientIndex].turnLeft == true ) 
-		world->clients[clientIndex].turnLeft = false;
+	if( exists(msg->keyFrom, world) && world->clients[clientIndex].turnLeft > 0 ) 
+		world->clients[clientIndex].turnLeft = NO_TURN;
 
 	sendMessage(CLIENT, turn);
 }
@@ -471,18 +477,16 @@ void setTurn(Message *msg, World * world){
 /* Message parser */
 void parseMessage(Message * msg, World * world){
 
-	int clientIndex = getAntIndexByKey(world, msg->keyFrom);
-
-	if( (exists(msg->keyFrom, world) && world->clients[clientIndex].turnLeft == true )
-	 || !exists(msg->keyFrom, world)  ){
+	// If ant doesn't exist and wants to register
+	if(msg->opCode == REGISTER ){
+		if(msg->param == SET)
+			registerAnt(msg, world);
+		else if(msg->param == GET)
+			checkRegistered(msg, world);
+	// Or if ant exists and wants to do other stuff
+	} else if( exists(msg->keyFrom, world) ){
 		// Parse opCode
 		switch(msg->opCode){
-			case REGISTER:
-				if(msg->param == SET)
-					registerAnt(msg, world);
-				else if(msg->param == GET)
-					checkRegistered(msg, world);
-				break;
 			case MOVE:
 				if(msg->param == GET)
 					getWorldPosition(msg, world);
@@ -499,19 +503,9 @@ void parseMessage(Message * msg, World * world){
 				if(msg->param == SET)
 					setTurn(msg, world);
 				break;
-			case SHOUT:
-				if(msg->param == SET)
-				//	broadcastShout(msg,world);
-					break;
 			default: break;
 		}
-	} else {
-		Message * turn =  createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
-		sendMessage(CLIENT, turn);
-
 	}
-
-	//world->clients[clientIndex].turnLeft = false;
 }
 
 World * getWorld(char * filename){
@@ -563,6 +557,8 @@ World * getWorld(char * filename){
 	blankCell.type = EMPTY_CELL;
 	blankCell.typeID = INVALID_ID;
 
+
+
 	if ( (out->cells = malloc(out->sizeX * sizeof(Cell *))) == NULL)
 		errorLog("Memory allocation error in world loading.");
 
@@ -580,7 +576,7 @@ World * getWorld(char * filename){
 	for (i=0; i<smallFood; i++){
 		if (fscanf(fd, "%d,%d\n", &y, &x) == EOF)
 			errorLog("Failed to read world's small food positions.");
-		if (x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
+		if (x == anthillPos.x || y == anthillPos.y || x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
 			errorLog("I find your lack of faith in my parser disturbing.");
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = SMALL_FOOD;
@@ -596,11 +592,14 @@ World * getWorld(char * filename){
 	for (i=0; i<bigFood; i++){
 		if (fscanf(fd, "%d,%d\n", &y, &x) == EOF)
 			errorLog("Failed to read world's big food positions.");
-		if (x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
+		if (x == anthillPos.x || y == anthillPos.y ||x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
 			errorLog("May the parser be with you.");
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = BIG_FOOD;
 	}
+
+	out->cells[anthillPos.x][anthillPos.y].type = ANTHILL_CELL;
+
 
 	if ( fclose(fd) < 0 )
 		errorLog("Failed to close world's file descriptor.");
@@ -686,7 +685,6 @@ void createAnthill(int antCount){
                         // Get back to map
                         break;
         }
-
 }
 
 
@@ -696,15 +694,17 @@ void * mapMain(void * arg){
 	Message * sndMsg;
 	Message * rcvMsg;
 
-	createAnthill(5);
-
 	// MAP LOADER HERE
-	World * world;
-	//world = getWorld(SIZE_X, SIZE_Y, 10, MAX_TURNS);
-	world = getWorld("testmap");
+	World * world = (World *) arg;
+
+	openServer((void *)world->maxConnections);
+
+	createAnthill(world->maxConnections);
+
 	while(nextTurn(world)){
 		sndMsg = NULL;
 		rcvMsg = NULL;
+
 
 //		printf("Waiting to receive...\n\n");
 		rcvMsg = receiveMessage(CLIENT,MAP_ID);
@@ -713,7 +713,7 @@ void * mapMain(void * arg){
 		if(rcvMsg != NULL)
 			parseMessage(rcvMsg, world);
 
-	//	printWorldData(world);
+		//printWorld(world);
 	
 	}
 

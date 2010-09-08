@@ -49,18 +49,20 @@ int main(int argc, char * argv[]){
 
 	signal(SIGINT, sigHandler);
 
-	openServer((void *)5);
+
+	// MAP LOADER HERE
+	World * world;
+	world = getWorld("testmap");
 
 	pthread_t mapThread;
-	pthread_create(&mapThread, NULL, mapMain,NULL);
+	pthread_create(&mapThread, NULL, mapMain,(void *) world);
 
 	SDL_Surface * screen = initSDL(argc, argv);
-	startGame(screen);
+	startGame(screen, world->sizeX, world->sizeY);
 
 
 
 //	endWorld(world);
-
 
 	closeIPC();
 	destroyIPC();

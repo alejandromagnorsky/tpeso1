@@ -8,33 +8,22 @@ int commandsSize;
 
 int EOT = 0;
 
+void startGame(SDL_Surface * screen, int sizeX, int sizeY){
 
-
-void startGame(SDL_Surface * screen){
-
-	SDL_World * gameWorld = initGame(screen);
+	SDL_World * gameWorld = initGame(screen,sizeX, sizeY);
 
 	gameLoop(gameWorld, screen);
 
 	// exit Game ( destroy thread )
 }
 
-SDL_World * initGame(SDL_Surface * screen){
-	SDL_World * out = getSDLWorld(15, 15, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
+SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
+	SDL_World * out = getSDLWorld(sizeX, sizeY, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
 	addAsset(out->vector, "assets/planta.png", "PNG", "Planta", 1);
 	addAsset(out->vector, "assets/tesoro.png", "PNG", "Tesoro", 1);
 	addAsset(out->vector, "assets/fuente.png", "PNG", "Fuente", 1);
 	addAsset(out->vector, "assets/test_flare.png", "PNG", "Flare", 1);
-
-	int i;
-	for(i=0;i<5;i++){
-		addObject(out, "Planta", 2+i*2, 5, 0,!ANIMATED,!ORIENTED );	
-		addObject(out, "Planta", 2+i*2, 10, 0,!ANIMATED,!ORIENTED );
-	}	
-
-	addObject(out, "Tesoro", 10, 7, 0,!ANIMATED,!ORIENTED );
-	addObject(out, "Fuente", 10, 7, 0,!ANIMATED,!ORIENTED );
 
 	return out;
 }

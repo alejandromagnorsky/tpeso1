@@ -28,11 +28,11 @@ extern pthread_cond_t EOT_cond;
 
 
 
-void startGame(SDL_Surface * screen);
+void startGame(SDL_Surface * screen, int sizeX, int sizeY);
 
 void registerAnts(SDL_World * gameWorld);
 
-SDL_World * initGame(SDL_Surface * screen);
+SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY);
 
 void gameLoop(SDL_World * world, SDL_Surface * screen);
 
