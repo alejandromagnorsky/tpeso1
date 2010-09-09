@@ -277,7 +277,13 @@ void setWorldPosition(Message * msg,World * world){
 					comm.fromY = oldCell->pos.y;
 					comm.toX = msg->pos.x + oldCell->pos.x;
 					comm.toY = msg->pos.y + oldCell->pos.y;
-					comm.op = MoveAntCommand;	
+
+					// If it carries food, add another command
+					if(nextCell->foodType != NO_FOOD ){
+						comm.op = MoveFoodCommand;	
+						addCommand(comm);
+					}
+					comm.op = MoveAntCommand;
 				}
 
 				addCommand(comm);
@@ -648,15 +654,24 @@ void createAnthill(int antCount){
 
 void sendDataToFrontend(World * world){
 	Command comm;
-	comm.op = RegisterFoodCommand;
+
 	int x,y;
 
 	for(x=0;x<world->sizeX;x++)
 		for(y=0;y<world->sizeY;y++)
-			if(world->cells[x][y].type == FOOD_CELL && world->cells[x][y].foodType == SMALL_FOOD){
+			if(world->cells[x][y].type == FOOD_CELL ){
+				if( world->cells[x][y].foodType == SMALL_FOOD){
 				comm.fromX = x;
 				comm.fromY = y;
+				comm.op = RegisterFoodCommand;
 				addCommand(comm);
+				} else if(world->cells[x][y].foodType == BIG_FOOD ){
+				comm.fromX = x;
+				comm.fromY = y;
+				comm.op = RegisterBigFoodCommand;
+				addCommand(comm);
+
+				}
 			}
 
 	comm.op = RegisterAnthillCommand;
@@ -668,6 +683,8 @@ void sendDataToFrontend(World * world){
 
 
 void * mapMain(void * arg){
+
+	srand(time(NULL));
 
 	signal(SIGINT, sigHandler);
 	Message * sndMsg;
@@ -698,6 +715,8 @@ void * mapMain(void * arg){
 	//	printWorldData(world);
 	
 	}
+
+	printf("Termino el mapa!\n");
 
 	pthread_exit(NULL);
 }

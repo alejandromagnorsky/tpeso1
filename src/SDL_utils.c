@@ -43,6 +43,21 @@ void blitSurface(  SDL_Surface * dst, SDL_Surface *src, int x, int y)
 	blitSurfaceEndlessBorder(dst, src, x, y, 0);
 }
 
+void blitSurfaceCentered(SDL_Surface * dst, SDL_Surface *src, int x, int y){
+
+	if( dst == NULL)
+		return;
+
+	 SDL_Rect rect;
+
+      rect.x = x - src->w /2;
+      rect.y = y - src->h /2;
+      rect.w = src->w;
+      rect.h = src->h;
+	 
+	  SDL_BlitSurface( src, NULL, dst, &rect);   
+}
+
 
 /* Function blitSurface.
    It blits a surface 
@@ -65,10 +80,10 @@ void blitSurfaceEndlessBorder(  SDL_Surface * dst, SDL_Surface *src, int x, int 
            
            /* Initialize aux and rect */
            for(i=0;i<4;i++){
-           aux[i].x = x;
-           aux[i].y = y;
-           aux[i].w = src->w;
-           aux[i].h = src->h;
+		      aux[i].x = x;
+		      aux[i].y = y;
+		      aux[i].w = src->w;
+		      aux[i].h = src->h;
            }
          
            rect.x = x;
@@ -119,6 +134,11 @@ void blitAnim( SDL_Surface * dst, SDL_Surface * src, int spriteW, int spriteH, i
 	spriteRect.h = spriteH;
 	spriteRect.y = (frameY-1) * spriteH;
 	spriteRect.x = (frameX-1) * spriteW;
+
+	if(src->w < spriteRect.x + spriteW || src->h < spriteRect.y + spriteH ){
+		printf("Bad sprite: frameY:%d frameX:%d\n", frameY, frameX);
+		return;
+	}
 
 	SDL_Rect rect;
 

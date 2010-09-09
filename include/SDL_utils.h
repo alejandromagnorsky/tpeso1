@@ -9,6 +9,8 @@ void blitSurfaceZoom(  SDL_Surface * dst, SDL_Surface *src, int x, int y, double
 
 void blitSurface(  SDL_Surface * dst, SDL_Surface *src, int x, int y);
 
+void blitSurfaceCentered(SDL_Surface * dst, SDL_Surface *src, int x, int y);
+
 void blitSurfaceEndlessBorder(  SDL_Surface * dst, SDL_Surface *src, int x, int y, int circularBorder);
 
 /* Blit animated surface */

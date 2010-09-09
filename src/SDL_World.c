@@ -32,8 +32,9 @@ SDL_World * getSDLWorld(int sizeX, int sizeY, char * filename, char * ext, Uint3
 	empty.frame = 0;
 	empty.offsetX = 0;
 	empty.offsetY = 0;
-	empty.animated = 0;
-	empty.oriented = 0;
+	empty.animated = !ANIMATED;
+	empty.oriented = !ORIENTED;
+	empty.orientation = SPRITE_UP;
 
 	for(i=0;i<LAYERS;i++)
 		for(j=0;j<sizeX;j++)
@@ -114,10 +115,12 @@ void renderSDLWorld(SDL_World * world, SDL_Surface * screen){
 
 					int blitRect = world->gridSize * world->zoomFactor;
 
+					int centered = blitRect /2 ;
+
 					if(grid.animated)
-						blitAnim( screen, world->vector->assets[index].image, blitRect, blitRect,1, grid.frame, x, y);
-					else
-						blitSurface(screen, world->vector->assets[index].image, x, y);	
+						blitAnim( screen, world->vector->assets[index].image, blitRect, blitRect, grid.orientation, grid.frame, x, y);
+					else	// blit it centered 
+						blitSurfaceCentered(screen, world->vector->assets[index].image, x + centered, y + centered);	
 				}
 			}
 }
@@ -138,6 +141,7 @@ void addObject(SDL_World * world, char * id, int x, int y, int layer, int animat
 		world->grid[layer][x][y].animated = animated;
 		world->grid[layer][x][y].frame = 1;
 		world->grid[layer][x][y].oriented = oriented;
+		world->grid[layer][x][y].orientation = SPRITE_UP; // Up is default
 		world->grid[layer][x][y].offsetX = 0;
 		world->grid[layer][x][y].offsetY = 0;
 	}
@@ -178,6 +182,7 @@ int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int la
 
 			// Guess frames
 			int frames;
+			int orientation;
 			if(oldGrid->animated){
 				if(oldGrid->oriented)	// If oriented, h is 4 times larger, for orientation sprites 
 					frames = world->vector->assets[index].image->w / (world->vector->assets[index].image->h/4);
@@ -189,10 +194,16 @@ int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int la
 			if(abs(dX) == 1){
 				dG = &dX;	
 				offset = &(oldGrid->offsetX);
+				orientation = dX > 0 ? SPRITE_LEFT : SPRITE_RIGHT;
+
 			} else if( abs(dY) == 1){
 				dG = &dY;
 				offset = &(oldGrid->offsetY);
+				orientation = dY > 0 ? SPRITE_UP : SPRITE_DOWN;
 			}
+
+			if(oldGrid->oriented)
+				oldGrid->orientation = orientation;
 
 			// Move until got to next grid
 			if( (*offset) <= abs(*dG) && oldGrid->frame <= frames){
@@ -208,16 +219,19 @@ int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int la
 				nextGrid->frame = 1;
 				nextGrid->animated = oldGrid->animated;
 				nextGrid->oriented = oldGrid->oriented;
+				nextGrid->orientation = oldGrid->orientation;
 
 				oldGrid->id = -1;
 				(*offset) = 0;
 				oldGrid->frame = 1;
 				oldGrid->animated = !ANIMATED;
 				oldGrid->oriented = !ORIENTED;
+				oldGrid->orientation = SPRITE_UP; // Up is default
 
 				return 1; // finished moving
 			}
 		}
 	}
+
 	return 0;	// still moving
 }

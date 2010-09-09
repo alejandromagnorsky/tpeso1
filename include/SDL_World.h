@@ -8,15 +8,13 @@
 #define ORIENTED 1
 #define ALPHA 1
 
-#define SPRITE_UP 1
-#define SPRITE_DOWN 2
-#define SPRITE_LEFT 3
-#define SPRITE_RIGHT 4
+typedef enum { SPRITE_NULL, SPRITE_DOWN, SPRITE_UP, SPRITE_RIGHT, SPRITE_LEFT } Orientation; // Sprite, not Seven Up! ;)
 
 typedef struct{
 	int id;
 	int animated;
 	int oriented;
+	Orientation orientation;
 	int frame;
 	double offsetX, offsetY;	// offset for moving between grids
 } GridObject;
