@@ -555,7 +555,7 @@ World * mondoGenerator(){
 	out->maxConnections = (rand() % MAX_CLIENTS) + 1;
 	out->anthill.maxPopulation = out->maxConnections;;
 	out->turnsLeft = MAX_TURNS;
-	smallFood = (rand() % (out->sizeX * out->sizeY * (1/4) - 1)) + 1;
+	smallFood = (rand() % (out->sizeX - 1)) + 1;
 	bigFood = 0;
 
 	/* Clients initialization */
