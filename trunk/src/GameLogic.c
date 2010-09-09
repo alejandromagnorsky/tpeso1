@@ -2,6 +2,12 @@
 
 #define COMMAND_SIZE_THRESHOLD 20
 
+/*
+	Disclaimer: Es un desastre la logica del frontend, como no era el principal
+	problema, se le presto menos atencion (y menos tiempo de desarrollo/diseño)
+	Asi que sepan entender :P
+*/
+
 pthread_mutex_t EOT_mutex =  PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t EOT_cond = PTHREAD_COND_INITIALIZER;
 
@@ -27,9 +33,12 @@ void startGame(SDL_Surface * screen, int sizeX, int sizeY){
 SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
 	SDL_World * out = getSDLWorld(sizeX, sizeY, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
-	addAsset(out->vector, "assets/tesoro.png", "PNG", "Anthill", ALPHA);
-	addAsset(out->vector, "assets/test_flare.png", "PNG", "Flare", ALPHA);
-	addAsset(out->vector, "assets/pescao.png", "PNG", "SmallFood", ALPHA);
+	addAsset(out->vector, "assets/anthill.png", "PNG", "Anthill", ALPHA);
+	addAsset(out->vector, "assets/ant.png", "PNG", "Ant", ALPHA);
+	addAsset(out->vector, "assets/smallFood1.png", "PNG", "SmallFood1", ALPHA);
+	addAsset(out->vector, "assets/smallFood2.png", "PNG", "SmallFood2", ALPHA);
+	addAsset(out->vector, "assets/bigFood2.png", "PNG", "BigFood2", ALPHA);
+	addAsset(out->vector, "assets/bigFood1.png", "PNG", "BigFood1", ALPHA);
 	addAsset(out->vector, "assets/draco.png", "PNG", "BigFood", ALPHA);
 
 	return out;
@@ -69,10 +78,11 @@ int executeMoveCommands(SDL_World * gameWorld){
 	int i;
 	int finished = 1;
 	int finishedTotal = 1;
+	int layer = ANT_LAYER;
 	for(i=0;i<commandsSize;i++){
 		if(commands[i].valid == 1 && ( commands[i].op == MoveAntCommand || commands[i].op == MoveFoodCommand )  ){
-				finished = moveObject(gameWorld, commands[i].fromX, commands[i].fromY,commands[i].toX, commands[i].toY, ANT_LAYER);
-				finished = finished && moveObject(gameWorld, commands[i].fromX, commands[i].fromY,commands[i].toX, commands[i].toY, FOOD_LAYER);
+				layer = commands[i].op == MoveAntCommand ? ANT_LAYER : FOOD_LAYER;
+				finished = moveObject(gameWorld, commands[i].fromX, commands[i].fromY,commands[i].toX, commands[i].toY, layer);
 				if(finished)
 					commands[i].valid = 0;
 				finishedTotal = finishedTotal && finished;
@@ -95,7 +105,26 @@ void executeRegisterFood(SDL_World * gameWorld){
 	int i;
 	for(i=0;i<commandsSize;i++)
 		if(commands[i].valid == 1 && commands[i].op == RegisterFoodCommand ){
-			addObject(gameWorld, "SmallFood",commands[i].fromX, commands[i].fromY, FOOD_LAYER, !ANIMATED,!ORIENTED);
+
+			char * name = malloc(sizeof(char)*10);
+			sprintf(name, "SmallFood%d", rand()%2 + 1 );
+
+			addObject(gameWorld, name,commands[i].fromX, commands[i].fromY, FOOD_LAYER, !ANIMATED,!ORIENTED);
+			commands[i].valid = 0;
+		}
+}
+
+
+// Basically execute Food commands.
+void executeRegisterBigFood(SDL_World * gameWorld){
+	int i;
+	for(i=0;i<commandsSize;i++)
+		if(commands[i].valid == 1 && commands[i].op == RegisterBigFoodCommand ){
+
+			char * name = malloc(sizeof(char)*10);
+			sprintf(name, "BigFood%d", rand()%2 + 1 );
+
+			addObject(gameWorld, name,commands[i].fromX, commands[i].fromY, FOOD_LAYER, !ANIMATED,!ORIENTED);
 			commands[i].valid = 0;
 		}
 }
@@ -118,7 +147,7 @@ void executeRegisterCommands(SDL_World * gameWorld){
 	int i;
 	for(i=0;i<commandsSize;i++)
 		if(commands[i].valid == 1 && commands[i].op == RegisterCommand ){
-			addObject(gameWorld, "Flare",commands[i].fromX, commands[i].fromY, ANT_LAYER, ANIMATED,!ORIENTED);
+			addObject(gameWorld, "Ant",commands[i].fromX, commands[i].fromY, ANT_LAYER, ANIMATED,ORIENTED);
 			commands[i].valid = 0;
 		}
 
@@ -158,6 +187,7 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 				executeRegisterCommands(gameWorld);
 				executeRegisterAnthill(gameWorld);
 				executeRegisterFood(gameWorld);
+				executeRegisterBigFood(gameWorld);
 				EOT = 0;
 				// Signal map that frontend finished executing.
 				pthread_cond_signal(&EOT_cond);

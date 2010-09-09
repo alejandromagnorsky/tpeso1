@@ -98,7 +98,7 @@ goAnthill(Ant * ant){
 	Pos currentPos = getCurrentPos(ant->key);
 	Cardinal card = getCardinal(currentPos, anthill) % 4;	// If NW then go to N, NE go to E, SE go to S and SW go to W
 	Pos mov, to;
-	printf("LLENDO AL HORMIGUERO\n"); // SE DICE YENDO!!!!!
+	//printf("LLENDO AL HORMIGUERO\n"); // SE DICE YENDO!!!!!
 	mov.x = vecMov[card][0]; 
 	mov.y = vecMov[card][1];
 	
@@ -309,14 +309,14 @@ setFood(Ant * ant, Pos to){
 	mov.x = vecMov[card][0];
 	mov.y = vecMov[card][1];
 	
-	printf("I want to leave food on anthill in (%d,%d) \n", mov.x, mov.y);
+//	printf("I want to leave food on anthill in (%d,%d) \n", mov.x, mov.y);
 	send = createMessage(ant->key, MAP_ID, FOOD, SET, mov, 0);
-	printMessage(send);
+//	printMessage(send);
 	sendMessage(SERVER, send);
 
 	received = receiveMessage(SERVER, ant->key);
-	printf("Message received.\n");
-	printMessage(received);
+//	printf("Message received.\n");
+//	printMessage(received);
 	if(received->opCode == FOOD && received->param == OK ){
 		printf("I left food at anthill!\n");
 		ant->food = NO_FOOD;

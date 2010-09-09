@@ -96,7 +96,7 @@ typedef enum {  SERVER, CLIENT } NodeType;
 
 typedef enum { false, true } bool;
 
-#define MAX_TURNS 10000
+#define MAX_TURNS 1000
 
 #define MAP_ID -1
 
