@@ -15,7 +15,7 @@
 
 #define SRV_FIFO "/tmp/server"
 #define CLT_FIFO "/tmp/client_"
-#define CLT_KEY_BASE 3	// Map key: 1. Anthill key: 2.
+#define CLT_KEY_BASE 3	// Map key: 1. Anthill key: 2. Clients keys are > 2
 
 int clientQuant = 0;
 
@@ -38,11 +38,32 @@ void sigHandler(){
 // Close IPC resource
 void closeIPC(){
 	if ( close(serverRD) == -1 )
-		errorLog("Server's FIFO could not be closed.\n");
+		errorLog("Server's FIFO could not be closed.");
 	int i;
 	for (i=0; i<clientQuant; i++)
 		if ( close(clientsWR[i]) == -1 )
-			errorLog("A client's FIFO could not be closed.\n");
+			errorLog("A client's FIFO could not be closed.");
+}
+
+// Eliminar closeIPC cuando esté la interfaz hecha para closeServer y closeCLient. Ahora adelanto esto.
+void closeServer(){
+	int i;
+	if ( close(serverRD) == -1 )
+		errorLog("Server's RDONLY FIFO could not be closed.");
+
+	for (i=CLT_KEY_BASE-1; i<clientQuant; i++)
+		if ( close(clientsWR[i]) == -1 )
+			errorLog("Clients' WRONLY FIFOs could not be closed.");
+}
+
+void closeClient(){
+	int i;
+	if ( close(serverWR) == -1 )
+		errorLog("Server's WRONLY FIFO could not be closed.");
+
+	for (i=CLT_KEY_BASE-1; i<clientQuant; i++)
+		if ( close(clientsRD[i]) == -1 )
+			errorLog("Clients' RDONLY FIFOs could not be closed.");
 }
 
 // Destroy IPC resources
@@ -79,11 +100,7 @@ void createFifos(int clients){
         }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
-///////////    FUNCIONES TEMPORALES ANTES DE PROBAR MUTEX ////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-// Funcion temporal 
-void  * openServerFifos(void * t){
+void * openServerFifos(void * t){
 	int i;
 	int len = strlen(CLT_FIFO) + digits(clientQuant-1);
 	char * fifoname;
@@ -92,20 +109,19 @@ void  * openServerFifos(void * t){
 	if ( (fifoname = malloc(len)) == NULL )
                 errorLog("Memory allocation error in server' FIFO opening.");
 
-	// I'm SERVER and I open my FIFO for reading purposes only. 
+	/* I'm SERVER and I open my FIFO for reading purposes only. */
         if ( (serverRD = open(SRV_FIFO, O_RDONLY)) == -1 )
                 errorLog("SERVER: Server's FIFO could not be opened.");
 
         for (i=CLT_KEY_BASE-1; i<clientQuant; i++){
                 sprintf(fifoname, "%s%d", CLT_FIFO, i);
-		// I'm SERVER and I open CLIENTs' FIFOS for writing purposes only. 
+		/* I'm SERVER and I open CLIENTs' FIFOS for writing purposes only. */
 		if ( (clientsWR[i] = open(fifoname, O_WRONLY)) == -1 )
-			errorLog("SERVER: Clients' FIFO could not be opened.\n");
+			errorLog("SERVER: Clients' FIFO could not be opened.");
         }
 	pthread_exit(NULL);
 }
 
-// Funcion temporal 
 void openServer(void * t){
 	clientQuant = (int) t + CLT_KEY_BASE;
 
@@ -114,40 +130,6 @@ void openServer(void * t){
 	pthread_t serverFifoThread;
 	pthread_create(&serverFifoThread, NULL, openServerFifos, NULL);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-/* // NO BORRAR ESTA FUNCION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-void openServer(void * t){
-	printf("Empezó openServer\n");
-	int i;
-	clientQuant = (int) t + CLT_KEY_BASE;
-	int len = strlen(CLT_FIFO) + digits(clientQuant-1);
-	char * fifoname;
-	clientsWR = malloc(clientQuant * sizeof(int));
- 	
-	createFifos(clientQuant);
-
-	if ( (fifoname = malloc(len)) == NULL )
-                errorLog("Memory allocation error in server' FIFO opening.");
-
-	printf("\t Empezó el serverRd = open(). clientQuant -> %d. SRV_FIFO: %s. serverRD: %d\n", clientQuant, SRV_FIFO, serverRD);
-//	// I'm SERVER and I open my FIFO for reading purposes only. 
-        if ( (serverRD = open(SRV_FIFO, O_RDONLY)) == -1 )
-                errorLog("SERVER: Server's FIFO could not be opened.");
-	printf("\t Terminó el serverRd = open(). clientQuant -> %d. SRV_FIFO: %s\n", clientQuant, SRV_FIFO);
-
-        for (i=CLT_KEY_BASE-1; i<clientQuant; i++){
-                sprintf(fifoname, "%s%d", CLT_FIFO, i);
-//		// I'm SERVER and I open CLIENTs' FIFOS for writing purposes only. 
-//              if ( (clientsWR[i] = open(fifoname, O_WRONLY)) == -1 )
-//			errorLog("SERVER: Clients' FIFO could not be opened.");
-        }
-	printf("Terminó openServer\n");
-}*/
 
 void openClient(void * t){
 	int i;
@@ -182,9 +164,7 @@ Message * receiveMessage(NodeType from, int key){
 	else
 		fd = clientsRD[key];	// I'm CLIENT and have to read from my FIFO.
 	
-//	printf("I'M %s READING...\n", (from==CLIENT)?"SERVER":"CLIENT" );
 	read(fd, out, sizeof(Message));
-//	printf("I'M %s . I FINISH READING\n", (from==CLIENT)?"SERVER":"CLIENT" );
 	return out;
 }
 
@@ -195,8 +175,6 @@ int sendMessage(NodeType to, Message * msg){
 	else 
 		fd = clientsWR[msg->keyTo];	// I'm SERVER and have to write in CLIENT's FIFO.
 
-//	printf("I'M %s WRITING...\n", (to==SERVER)?"CLIENT":"SERVER" );
 	write(fd, msg, sizeof(Message));
-//	printf("I'M %s. I FINISHED WRITING\n", (to==SERVER)?"CLIENT":"SERVER" );
 	return 0;
 }
