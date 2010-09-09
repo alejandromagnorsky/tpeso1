@@ -589,7 +589,7 @@ World * getWorld(char * filename){
 	/* Validate and set small food cells */
 	for (i=0; i<smallFood; i++){
 		if (fscanf(fd, "%d,%d\n", &y, &x) == EOF)
-			errorLog("Failed to read world's small food positions."); /////////////////////////////////////////////////
+			errorLog("Failed to read world's small food positions.");
 		if (out->cells[x][y].type == ANTHILL_CELL || x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
 			errorLog("I find your lack of faith in my parser disturbing.");
 		out->cells[x][y].type = FOOD_CELL;
@@ -597,15 +597,15 @@ World * getWorld(char * filename){
 	}
 
 	/* Read world's big food quantity, then validate it*/
-	if (fscanf(fd, "%d\n", &bigFood) == EOF)
+	if (fscanf(fd, "%d", &bigFood) == EOF)
 		errorLog("Failed to read world's big food quantity.");
 	if (bigFood < 0)
 		errorLog("Use the Parser, Luke.");
 
 	/* Validate and set big food cells */
 	for (i=0; i<bigFood; i++){
-		if (fscanf(fd, "%d,%d\n", &y, &x) == EOF)
-			errorLog("Failed to read world's big food positions."); /////////////////////////////////////////////////
+		if (fscanf(fd, "\n%d,%d", &y, &x) == EOF)
+			errorLog("Failed to read world's big food positions.");
 		if (out->cells[x][y].type == ANTHILL_CELL || x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
 			errorLog("May the parser be with you.");
 		out->cells[x][y].type = FOOD_CELL;
