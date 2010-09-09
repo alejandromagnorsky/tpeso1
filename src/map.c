@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -533,6 +534,84 @@ void parseError(const char * s){
 	exit(1);	
 }
 
+#define MAX_DIM 50	///////////////////////////////////////// CONSTANTE TEMPORAL; DESPUES BORRAR
+#define MAX_CLIENTS (int)(MAX_DIM/8)	///////////////////////////////////////// CONSTANTE TEMPORAL; DESPUES BORRAR
+/////////////////// bBUENO EN REALIDAD ESTA FUNCION ES TEMPORAL SUPONGO
+World * mondoGenerator(){
+	Pos	anthillPos;
+	int	i, j, x, y, smallFood, bigFood;
+	World *	out;
+
+	if ((out = malloc(sizeof(World))) == NULL)
+		errorLog("Memory allocation error in world generation.");
+
+	srand((unsigned) time(NULL));
+
+	out->sizeX = (rand() % MAX_DIM) + 1;
+	out->sizeY = (rand() % MAX_DIM) + 1;
+	anthillPos.x = rand() % out->sizeX;
+	anthillPos.y = rand() % out->sizeY;
+	out->anthill.pos = anthillPos;
+	out->maxConnections = (rand() % MAX_CLIENTS) + 1;
+	out->anthill.maxPopulation = out->maxConnections;;
+	out->turnsLeft = MAX_TURNS;
+	smallFood = (rand() % (out->sizeX * out->sizeY * (1/4) - 1)) + 1;
+	bigFood = 0;
+
+	/* Clients initialization */
+	out->anthill.ants = malloc(out->maxConnections * sizeof(int));
+	out->clients = malloc(out->maxConnections * sizeof(Client));
+	for(i=0;i<out->maxConnections;i++){
+		out->anthill.ants[i] = INVALID_ID;
+		out->clients[i].key = INVALID_ID;
+		out->clients[i].turnLeft = false;
+	}
+
+	/* Blank cell initialization */
+	Cell blankCell;
+	blankCell.trace = 0;
+	blankCell.foodType = NO_FOOD;
+	blankCell.type = EMPTY_CELL;
+	blankCell.typeID = INVALID_ID;
+
+	if ( (out->cells = malloc(out->sizeX * sizeof(Cell *))) == NULL)
+		errorLog("Memory allocation error in world loading.");
+
+	for(i=0;i<out->sizeX;i++){
+		if ( (out->cells[i] = malloc(out->sizeY * sizeof(Cell))) == NULL)
+			errorLog("Memory allocation error in world loading.");
+		for(j=0;j<out->sizeY;j++){
+			out->cells[i][j] = blankCell;
+			Pos pos = {i,j};
+			out->cells[i][j].pos = pos;
+		}
+	}
+
+	out->cells[anthillPos.x][anthillPos.y].type = ANTHILL_CELL;
+
+	/* Validate and set small food cells */
+	for (i=0; i<smallFood; i++){
+		do {
+			x = rand() % out->sizeX;
+			y = rand() % out->sizeY;
+		} while (out->cells[x][y].type == ANTHILL_CELL);
+		out->cells[x][y].type = FOOD_CELL;
+		out->cells[x][y].foodType = SMALL_FOOD;
+	}
+
+	/* Validate and set big food cells */
+	for (i=0; i<bigFood; i++){
+		do {
+			x = rand() % out->sizeX;
+			y = rand() % out->sizeY;
+		} while (out->cells[x][y].type == ANTHILL_CELL);
+		out->cells[x][y].type = FOOD_CELL;
+		out->cells[x][y].foodType = BIG_FOOD;
+	}
+
+	return out;	
+}
+
 World * getWorld(char * filename){
 	FILE *	fd;
 	Pos	anthillPos;
@@ -564,13 +643,11 @@ World * getWorld(char * filename){
 	out->anthill.maxPopulation = out->maxConnections;
 	out->turnsLeft = MAX_TURNS;
 
-	/* Ants initialization */
+	/* Clients initialization */
 	out->anthill.ants = malloc(out->maxConnections * sizeof(int));
-	for(i=0;i<out->maxConnections;i++)
-		out->anthill.ants[i] = INVALID_ID;
-
 	out->clients = malloc(out->maxConnections * sizeof(Client));
 	for(i=0;i<out->maxConnections;i++){
+		out->anthill.ants[i] = INVALID_ID;
 		out->clients[i].key = INVALID_ID;
 		out->clients[i].turnLeft = false;
 	}

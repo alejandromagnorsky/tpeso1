@@ -65,7 +65,8 @@ int main(int argc, char * argv[]){
 
 	// MAP LOADER HERE
 	World * world;
-	world = getWorld("testmap");
+	world = mondoGenerator();	
+	//world = getWorld("testmap");
 	pthread_t mapThread;
 	pthread_create(&mapThread, NULL, mapMain,(void *) world);
 
