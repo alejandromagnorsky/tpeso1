@@ -56,7 +56,7 @@ typedef struct World{
 void * mapMain(void * arg);
 
 World * getWorld(char * filename);
-//World * getWorld( int sizeX, int sizeY, int maxConnections, int turnsLeft);
+World * mondoGenerator();
 
 int antExistsInAnthill(World * world, int pid);
 
