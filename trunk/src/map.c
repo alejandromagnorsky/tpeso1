@@ -522,6 +522,11 @@ void parseMessage(Message * msg, World * world){
 	}
 }
 
+void parseError(const char * s){
+	fprintf(stderr, "%s : World's file has invalid values.\n", s);
+	exit(1);	
+}
+
 World * getWorld(char * filename){
 	FILE *	fd;
 	Pos	anthillPos;
@@ -539,15 +544,15 @@ World * getWorld(char * filename){
 	
 	/* Validates world dimensions */
 	if (out->sizeX < 0 || out->sizeY < 0)
-		errorLog("Feel the power of my parser.");
+		parseError("Feel the power of my parser.");
 
 	/* Validates anthill coordinates */
 	if (anthillPos.x < 0 || anthillPos.x >= out->sizeX || anthillPos.y < 0 || anthillPos.y >= out->sizeY)
-		errorLog("Luke, I am your parser.");
+		parseError("Luke, I am your parser.");
 
 	/* Validates small food quantity and max connections value */
 	if (smallFood < 0 || out->maxConnections < 0)
-		errorLog("I've been waiting for you Obi-Wan. We meet again, at last. The circle is now complete.\nWhen I left you, I was but the learner; now I am the parser.");
+		parseError("I've been waiting for you Obi-Wan. We meet again, at last. The circle is now complete.\nWhen I left you, I was but the learner; now I am the parser.");
 
 	out->anthill.pos = anthillPos;
 	out->anthill.maxPopulation = out->maxConnections;
@@ -591,7 +596,7 @@ World * getWorld(char * filename){
 		if (fscanf(fd, "%d,%d\n", &y, &x) == EOF)
 			errorLog("Failed to read world's small food positions.");
 		if (out->cells[x][y].type == ANTHILL_CELL || x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
-			errorLog("I find your lack of faith in my parser disturbing.");
+			parseError("I find your lack of faith in my parser disturbing.");
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = SMALL_FOOD;
 	}
@@ -600,14 +605,14 @@ World * getWorld(char * filename){
 	if (fscanf(fd, "%d", &bigFood) == EOF)
 		errorLog("Failed to read world's big food quantity.");
 	if (bigFood < 0)
-		errorLog("Use the Parser, Luke.");
+		parseError("Use the Parser, Luke.");
 
 	/* Validate and set big food cells */
 	for (i=0; i<bigFood; i++){
 		if (fscanf(fd, "\n%d,%d", &y, &x) == EOF)
 			errorLog("Failed to read world's big food positions.");
 		if (out->cells[x][y].type == ANTHILL_CELL || x < 0 || x >= out->sizeX || y < 0 || y >= out->sizeY)
-			errorLog("May the parser be with you.");
+			parseError("May the parser be with you.");
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = BIG_FOOD;
 	}

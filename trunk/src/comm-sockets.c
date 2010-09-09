@@ -21,7 +21,7 @@
 #define SERVER_IP LOCALHOST
 #define SERVER_PORT 9000
 #define INVALID_SOCKET -1
-#define CLT_KEY_BASE 3	// Map key: 1. Anthill key: 2.
+#define CLT_KEY_BASE 3	// Map key: 1. Anthill key: 2. Clients keys are > 2
 
 int clientCount = 0;
 
@@ -34,11 +34,8 @@ int * acceptedClients;
 struct sockaddr_in serverSide;
 struct sockaddr_in clientSide;
 
+// poll() structure
 struct pollfd * toRead;
-
-int digits(int n){
-	return ((n/10)==0) ? 1 : 1 + digits(n/10);
-}
 
 void sigHandler(){
 	destroyIPC();
@@ -64,8 +61,6 @@ void * acceptClients(void * t){
 	pthread_exit(NULL);
 }
 
-
-// Open & initialize IPC resource
 void openServer(void *t){
 	int i, optionValue = 1;
 	clientCount = (int) t + CLT_KEY_BASE;
@@ -78,23 +73,24 @@ void openServer(void *t){
 
 	/* Create server socket descriptor */
 	if ((serverSd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        	errorLog("Failed to create server socket descriptor");
+        	errorLog("Failed to create server socket descriptor.");
 
 	/* Allows reusing IP addresses */
 	if (setsockopt(serverSd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optionValue , sizeof(int)) < 0)
-        	errorLog("Failed to reuse address");
+        	errorLog("Failed to reuse address.");
 
 	/* Bind server to the local address */
 	if (bind(serverSd, (struct sockaddr *) &serverSide, sizeof(serverSide)) < 0)
-        	errorLog("Failed to bind server");
+        	errorLog("Failed to bind server.");
 
 	/* Mark server socket so it will listen for incoming connections */
 	if (listen(serverSd, clientCount) < 0)
-		errorLog("Failed to listen to socket");
+		errorLog("Failed to listen to socket.");
 
-	toRead = malloc(clientCount * sizeof(struct pollfd));
 	acceptedClients = malloc(clientCount * sizeof(int));
 
+	/* Initializes poll() struct */	
+	toRead = malloc(clientCount * sizeof(struct pollfd));
 	for (i=CLT_KEY_BASE-1; i<clientCount; i++)
 		toRead[i].fd = INVALID_SOCKET;
 
@@ -127,10 +123,26 @@ void openClient(void *t){
 // Close IPC resource
 void closeIPC(){
 	if ( close(serverSd) == -1 )
-		errorLog("Server's socket descriptor could not be closed.\n");
+		errorLog("Server's socket descriptor could not be closed.");
 }
 
+// Eliminar closeIPC cuando esté la interfaz hecha para closeServer y closeCLient. Ahora adelanto esto.
+void closeServer(){
+	int i;
+	if ( close(serverSd) == -1 )
+		errorLog("Failed to close server socket descriptor.");
 
+	for (i=CLT_KEY_BASE-1; i<clientCount; i++)
+		if (close(acceptedClients[i]) == -1)
+			errorLog("Failed to close accepted client socket descriptor.");
+}
+
+void closeClient(){
+	int i;
+	for (i=CLT_KEY_BASE-1; i<clientCount; i++)
+		if (close(clientSds[i]) == -1)
+			errorLog("Failed to close client socket descriptor.");
+}
 
 Message * receiveMessage(NodeType from, int key){
 	Message * out = malloc(sizeof (Message));
