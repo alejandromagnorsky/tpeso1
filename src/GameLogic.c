@@ -39,7 +39,6 @@ SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
 	addAsset(out->vector, "assets/smallFood2.png", "PNG", "SmallFood2", ALPHA);
 	addAsset(out->vector, "assets/bigFood2.png", "PNG", "BigFood2", ALPHA);
 	addAsset(out->vector, "assets/bigFood1.png", "PNG", "BigFood1", ALPHA);
-	addAsset(out->vector, "assets/draco.png", "PNG", "BigFood", ALPHA);
 
 	return out;
 }
