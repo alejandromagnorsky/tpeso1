@@ -25,7 +25,7 @@
 #define TRACE_LAYER 1
 #define BG_LAYER 0
 
-#define MAX_SOUNDS 1
+#define MAX_SOUNDS 3
 
 typedef enum { MoveFoodCommand, MoveAntCommand, RegisterAnthillCommand, \
 	RegisterCommand, RegisterFoodCommand, RegisterBigFoodCommand, DeleteFoodCommand, SetTraceCommand, DeleteTraceCommand } CommandOp;
