@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+Scream * screams;
+
 int main(int argc, char * argv[]){
 
 	int ants, key,i;
@@ -14,6 +16,10 @@ int main(int argc, char * argv[]){
 //	printf("Anthill Key: %d Ants: %d\n", key, ants);
 
 	openClient((void*)ants);
+
+	screams = malloc(ants*sizeof(Scream));
+	for(i = 0; i < ants; i++)
+		screams[i].intensity = -1;
 
 	// Create ants, with antKey > anthillKey
 	pthread_t * antThreads = malloc(sizeof(pthread_t)*ants);

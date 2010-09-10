@@ -2,6 +2,8 @@
 #include "../include/common.h"
 
 int vecMov[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // Represents: up, right, down and left
+int futureScreams = 0;
+int currentScreams = 0;
 
 //---------------------------------------------
 //FALTA:
@@ -16,10 +18,12 @@ void * antMain(void * arg){
 
 	Ant * ant = malloc(sizeof(Ant));        
     ant->food = false;
-	ant->opCode = -1;
+	ant->op = -1;
 	ant->key = key;
 
 	setRegister(ant);
+
+	//printf("KEY: %d. Intensity: %d. FS: %d\n", key, screams[key-3].intensity, futureScreams++);
 
 	Pos to = {0,1};
 	Message * send;
@@ -28,7 +32,7 @@ void * antMain(void * arg){
 	while(1){
 
 		received = receiveMessage(SERVER, ant->key);
-
+		
 		if(received->opCode == TURN && received->param == SET){
 		//	printf("Tengo turno: %d\n", key);
 
@@ -36,7 +40,7 @@ void * antMain(void * arg){
 				send = createMessage(key, MAP_ID, TURN, SET, to, 0);
 				sendMessage(SERVER, send);
 
-				received = receiveMessage(SERVER, key);		
+				received = receiveMessage(SERVER, key);
 			}
 		}
 	}
@@ -48,7 +52,7 @@ void * antMain(void * arg){
 
 bool
 action(Ant * ant){
-	if(ant->opCode == -1){	// If the ant 	
+	if(ant->op == -1){	// If the ant 	
 		if(ant->food)	// If the ant is carrying food
 			return goAnthill(ant);
 		else {
@@ -59,22 +63,25 @@ action(Ant * ant){
 				return randomMove(ant, false);
 		}
 	} else {
-		if(ant->opCode == FOOD){
-			ant->opCode = -1;
+		if(ant->op == GET_FOOD){
+			ant->op = -1;
 			return getNearFood(ant, ant->auxPos);	// Get the food that the ant found in the previous turn
-		} else if(ant->opCode == TRACE){
+		} else if(ant->op == FOLLOW_TRACE){
 			if(rand()%100 < 80)
-				ant->opCode = MOVE; // The next turn use search
+				ant->op = SMELL; // The next turn use search
 			else
-				ant->opCode = -1;
+				ant->op = -1;
 			return move(ant->auxPos, false, ant->key);	// Follows the trace
-		} else if(ant->opCode == MOVE) { // The ant has to search
-			ant->opCode = -1;
+		} else if(ant->op == SMELL) { // The ant has to search
+			ant->op = -1;
 			search(ant);
 			return false;
+		} else if(ant->op == SET_SHOUT) {
+			ant->op = GET_FOOD;
+			setShout(ant);
+			return true;
 		} else {
-			printf("HOLA\n");
-			return false;
+			return followShout(ant);
 		}
 	}
 }
@@ -87,7 +94,6 @@ goAnthill(Ant * ant){
 	Pos currentPos = getCurrentPos(ant->key);
 	Cardinal card = getCardinal(currentPos, anthill) % 4;	// If NW then go to N, NE go to E, SE go to S and SW go to W
 	Pos mov, to;
-	//printf("LLENDO AL HORMIGUERO\n"); // SE DICE YENDO!!!!!
 	mov.x = vecMov[card][0]; 
 	mov.y = vecMov[card][1];
 	
@@ -121,9 +127,10 @@ randomMove(Ant * ant, bool trace){
 		
 		tried[index] = true;
 		count++;
-
-		if(getNearFood(ant, to))
-			return true; // The ant took food
+		if(!ant->food && ant->op != FOLLOW_SHOUT){
+			if(getNearFood(ant, to))
+				return true; // The ant took food
+		}
 	} while(!move(to, trace, ant->key) && count < 4);
 	
 	if(count == 4)
@@ -153,8 +160,7 @@ move(Pos to, bool trace, int key){
 	//printf("Sent message.\n");
 
 	received = receiveMessage(SERVER, key);
-	//printf("Message received.\n");
-//	printMessage(received);
+	//printMessage(received);
 	if(received->opCode == MOVE && received->param == OK ){
 	//	printf("I moved! \n");	
 		return true;
@@ -193,7 +199,6 @@ setRegister(Ant * ant){
 	sendMessage(SERVER, send);
 
 	received = receiveMessage(SERVER, ant->key);
-	//printf("Message received.\n");
 	//printMessage(received);
 	if(received->opCode == REGISTER && received->param == OK ){
 		//printf("Register successful.\n");
@@ -202,6 +207,7 @@ setRegister(Ant * ant){
 	} else
 		printf("Register failed.\n");
 }
+
 
 void
 search(Ant * ant){
@@ -217,22 +223,18 @@ search(Ant * ant){
 		mov.y = vecMov[i][1];
 		to.x = currentPos.x + mov.x;
 		to.y = currentPos.y + mov.y;
-	//	printf("I want to search food from (%d,%d) \n", mov.x, mov.y);
+		//printf("I want to search food from (%d,%d) \n", mov.x, mov.y);
 		send = createMessage(ant->key, MAP_ID, MOVE, GET, mov, 0);  
-	//	printMessage(send);
+		//printMessage(send);
 		sendMessage(SERVER, send);
 
 		received[i] = receiveMessage(SERVER, ant->key);
-	//	printf("Message received.\n");
-	//	printMessage(received[i]);
+		//printMessage(received[i]);
 		if(received[i]->opCode == FOOD && received[i]->param == OCCUPIED){
-				ant->opCode = FOOD;
+				ant->op = GET_FOOD;
 				ant->auxPos = to;
 				return;
-		} //else if(received[i]->opCode == FOOD && received[i]->param == BIG) // FALTA IMPLEMENTAR
-	//		printf("I found food, but is too big! \n");
-	//	else 
-	//		printf("I didn't find food =( \n");
+		}
 	}
 
 	// If the ant didn't find food, search trace
@@ -249,10 +251,11 @@ search(Ant * ant){
 		}
 	}
 	if(trace < 1){ // If trace was changed
-		ant->opCode = TRACE;
+		ant->op = FOLLOW_TRACE;
 		ant->auxPos = tmpPos;
 	}	
 }
+
 
 /* Tries to take food */
 bool 
@@ -275,16 +278,22 @@ getNearFood(Ant * ant, Pos to){
 	sendMessage(SERVER, send);
 
 	received = receiveMessage(SERVER, ant->key);
-	//printf("Message received.\n");
-//	printMessage(received);
+	//printMessage(received);
 	if(received->opCode == FOOD && received->param == OK){
-			//printf("I get food! \n");
-			ant->food = true;
-			return true;
-	} //else if(received->opCode == FOOD && received->param == BIG) // FALTA IMPLEMENTAR
-	//		printf("I cannot get food, too big! \n");
+		//printf("I get food! \n");
+		ant->food = true;
+		return true;
+	} else if(received->opCode == FOOD && received->param == BIG){
+		//printf("I cannot get food, too big! \n");
+		/*if(!hasShouted(ant, to)) // If the ant didn't shout yet about that big food, shout in the next turn
+			ant->op = SET_SHOUT;
+		else*/
+			ant->op = GET_FOOD;
+		ant->auxPos = to;
+		return true;
+	}
 	//else 
-//			printf("I cannot get food =( \n");
+	//		printf("I cannot get food =( \n");
 	return false;
 }
 
@@ -300,14 +309,13 @@ setFood(Ant * ant, Pos to){
 	mov.x = vecMov[card][0];
 	mov.y = vecMov[card][1];
 	
-//	printf("I want to leave food on anthill in (%d,%d) \n", mov.x, mov.y);
+	//printf("I want to leave food on anthill in (%d,%d) \n", mov.x, mov.y);
 	send = createMessage(ant->key, MAP_ID, FOOD, SET, mov, 0);
-//	printMessage(send);
+	//printMessage(send);
 	sendMessage(SERVER, send);
 
 	received = receiveMessage(SERVER, ant->key);
-//	printf("Message received.\n");
-//	printMessage(received);
+	//printMessage(received);
 	if(received->opCode == FOOD && received->param == OK ){
 		printf("I left food at anthill!\n");
 		ant->food = false;
@@ -316,6 +324,89 @@ setFood(Ant * ant, Pos to){
 		printf("I have no food! \n");
 		return false;
 	}
+}
+
+
+bool
+hasShouted(Ant * ant, Pos to){
+	int index = ant->key - 3;
+	return ant->op != FOLLOW_SHOUT && screams[index].pos.x == to.x && screams[index].pos.y == to.y;
+}
+
+
+void
+setShout(Ant * ant){
+	int index = ant->key - 3;
+	
+	Message * send;	
+	Message * received;
+	Pos mov = {0,0};
+
+	send = createMessage(ant->key, MAP_ID, SHOUT, SET, mov, 0);
+	sendMessage(SERVER, send);
+
+	received = receiveMessage(SERVER, ant->key);
+	if(received->opCode == SHOUT && received->opCode == OK){
+		screams[index].intensity = 1;
+		screams[index].pos = ant->auxPos;
+		futureScreams++;
+	} else 
+		printf("I cannot shout!\n");
+	
+}
+
+
+bool
+followShout(Ant * ant){
+	Pos currentPos = getCurrentPos(ant->key);
+	Cardinal card = getCardinal(currentPos, ant->auxPos) % 4;
+	Pos mov, to;
+	mov.x = vecMov[card][0]; 
+	mov.y = vecMov[card][1];
+	
+	to.x = currentPos.x+mov.x;
+	to.y = currentPos.y+mov.y;
+	// If the ant is going to arrive to the big food
+	if( ant->auxPos.x == to.x && ant->auxPos.y == to.y ){
+		ant->op = -1;
+		return getNearFood(ant, to);
+	}
+	// Tries to move closer, but if it can't then, move to another direction
+	else if( !move(to, false, ant->key) ){
+		return randomMove(ant, false);
+	}
+	return true;
+}
+
+
+bool
+getNearestShout(Ant * ant){
+	int i = 0, j = 0;
+	Pos currentPos = getCurrentPos(ant->key);
+	Pos tmpPos;
+	int tmpDist = 15; // Starts whit the maximun distance
+	while(j < currentScreams){
+		if(screams[i].intensity == 0){
+			j++;
+			if(getDistance(currentPos, screams[i].pos) < tmpDist){
+				tmpPos = screams[i].pos;
+				tmpDist = getDistance(currentPos, tmpPos);
+			}
+		}
+		i++;
+	}
+	if(tmpDist != 15){
+		ant->op = FOLLOW_SHOUT;
+		ant->auxPos = tmpPos;
+		return true;
+	}
+	return false;
+}
+
+
+int
+getDistance(Pos from, Pos to){
+	return abs(to.x-from.x) + abs(to.y-from.y);
 }
 
 
