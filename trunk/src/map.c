@@ -557,7 +557,6 @@ void parseError(const char * s){
 }
 
 #define MAX_DIM 50	///////////////////////////////////////// CONSTANTE TEMPORAL; DESPUES BORRAR
-#define MAX_CLIENTS (int)(MAX_DIM/8)	///////////////////////////////////////// CONSTANTE TEMPORAL; DESPUES BORRAR
 /////////////////// bBUENO EN REALIDAD ESTA FUNCION ES TEMPORAL SUPONGO
 World * mondoGenerator(){
 	Pos	anthillPos;
@@ -569,12 +568,12 @@ World * mondoGenerator(){
 
 	srand((unsigned) time(NULL));
 
-	out->sizeX = (rand() % MAX_DIM) + 1;
-	out->sizeY = (rand() % MAX_DIM) + 1;
+	out->sizeX = (rand() % MAX_DIM) + 10;
+	out->sizeY = (rand() % MAX_DIM) + 10;
 	anthillPos.x = rand() % out->sizeX;
 	anthillPos.y = rand() % out->sizeY;
 	out->anthill.pos = anthillPos;
-	out->maxConnections = (rand() % MAX_CLIENTS) + 1;
+	out->maxConnections = (rand() % (out->sizeX *out->sizeY - 10 )) + 1;
 	out->anthill.maxPopulation = out->maxConnections;;
 	out->turnsLeft = MAX_TURNS;
 	out->points = 0;
