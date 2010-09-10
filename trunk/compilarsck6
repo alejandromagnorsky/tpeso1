@@ -1,4 +1,0 @@
-gcc src/map.c src/GameLogic.c src/common.c src/comm-sockets6.c src/SDLMainWindow.c src/SDL_rotozoom.c src/SDL_utils.c src/SDL_World.c src/SDL_AssetManager.c -Iinclude/SDL `sdl-config --libs --cflags` -Llib -lSDL -lSDL_image -g -Wall -o map -lm -lrt
-
-gcc src/anthill.c src/ant.c src/common.c src/comm-sockets6.c -g -Wall -o anthill -lm -lrt
-
