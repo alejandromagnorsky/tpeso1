@@ -406,6 +406,9 @@ int nextTurn(World * world){
 		int changedState;
 		for(i=0;i<world->sizeX;i++)
 			for(j=0;j<world->sizeY;j++){
+
+				// Reset cell state 
+				world->cells[i][j].helping = NORMAL_STATE;
 				
 				changedState = world->cells[i][j].trace > 0.0 ? 1 : 0;
 				world->cells[i][j].trace -= (world->cells[i][j].trace > 0.0) ? 0.01 : 0;
@@ -496,9 +499,35 @@ void getFoodFromWorld(Message * msg, World * world){
 						comm.toY = antCell->pos.y;
 						comm.op = MoveFoodCommand;	
 						addCommand(comm);
-				// If it has big food, warn ant // LATER
-				} else if(foodCell->foodType == BIG_FOOD)
-						ans = createMessage(MAP_ID, msg->keyFrom, FOOD, BIG, msg->pos, msg->trace);
+
+				} else if(foodCell->foodType == BIG_FOOD){
+
+						// If there is no one helping, help
+						if(foodCell->helping == NORMAL_STATE){
+							foodCell->helping = HELPING_STATE;
+							ans = createMessage(MAP_ID, msg->keyFrom, FOOD, BIG, msg->pos, msg->trace);							
+
+						// If there is someone helping, get food
+						} else if(foodCell->helping == HELPING_STATE){
+							foodCell->helping = NORMAL_STATE;
+							
+							ans = createMessage( MAP_ID, msg->keyFrom, FOOD, OK, msg->pos, msg->trace);
+							// Take food from cell, give it to ant
+							foodCell->type = EMPTY_CELL;
+							foodCell->foodType = NO_FOOD; // Doesn't really matter if EMPTY_CELL active
+							antCell->foodType = BIG_FOOD;
+
+							// Tell frontend to move food to ant
+							Command comm;
+							comm.fromX = foodCell->pos.x;
+							comm.fromY = foodCell->pos.y;
+
+							comm.toX = antCell->pos.x;
+							comm.toY = antCell->pos.y;
+							comm.op = MoveFoodCommand;	
+							addCommand(comm);
+						}
+				}
 
 				// Either take food or wait till someone helps
 				world->clients[clientIndex].turnLeft = NO_TURN;
@@ -598,6 +627,7 @@ World * mondoGenerator(){
 	blankCell.foodType = NO_FOOD;
 	blankCell.type = EMPTY_CELL;
 	blankCell.typeID = INVALID_ID;
+	blankCell.helping = NORMAL_STATE;
 
 	if ( (out->cells = malloc(out->sizeX * sizeof(Cell *))) == NULL)
 		errorLog("Memory allocation error in world loading.");
@@ -684,6 +714,7 @@ World * getWorld(char * filename){
 	blankCell.foodType = NO_FOOD;
 	blankCell.type = EMPTY_CELL;
 	blankCell.typeID = INVALID_ID;
+	blankCell.helping = NORMAL_STATE;
 
 	if ( (out->cells = malloc(out->sizeX * sizeof(Cell *))) == NULL)
 		errorLog("Memory allocation error in world loading.");

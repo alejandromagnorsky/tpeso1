@@ -39,16 +39,35 @@ void startGame(SDL_Surface * screen, int sizeX, int sizeY){
 	// exit Game ( destroy thread )
 }
 
+void initWorldRandomization(SDL_World * gameWorld){
+
+
+	int i;
+	int x,y;
+	for(i=0;i < gameWorld->sizeX + gameWorld->sizeY ;i+= 8){
+		x = rand()%gameWorld->sizeX;
+		y = rand()%gameWorld->sizeY;
+		addObject(gameWorld, "Piedra1",x, y, BG_LAYER, !ANIMATED,!ORIENTED);
+	}
+
+}
+
 SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
 	SDL_World * out = getSDLWorld(sizeX, sizeY, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
 	addAsset(out->vector, "assets/anthill.png", "PNG", "Anthill", ALPHA);
-	addAsset(out->vector, "assets/arnie.png", "PNG", "Ant", ALPHA);
+	addAsset(out->vector, "assets/ant.png", "PNG", "Ant", ALPHA);
 	addAsset(out->vector, "assets/trace.png", "PNG", "Trace", ALPHA);
 	addAsset(out->vector, "assets/smallFood1.png", "PNG", "SmallFood1", ALPHA);
 	addAsset(out->vector, "assets/smallFood2.png", "PNG", "SmallFood2", ALPHA);
 	addAsset(out->vector, "assets/bigFood2.png", "PNG", "BigFood2", ALPHA);
 	addAsset(out->vector, "assets/bigFood1.png", "PNG", "BigFood1", ALPHA);
+
+
+	// Eye candyness X TREMEEEEEEee
+	addAsset(out->vector, "assets/piedra1.png", "PNG", "Piedra1", ALPHA);
+
+	initWorldRandomization(out);
 
 	return out;
 }
@@ -130,7 +149,7 @@ void executeSetTrace(SDL_World * gameWorld, Command * comm){
 	// Clear trace before, so it can be updated
 	deleteObject(gameWorld,comm->fromX, comm->fromY, TRACE_LAYER );
 
-	int alpha = (1.0 - comm->extra.trace) * 10 + 1;
+	int alpha = (1.0 - comm->extra.trace) * 4 + 1;
 	addObject(gameWorld, "Trace",comm->fromX, comm->fromY, TRACE_LAYER, ANIMATED,!ORIENTED);
 	setFrame(gameWorld, comm->fromX, comm->fromY, TRACE_LAYER, alpha); 
 	comm->valid = 0;
@@ -143,7 +162,7 @@ void executeDeleteTrace(SDL_World * gameWorld, Command * comm){
 
 
 void executeRegisterAnthill(SDL_World * gameWorld, Command * comm){
-	addObject(gameWorld, "Anthill",comm->fromX, comm->fromY, BG_LAYER, !ANIMATED,!ORIENTED);
+	addObject(gameWorld, "Anthill",comm->fromX, comm->fromY, TRACE_LAYER, !ANIMATED,!ORIENTED);
 	comm->valid = 0;
 }
 
