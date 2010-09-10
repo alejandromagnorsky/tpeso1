@@ -65,6 +65,8 @@ action(Ant * ant){
 		} else if(ant->opCode == TRACE){
 			if(rand()%100 < 80)
 				ant->opCode = MOVE; // The next turn use search
+			else
+				ant->opCode = -1;
 			return move(ant->auxPos, false, ant->key);	// Follows the trace
 		} else if(ant->opCode == MOVE) { // The ant has to search
 			ant->opCode = -1;
