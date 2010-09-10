@@ -302,6 +302,17 @@ void openSounds(){
 		}
 	}
 }
+
+void * playSoundOnThread(void * arg){
+
+	int channel = (int)arg;
+
+	while(Mix_Playing(channel) != 0);
+
+	pthread_exit(NULL);
+}
+
+
 void playSound(Mix_Chunk * sound){
 	int channel;
 	channel = Mix_PlayChannel(CHANNEL, sound, LOOP);
@@ -310,7 +321,9 @@ void playSound(Mix_Chunk * sound){
 		exit(1);
 	}
 
-	while(Mix_Playing(channel) != 0);
+	pthread_t soundT;
+	pthread_create(&soundT, NULL, playSoundOnThread, (void *) channel);
+
 }
 
 void closeSounds(){
