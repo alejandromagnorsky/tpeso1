@@ -500,6 +500,8 @@ void getFoodFromWorld(Message * msg, World * world){
 						comm.op = MoveFoodCommand;	
 						addCommand(comm);
 
+						shout();
+
 				} else if(foodCell->foodType == BIG_FOOD){
 
 						// If there is no one helping, help
@@ -542,8 +544,24 @@ void setTurn(Message *msg, World * world){
 	Message * turn =  createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
 	
 	int clientIndex = getAntIndexByKey(world, msg->keyFrom);
-	if( exists(msg->keyFrom, world) && world->clients[clientIndex].turnLeft > 0 ) 
+	if( world->clients[clientIndex].turnLeft > 0 ) 
 		world->clients[clientIndex].turnLeft = NO_TURN;
+
+	sendMessage(CLIENT, turn);
+}
+
+void setShout(Message *msg, World * world){
+	Message * turn =  createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
+	
+	int clientIndex = getAntIndexByKey(world, msg->keyFrom);
+	if( world->clients[clientIndex].turnLeft == LEFT_TURN){
+
+		world->clients[clientIndex].turnLeft = NO_TURN;
+
+		// SHOUT! This is just to waste turn and tell frontend!
+
+		turn =  createMessage( MAP_ID, msg->keyFrom, SHOUT, OK, msg->pos, msg->trace);
+	}
 
 	sendMessage(CLIENT, turn);
 }
@@ -578,6 +596,10 @@ void parseMessage(Message * msg, World * world){
 				if(msg->param == SET)
 					setTurn(msg, world);
 				break;
+
+			case SHOUT:
+				if(msg->param == SET)
+					setShout(msg, world);
 			default: break;
 		}
 	}
