@@ -343,19 +343,20 @@ void setFoodAtAnthill(Message * msg, World * world){
 			addCommand(comm);
 
 			// Now give food to anthill
-//			Message * sendFood;
-
+			Message * sendFood;
 
 			switch( antCell->foodType){
-				case BIG_FOOD:
-					//sendFood =  createMessage( getpid(), anthillPID, FOOD, SET, msg->pos, msg->trace);
-					break;
 				case SMALL_FOOD:
-					//sendFood =  createMessage( getpid(), anthillPID, FOOD, BIG, msg->pos, msg->trace);
+					sendFood =  createMessage( getpid(), ANTHILL_KEY, FOOD, SET, msg->pos, msg->trace);
+					world->points++;
+					break;
+				case BIG_FOOD:
+					sendFood =  createMessage( getpid(), ANTHILL_KEY, FOOD, BIG, msg->pos, msg->trace);
+					world->points+=5;
 					break;
 				default: break;
 			}
-//				sendMessage(ANTHILL, sendFood);
+			sendMessage(CLIENT, sendFood);
 
 			// And take food from ant
 			antCell->foodType = NO_FOOD;
@@ -397,11 +398,32 @@ int nextTurn(World * world){
 	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
 		Pos tmp = {0,0};
+
+		Command comm;
+
 		// Here traces are decreased.
 		int i,j;
+		int changedState;
 		for(i=0;i<world->sizeX;i++)
-			for(j=0;j<world->sizeY;j++)
-				world->cells[i][j].trace -= (world->cells[i][j].trace > 0) ? 0.01 : 0;
+			for(j=0;j<world->sizeY;j++){
+				
+				changedState = world->cells[i][j].trace > 0.0 ? 1 : 0;
+				world->cells[i][j].trace -= (world->cells[i][j].trace > 0.0) ? 0.01 : 0;
+				changedState = changedState && (world->cells[i][j].trace <= 0.15);
+
+				if(world->cells[i][j].trace > 0 ){
+					comm.op = SetTraceCommand;
+					comm.fromX = i;
+					comm.fromY = j;
+					comm.extra.trace = world->cells[i][j].trace;
+					addCommand(comm);
+				} else if(changedState){
+					comm.op = DeleteTraceCommand;
+					comm.fromX = i;
+					comm.fromY = j;
+					addCommand(comm);
+				}
+			}
 
 		for(i=0;i<world->maxConnections;i++)
 			if(world->clients[i].key != INVALID_ID){
@@ -410,12 +432,12 @@ int nextTurn(World * world){
 				sendMessage(CLIENT, turn);
 			}
 
-		//printWorld(world);
 		// Tell frontend turn has ended
 		pthread_mutex_lock(&EOT_mutex);
 
 		EOT = 1;
 
+		// Wait till frontend has finished processing and rendering turn
 		pthread_cond_wait(&EOT_cond, &EOT_mutex);
 
 		pthread_mutex_unlock(&EOT_mutex);
@@ -555,6 +577,7 @@ World * mondoGenerator(){
 	out->maxConnections = (rand() % MAX_CLIENTS) + 1;
 	out->anthill.maxPopulation = out->maxConnections;;
 	out->turnsLeft = MAX_TURNS;
+	out->points = 0;
 	smallFood = (rand() % (out->sizeX - 1)) + 1;
 	bigFood = 0;
 
@@ -642,6 +665,7 @@ World * getWorld(char * filename){
 	out->anthill.pos = anthillPos;
 	out->anthill.maxPopulation = out->maxConnections;
 	out->turnsLeft = MAX_TURNS;
+	out->points = 0;
 
 	/* Clients initialization */
 	out->anthill.ants = malloc(out->maxConnections * sizeof(int));

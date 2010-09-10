@@ -2,7 +2,7 @@
 #include "SDL_utils.h" 
 #include "SDL_AssetManager.h"
 
-#define LAYERS 3
+#define LAYERS 5
 
 #define ANIMATED 1
 #define ORIENTED 1
@@ -11,7 +11,7 @@
 typedef enum { SPRITE_NULL, SPRITE_DOWN, SPRITE_UP, SPRITE_RIGHT, SPRITE_LEFT } Orientation; // Sprite, not Seven Up! ;)
 
 typedef struct{
-	int id;
+	int id;	// Asset id
 	int animated;
 	int oriented;
 	Orientation orientation;
@@ -42,8 +42,14 @@ void renderSDLWorld(SDL_World * world, SDL_Surface * screen);	// Por ahora, redi
 
 void translateCamera(SDL_World * world, int x, int y);
 
+void setFrame(SDL_World * world, int x, int y, int layer, int frame);
+
+void nextFrame(SDL_World * world, int x, int y, int layer);
+
 // Strings may be inefficient, should change later ( soy un colgado )
 void addObject(SDL_World * world, char * id, int x, int y, int layer, int animated, int oriented );
+
+void addObjectAlpha(SDL_World * world, char * id, int x, int y, int layer, int animated, int oriented, int alpha );
 
 // Just object, not asset
 void deleteObject(SDL_World * world, int x, int y, int layer );

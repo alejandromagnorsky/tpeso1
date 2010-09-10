@@ -46,16 +46,17 @@ typedef struct Anthill{
 typedef struct World{
 	Cell ** cells;
 	Anthill anthill;
-	int frontendID;
 	int sizeX, sizeY;
 	int maxConnections;
 	Client * clients;
 	int turnsLeft;
+	int points;
 } World;
 
 void * mapMain(void * arg);
 
 World * getWorld(char * filename);
+
 World * mondoGenerator();
 
 int antExistsInAnthill(World * world, int pid);

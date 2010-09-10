@@ -14,6 +14,10 @@ void openIPC();
 // Close IPC resource
 void closeIPC();
 
+void closeServer();
+
+void closeClient();
+
 // Returns a Message on success, NULL on error
 Message * receiveMessage(NodeType from, int key);
 

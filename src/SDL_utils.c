@@ -4,20 +4,23 @@
 /* Load an optimized image */
 SDL_Surface * loadImageSDL( char * name, char * type, int isAlpha)
 {
-           SDL_Surface *     image;
-           SDL_Surface * optimized;
+	SDL_Surface *     image;
+	SDL_Surface * optimized;
 
-           /* Use SDL_image to load image type */
-           image = IMG_LoadTyped_RW(SDL_RWFromFile(name, "rb"), 1, type);
+	/* Use SDL_image to load image type */
+	image = IMG_LoadTyped_RW(SDL_RWFromFile(name, "rb"), 1, type);
 
-           /* Optimize the surface through DisplayFormat, and check if it
-              has alpha channel */
-           if(isAlpha) optimized = SDL_DisplayFormatAlpha( image );
-           else optimized = SDL_DisplayFormat( image );
-           
-           SDL_FreeSurface( image );
+	/* Optimize the surface through DisplayFormat, and check if it
+	has alpha channel */
+	if(isAlpha){
+		SDL_SetColorKey(image,SDL_RLEACCEL, 0);
+		optimized = SDL_DisplayFormatAlpha( image );
+	}			
+	else optimized = SDL_DisplayFormat( image );
 
-           return optimized;
+	SDL_FreeSurface( image );
+
+	return optimized;
 }
 
 /*
@@ -48,14 +51,14 @@ void blitSurfaceCentered(SDL_Surface * dst, SDL_Surface *src, int x, int y){
 	if( dst == NULL)
 		return;
 
-	 SDL_Rect rect;
+	SDL_Rect rect;
 
-      rect.x = x - src->w /2;
-      rect.y = y - src->h /2;
-      rect.w = src->w;
-      rect.h = src->h;
-	 
-	  SDL_BlitSurface( src, NULL, dst, &rect);   
+	rect.x = x - src->w /2;
+	rect.y = y - src->h /2;
+	rect.w = src->w;
+	rect.h = src->h;
+
+	SDL_BlitSurface( src, NULL, dst, &rect);   
 }
 
 
@@ -136,7 +139,7 @@ void blitAnim( SDL_Surface * dst, SDL_Surface * src, int spriteW, int spriteH, i
 	spriteRect.x = (frameX-1) * spriteW;
 
 	if(src->w < spriteRect.x + spriteW || src->h < spriteRect.y + spriteH ){
-		printf("Bad sprite: frameY:%d frameX:%d\n", frameY, frameX);
+	//	printf("Bad sprite: frameY:%d frameX:%d\n", frameY, frameX);
 		return;
 	}
 
