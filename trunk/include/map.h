@@ -24,6 +24,8 @@ Anthill: ANTHILL_CELL, n/a
 #define LEFT_TURN 1
 #define GHOST_TURN 2
 
+typedef enum { NORMAL_STATE, HELPING_STATE } CellState;
+
 typedef struct Client{
 	int key;
 	int turnLeft;
@@ -35,6 +37,7 @@ typedef struct Cell{
 	FoodType foodType;	// Not mutually exclusive with ants (ants carry food)
 	CellType type;
 	int typeID;	// the ID of the client currently on the cell, default (empty) -1
+	CellState helping;	// To check if ant is helping or not 
 } Cell;
 
 typedef struct Anthill{
