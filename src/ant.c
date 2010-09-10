@@ -52,18 +52,28 @@ action(Ant * ant){
 		if(ant->food)	// If the ant is carrying food
 			return goAnthill(ant);
 		else {
-			if(rand()%10 > 6){
+			if(rand()%100 < 40){
 				search(ant);
 				return false;
 			} else
 				return randomMove(ant, false);
 		}
 	} else {
-		ant->opCode = -1;
-		if(ant->opCode == FOOD)
+		if(ant->opCode == FOOD){
+			ant->opCode = -1;
 			return getNearFood(ant, ant->auxPos);	// Get the food that the ant found in the previous turn
-		else
+		} else if(ant->opCode == TRACE){
+			if(rand()%100 < 80)
+				ant->opCode = MOVE; // The next turn use search
 			return move(ant->auxPos, false, ant->key);	// Follows the trace
+		} else if(ant->opCode == MOVE) { // The ant has to search
+			ant->opCode = -1;
+			search(ant);
+			return false;
+		} else {
+			printf("HOLA\n");
+			return false;
+		}
 	}
 }
 
