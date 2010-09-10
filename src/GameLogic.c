@@ -34,7 +34,7 @@ SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
 	SDL_World * out = getSDLWorld(sizeX, sizeY, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
 	addAsset(out->vector, "assets/anthill.png", "PNG", "Anthill", ALPHA);
-	addAsset(out->vector, "assets/ant.png", "PNG", "Ant", ALPHA);
+	addAsset(out->vector, "assets/arnie.png", "PNG", "Ant", ALPHA);
 	addAsset(out->vector, "assets/trace.png", "PNG", "Trace", ALPHA);
 	addAsset(out->vector, "assets/smallFood1.png", "PNG", "SmallFood1", ALPHA);
 	addAsset(out->vector, "assets/smallFood2.png", "PNG", "SmallFood2", ALPHA);
