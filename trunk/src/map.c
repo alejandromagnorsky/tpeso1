@@ -573,7 +573,7 @@ World * mondoGenerator(){
 	anthillPos.x = rand() % out->sizeX;
 	anthillPos.y = rand() % out->sizeY;
 	out->anthill.pos = anthillPos;
-	out->maxConnections = (rand() % (out->sizeX *out->sizeY - 10 )) + 1;
+	out->maxConnections = (rand() % (out->sizeX + out->sizeY  )) + 5;
 	out->anthill.maxPopulation = out->maxConnections;;
 	out->turnsLeft = MAX_TURNS;
 	out->points = 0;
@@ -796,6 +796,9 @@ void * mapMain(void * arg){
 	openServer((void *)world->maxConnections);
 
 	createAnthill(world->maxConnections);
+
+
+	printf("Ants: %d\n", world->maxConnections);
 
 
 	sendDataToFrontend(world);

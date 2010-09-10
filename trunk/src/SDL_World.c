@@ -143,8 +143,6 @@ void setFrame(SDL_World * world, int x, int y, int layer, int frame) {
 	if( index == -1 ) 
 		return;
 
-	printf("Orientation:%d\n", world->grid[layer][x][y].orientation);
-
 	int frames;
 	// Only works for animated assets (or assets that have frames)
 	if(world->grid[layer][x][y].animated){
@@ -154,8 +152,6 @@ void setFrame(SDL_World * world, int x, int y, int layer, int frame) {
 			frames = world->vector->assets[index].image->w / world->vector->assets[index].image->h;
 	}
 
-	printf("max frames:%d intended frame: %d \n", frames, frame);
-	
 	if( frame > frames ){
 		world->grid[layer][x][y].frame = 0;
 	} else world->grid[layer][x][y].frame = frame;
