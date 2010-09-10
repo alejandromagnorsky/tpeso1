@@ -244,7 +244,6 @@ search(Ant * ant){
 	}	
 }
 
-
 /* Tries to take food */
 bool 
 getNearFood(Ant * ant, Pos to){

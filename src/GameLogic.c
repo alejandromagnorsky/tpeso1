@@ -2,6 +2,12 @@
 
 #define COMMAND_SIZE_THRESHOLD 50
 
+//#define MAX_SOUNDS 1  is in GameLogic.h
+// there is an extern definition of Mix_chunk * sounds[] in GameLogic.h
+// added openSounds and shout in map.c
+#define SHOUT_BASE "assets/audio/shout_"
+#define BACKGROUND_MUSIC "assets/audio/musictemp.wav"
+
 /*
 	Disclaimer: Es un desastre la logica del frontend, como no era el principal
 	problema, se le presto menos atencion (y menos tiempo de desarrollo/diseño)
@@ -20,6 +26,8 @@ Command * commands = NULL;
 int commandsSize;
 
 int EOT = 0;
+
+Mix_Chunk * sounds[MAX_SOUNDS];
 
 void startGame(SDL_Surface * screen, int sizeX, int sizeY){
 
@@ -241,19 +249,37 @@ int getUserInput(SDL_World * gameWorld){
 }
 
 void shout(){
-	struct Mix_Chunk * shout;
-	shout = openSound("test.wav");
-	playSound(shout);
-	//closeSounds(shout);
+	srand((unsigned) time(NULL));
+	int index = 0 + rand() % MAX_SOUNDS;
+	playSound(sounds[index]);
 }
 
-Mix_Chunk * openSound(char * file){
-	struct Mix_Chunk * sound;
-	if((sound = Mix_LoadWAV("test.wav")) == NULL) {
-		fprintf(stderr, "Unable to load WAV file: %s\n", Mix_GetError());
+void playMusic(){
+	playSound(sounds[0]);
+}
+
+void openSounds(){
+	int i;
+	char * path;
+	if ( (path = malloc(19 + 1 + 4)) == NULL){
+		fprintf(stderr, "%s\n", "Memory allocation error in sounds opening.");
 		exit(1);
 	}
-	return sound;
+	if((sounds[0] = Mix_LoadWAV(BACKGROUND_MUSIC)) == NULL) {
+		fprintf(stderr, "Unable to load backgound music: %s\n", Mix_GetError());
+		exit(1);
+	}
+	for (i=1; i<=MAX_SOUNDS; i++){
+		sprintf(path, "%s%d%s", SHOUT_BASE, i, ".wav");
+		if ( (sounds[i] = malloc((MAX_SOUNDS+1) * sizeof(Mix_Chunk))) == NULL ){
+			fprintf(stderr, "%s\n", "Memory allocation error in sounds opening.");
+			exit(1);
+		}
+		if((sounds[i] = Mix_LoadWAV(path)) == NULL) {
+			fprintf(stderr, "Unable to load WAV files: %s\n", Mix_GetError());
+			exit(1);
+		}
+	}
 }
 void playSound(Mix_Chunk * sound){
 	int channel;
@@ -266,8 +292,12 @@ void playSound(Mix_Chunk * sound){
 	while(Mix_Playing(channel) != 0);
 }
 
-void closeSounds(/*Mix_Chunk * sound*/){
-	//Mix_FreeChunk(sound);
+void closeSounds(){
+	int i;
+	for (i=0; i<MAX_SOUNDS; i++){
+		Mix_FreeChunk(sounds[i]);
+	}
+	
 	Mix_CloseAudio();
 }
 
