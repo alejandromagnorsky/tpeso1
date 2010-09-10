@@ -5,8 +5,6 @@ int vecMov[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // Represents: up, right, dow
 
 //---------------------------------------------
 //FALTA:
-//REGISTER GET NO TIENE QUE GASTAR TURNO YA QUE SIRVE PARA OBTENER LA CURRENTPOS
-
 //DEFINIR LA INTERACCION ENTRE HORMIGAS JUNTAS
 //AGREGAR EL COMPORTAMIENTO PARA LAS BIG INCLUYENDO EL SHOUT
 //---------------------------------------------
@@ -16,8 +14,8 @@ void * antMain(void * arg){
 	int key = (int)arg;
 //	printf("Ant Key: %d \n", key);
 
-	Ant * ant = malloc(sizeof(Ant));	
-	ant->food = NO_FOOD;
+	Ant * ant = malloc(sizeof(Ant));        
+    ant->food = false;
 	ant->opCode = -1;
 	ant->key = key;
 
@@ -51,7 +49,7 @@ void * antMain(void * arg){
 bool
 action(Ant * ant){
 	if(ant->opCode == -1){	// If the ant 	
-		if(ant->food != NO_FOOD)	// If the ant is carrying food
+		if(ant->food)	// If the ant is carrying food
 			return goAnthill(ant);
 		else {
 			if(rand()%10 > 6){
@@ -227,18 +225,18 @@ search(Ant * ant){
 
 	// If the ant didn't find food, search trace
 	Pos tmpPos;
-	double trace = 0;
+	double trace = 2;
 	for(i = 0; i < 4; i++){
 		mov.x = vecMov[i][0];
 		mov.y = vecMov[i][1];
 			
-		if(received[i]->param == EMPTY && received[i]->trace > trace){
+		if(received[i]->param == EMPTY && received[i]->trace > 0 && received[i]->trace < trace){
 				trace = received[i]->trace;
 				tmpPos.x = currentPos.x + mov.x;
 				tmpPos.y = currentPos.y + mov.y;
 		}
 	}
-	if(trace > 0){
+	if(trace < 1){ // If trace was changed
 		ant->opCode = TRACE;
 		ant->auxPos = tmpPos;
 	}	
@@ -248,6 +246,9 @@ search(Ant * ant){
 bool 
 getNearFood(Ant * ant, Pos to){
 	Pos currentPos = getCurrentPos(ant->key);
+	if(currentPos.x == ant->anthill.x && currentPos.y == ant->anthill.y) // Ants cannot get food from the anthill
+		return false;
+	
 	Pos mov;
 	Message * send;	
 	Message * received;
@@ -266,7 +267,7 @@ getNearFood(Ant * ant, Pos to){
 //	printMessage(received);
 	if(received->opCode == FOOD && received->param == OK){
 			//printf("I get food! \n");
-			ant->food = SMALL_FOOD;
+			ant->food = true;
 			return true;
 	} //else if(received->opCode == FOOD && received->param == BIG) // FALTA IMPLEMENTAR
 	//		printf("I cannot get food, too big! \n");
@@ -297,7 +298,7 @@ setFood(Ant * ant, Pos to){
 //	printMessage(received);
 	if(received->opCode == FOOD && received->param == OK ){
 		printf("I left food at anthill!\n");
-		ant->food = NO_FOOD;
+		ant->food = false;
 		return true;
 	} else {
 		printf("I have no food! \n");

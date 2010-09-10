@@ -118,7 +118,7 @@ Message *
 receiveMessage(NodeType from, int key){
 
 	Message * mem;
-	Message * out = NULL;
+	Message * out = malloc(SIZE);
 	int index;
 
 	if(from == SERVER) {	// Ant case
@@ -144,8 +144,8 @@ receiveMessage(NodeType from, int key){
 
 	semop(semRead, &semOpRead, 1);
 
-	out = createMessage(mem->keyFrom, mem->keyTo, mem->opCode,  mem->param, mem->pos, mem->trace);
-	//printf("%d leyo de %d\n", out->keyTo, out->keyFrom);
+	memcpy(out,mem,SIZE);
+	
 	semop(semWrite, &semOpWrite, 1);
 	//printMessage(out);
 
@@ -180,12 +180,12 @@ sendMessage(NodeType to, Message * msg){
 	semOpRead.sem_flg = 0; // Set to wait
 
 	semop(semWrite, &semOpWrite, 1);
-	//printf("%d quiere escribir a %d\n", msg->keyFrom, msg->keyTo);
+	
 	memcpy(mem, msg, SIZE);
-	//printf("%d escribio en %d\n", msg->keyFrom, msg->keyTo);
+	
 	semop(semRead, &semOpRead, 1);
 	//printMessage(mem);
-	//printf("Mensaje mandado a %d. Enviado con keyTo = %d\n", index, mem->keyTo);
+	
 
 	return 0;
 }

@@ -14,7 +14,7 @@ typedef enum { north, east, south, west, northwest, northeast, southeast, southw
 
 typedef struct{
 	OpCode opCode;
-	FoodType food;
+	bool food;
 	Pos auxPos;
 	Pos anthill;
 	int key;
