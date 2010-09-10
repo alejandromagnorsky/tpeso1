@@ -34,7 +34,7 @@ SDL_World * getSDLWorld(int sizeX, int sizeY, char * filename, char * ext, Uint3
 	empty.offsetY = 0;
 	empty.animated = !ANIMATED;
 	empty.oriented = !ORIENTED;
-	empty.orientation = SPRITE_UP;
+	empty.orientation = SPRITE_DOWN;
 
 	for(i=0;i<LAYERS;i++)
 		for(j=0;j<sizeX;j++)
@@ -119,8 +119,9 @@ void renderSDLWorld(SDL_World * world, SDL_Surface * screen){
 
 					if(grid.animated)
 						blitAnim( screen, world->vector->assets[index].image, blitRect, blitRect, grid.orientation, grid.frame, x, y);
-					else	// blit it centered 
+					else
 						blitSurfaceCentered(screen, world->vector->assets[index].image, x + centered, y + centered);	
+					
 				}
 			}
 }
@@ -131,20 +132,50 @@ int verifyGrid(SDL_World * world, int x, int y, int layer){
 	return 0;
 }
 
-// Strings may be inefficient, should change later ( soy un colgado )
-void addObject(SDL_World * world, char * id, int x, int y, int layer, int animated, int oriented ){
+void nextFrame(SDL_World * world, int x, int y, int layer) {
+	setFrame(world,x,y,layer, world->grid[layer][x][y].frame + 1);
+}
+
+
+void setFrame(SDL_World * world, int x, int y, int layer, int frame) {
+	int index = world->grid[layer][x][y].id;
+
+	if( index == -1 ) 
+		return;
+
+	printf("Orientation:%d\n", world->grid[layer][x][y].orientation);
+
+	int frames;
+	// Only works for animated assets (or assets that have frames)
+	if(world->grid[layer][x][y].animated){
+		if(world->grid[layer][x][y].oriented)	// If oriented, h is 4 times larger, for orientation sprites 
+			frames = world->vector->assets[index].image->w / (world->vector->assets[index].image->h/4);
+		else					
+			frames = world->vector->assets[index].image->w / world->vector->assets[index].image->h;
+	}
+
+	printf("max frames:%d intended frame: %d \n", frames, frame);
+	
+	if( frame > frames ){
+		world->grid[layer][x][y].frame = 0;
+	} else world->grid[layer][x][y].frame = frame;
+
+}
+
+void addObject(SDL_World * world, char * id, int x, int y, int layer, int animated, int oriented){
 	int index = getAssetIndex( world->vector, id);
 
 	// If asset exists and position is valid
-	if( index >= 0 && verifyGrid(world, x, y, layer)){
-		world->grid[layer][x][y].id = index;
-		world->grid[layer][x][y].animated = animated;
-		world->grid[layer][x][y].frame = 1;
-		world->grid[layer][x][y].oriented = oriented;
-		world->grid[layer][x][y].orientation = SPRITE_UP; // Up is default
-		world->grid[layer][x][y].offsetX = 0;
-		world->grid[layer][x][y].offsetY = 0;
-	}
+	if( index >= 0 && verifyGrid(world, x, y, layer))
+		if(world->grid[layer][x][y].id == -1){	// Grid must be empty
+			world->grid[layer][x][y].id = index;
+			world->grid[layer][x][y].animated = animated;
+			world->grid[layer][x][y].frame = 1;
+			world->grid[layer][x][y].oriented = oriented;
+			world->grid[layer][x][y].orientation = SPRITE_DOWN; // Down is default
+			world->grid[layer][x][y].offsetX = 0;
+			world->grid[layer][x][y].offsetY = 0;
+		}
 }
 
 // Just object, not asset
@@ -226,7 +257,7 @@ int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int la
 				oldGrid->frame = 1;
 				oldGrid->animated = !ANIMATED;
 				oldGrid->oriented = !ORIENTED;
-				oldGrid->orientation = SPRITE_UP; // Up is default
+				oldGrid->orientation = SPRITE_DOWN; // Down is default
 
 				return 1; // finished moving
 			}

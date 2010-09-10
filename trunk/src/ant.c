@@ -26,28 +26,7 @@ void * antMain(void * arg){
 	Pos to = {0,1};
 	Message * send;
 	Message * received;
-/*
-	while(1){
 
-		received = receiveMessage(SERVER, ant->key);
-
-		if(received->opCode == TURN && received->param == SET){
-		//	printf("Tengo turno: %d\n", key);
-
-			send = createMessage(key, MAP_ID, MOVE, SET, to, 0);
-			sendMessage(SERVER, send);
-
-			received = receiveMessage(SERVER, key);
-
-			if(received->opCode == MOVE && received->param != OK){
-				send = createMessage(key, MAP_ID, TURN, SET, to, 0);
-				sendMessage(SERVER, send);
-
-				received = receiveMessage(SERVER, key);
-			}
-		}
-	}
-*/
 	while(1){
 
 		received = receiveMessage(SERVER, ant->key);

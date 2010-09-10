@@ -1,6 +1,6 @@
 #include "../include/GameLogic.h"
 
-#define COMMAND_SIZE_THRESHOLD 20
+#define COMMAND_SIZE_THRESHOLD 50
 
 /*
 	Disclaimer: Es un desastre la logica del frontend, como no era el principal
@@ -35,6 +35,7 @@ SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
 
 	addAsset(out->vector, "assets/anthill.png", "PNG", "Anthill", ALPHA);
 	addAsset(out->vector, "assets/ant.png", "PNG", "Ant", ALPHA);
+	addAsset(out->vector, "assets/trace.png", "PNG", "Trace", ALPHA);
 	addAsset(out->vector, "assets/smallFood1.png", "PNG", "SmallFood1", ALPHA);
 	addAsset(out->vector, "assets/smallFood2.png", "PNG", "SmallFood2", ALPHA);
 	addAsset(out->vector, "assets/bigFood2.png", "PNG", "BigFood2", ALPHA);
@@ -62,6 +63,7 @@ void addCommand(Command c){
 			commands[i].toX = c.toX;
 			commands[i].toY = c.toY;
 			commands[i].op = c.op;
+			commands[i].extra = c.extra;
 			commands[i].valid = 1;
 			pthread_mutex_unlock(&commands_mutex);
 			return;	// Command added
@@ -90,66 +92,55 @@ int executeMoveCommands(SDL_World * gameWorld){
 	return finishedTotal;
 }
 
-void executeDeleteFood(SDL_World * gameWorld){
-	int i;
-	for(i=0;i<commandsSize;i++)
-		if(commands[i].valid == 1 && commands[i].op == DeleteFoodCommand ){
-			deleteObject(gameWorld, commands[i].fromX, commands[i].fromY,FOOD_LAYER );
-			commands[i].valid = 0;
-		}
+void executeDeleteFood(SDL_World * gameWorld,Command * comm){
+	deleteObject(gameWorld, comm->fromX, comm->fromY,FOOD_LAYER );
+	comm->valid = 0;
 }
 
 // Basically execute Food commands.
-void executeRegisterFood(SDL_World * gameWorld){
-	int i;
-	for(i=0;i<commandsSize;i++)
-		if(commands[i].valid == 1 && commands[i].op == RegisterFoodCommand ){
+void executeRegisterFood(SDL_World * gameWorld,Command * comm){
+	char * name = malloc(sizeof(char)*10);
+	sprintf(name, "SmallFood%d", rand()%2 + 1 );
 
-			char * name = malloc(sizeof(char)*10);
-			sprintf(name, "SmallFood%d", rand()%2 + 1 );
-
-			addObject(gameWorld, name,commands[i].fromX, commands[i].fromY, FOOD_LAYER, !ANIMATED,!ORIENTED);
-			commands[i].valid = 0;
-		}
+	addObject(gameWorld, name,comm->fromX, comm->fromY, FOOD_LAYER, !ANIMATED,!ORIENTED);
+	comm->valid = 0;
 }
 
 
 // Basically execute Food commands.
-void executeRegisterBigFood(SDL_World * gameWorld){
-	int i;
-	for(i=0;i<commandsSize;i++)
-		if(commands[i].valid == 1 && commands[i].op == RegisterBigFoodCommand ){
+void executeRegisterBigFood(SDL_World * gameWorld, Command * comm){
+	char * name = malloc(sizeof(char)*10);
+	sprintf(name, "BigFood%d", rand()%2 + 1 );
 
-			char * name = malloc(sizeof(char)*10);
-			sprintf(name, "BigFood%d", rand()%2 + 1 );
+	addObject(gameWorld, name,comm->fromX, comm->fromY, FOOD_LAYER, !ANIMATED,!ORIENTED);
+	comm->valid = 0;
+}
 
-			addObject(gameWorld, name,commands[i].fromX, commands[i].fromY, FOOD_LAYER, !ANIMATED,!ORIENTED);
-			commands[i].valid = 0;
-		}
+// I HATE SDL DOESNT HAVE PER PIXEL BLENDING AND SURFACE BLENDING SIMULTANEOUSLY!!!
+void executeSetTrace(SDL_World * gameWorld, Command * comm){
+	// Clear trace before, so it can be updated
+	deleteObject(gameWorld,comm->fromX, comm->fromY, TRACE_LAYER );
+
+	int alpha = (1.0 - comm->extra.trace) * 10 + 1;
+	addObject(gameWorld, "Trace",comm->fromX, comm->fromY, TRACE_LAYER, ANIMATED,!ORIENTED);
+	setFrame(gameWorld, comm->fromX, comm->fromY, TRACE_LAYER, alpha); 
+	comm->valid = 0;
+}
+
+void executeDeleteTrace(SDL_World * gameWorld, Command * comm){
+	deleteObject(gameWorld,comm->fromX, comm->fromY, TRACE_LAYER );
+	comm->valid = 0;
 }
 
 
-// Basically execute Food commands.
-void executeRegisterAnthill(SDL_World * gameWorld){
-	int i;
-	for(i=0;i<commandsSize;i++)
-		if(commands[i].valid == 1 && commands[i].op == RegisterAnthillCommand ){
-			addObject(gameWorld, "Anthill",commands[i].fromX, commands[i].fromY, BG_LAYER, !ANIMATED,!ORIENTED);
-			commands[i].valid = 0;
-		}
+void executeRegisterAnthill(SDL_World * gameWorld, Command * comm){
+	addObject(gameWorld, "Anthill",comm->fromX, comm->fromY, BG_LAYER, !ANIMATED,!ORIENTED);
+	comm->valid = 0;
 }
 
-
-
-// Basically execute commands.
-void executeRegisterCommands(SDL_World * gameWorld){
-	int i;
-	for(i=0;i<commandsSize;i++)
-		if(commands[i].valid == 1 && commands[i].op == RegisterCommand ){
-			addObject(gameWorld, "Ant",commands[i].fromX, commands[i].fromY, ANT_LAYER, ANIMATED,ORIENTED);
-			commands[i].valid = 0;
-		}
-
+void executeRegisterCommands(SDL_World * gameWorld, Command * comm){
+	addObject(gameWorld, "Ant",comm->fromX, comm->fromY, ANT_LAYER, ANIMATED,ORIENTED);
+	comm->valid = 0;
 }
 
 
@@ -182,11 +173,19 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 		if(EOT)
 			if(executeMoveCommands(gameWorld)){
 
-				executeDeleteFood(gameWorld);
-				executeRegisterCommands(gameWorld);
-				executeRegisterAnthill(gameWorld);
-				executeRegisterFood(gameWorld);
-				executeRegisterBigFood(gameWorld);
+				for(i=0;i<commandsSize;i++)
+					if(commands[i].valid == 1 )
+					switch(commands[i].op ){
+						case RegisterCommand: executeRegisterCommands(gameWorld, commands+i); break;
+						case RegisterBigFoodCommand: executeRegisterBigFood(gameWorld,commands+i); break;
+						case RegisterFoodCommand: executeRegisterFood(gameWorld, commands+i); break;
+						case RegisterAnthillCommand: executeRegisterAnthill(gameWorld,commands+i); break;
+						case DeleteFoodCommand:	executeDeleteFood(gameWorld, commands+i); break;
+						case SetTraceCommand: executeSetTrace(gameWorld,commands+i); break;
+						case DeleteTraceCommand: executeDeleteTrace(gameWorld,commands+i); break;
+						default:break;
+					}
+
 				EOT = 0;
 				// Signal map that frontend finished executing.
 				pthread_cond_signal(&EOT_cond);

@@ -19,18 +19,25 @@
 #define SENSITIVITY 15
 #define DELAY 10	// delay in ms
 
-#define ANT_LAYER 1
-#define FOOD_LAYER 2
+#define ANT_LAYER 2
+#define FOOD_LAYER 3
+#define TRACE_LAYER 1
 #define BG_LAYER 0
 
-typedef enum { MoveFoodCommand, MoveAntCommand, RegisterAnthillCommand, RegisterCommand, RegisterFoodCommand, RegisterBigFoodCommand, DeleteFoodCommand } CommandOp;
+typedef enum { MoveFoodCommand, MoveAntCommand, RegisterAnthillCommand, \
+	RegisterCommand, RegisterFoodCommand, RegisterBigFoodCommand, DeleteFoodCommand, SetTraceCommand, DeleteTraceCommand } CommandOp;
 
 typedef struct{
 	int fromX,fromY;
 	int toX,toY;	
 	int valid;
 	CommandOp op;
-} Command;
+
+	union {
+		int points;
+		double trace;
+	} extra;
+} Command; 
 
 extern int EOT; // End of turn
 extern pthread_mutex_t EOT_mutex;
@@ -47,9 +54,6 @@ void gameLoop(SDL_World * world, SDL_Surface * screen);
 int getUserInput(SDL_World * gameWorld);
 
 int executeMoveCommands(SDL_World * gameWorld);
-
-
-void executeRegisterCommands(SDL_World * gameWorld);
 
 void addCommand(Command c);
 

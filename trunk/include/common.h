@@ -8,23 +8,17 @@ Description of protocol:
 Protocol between map and anthill
 
 Sent by map
-	Returned by anthill
+	No response by anthill (no need in this app)
 
 FOOD - SET = Ant has delivered small food
-	FOOD - OK = Anthill received food.
-	FOOD - NOT_OK = Anthill with problems ?  jaja
 FOOD - BIG = Ant has delivered BIG food
-	FOOD - OK = Anthill received big food.
-	FOOD - NOT_OK = Anthill with problems ?  jaja
-	
+
 _____________________________________________________
 
 Protocol between ant and map
 
 Sent by map
 	No response by ant (inefficient if not)
-
-SHOUT - SET = An ant has shout at pos	
 
 TURN - SET = The ant has a turn to use.
 
@@ -88,7 +82,7 @@ SHOUT - SET = Shout, broadcasting to all ants
 */
 
 
-typedef enum { REGISTER, MOVE, FOOD , SHOUT, TRACE, TURN } OpCode;
+typedef enum { REGISTER, MOVE, FOOD , SHOUT, TRACE, TURN, EXIT } OpCode;
 
 typedef enum { SET, GET, OK, NOT_OK, EMPTY, OCCUPIED, BIG } OpCodeParam;
 
@@ -99,12 +93,7 @@ typedef enum { false, true } bool;
 #define MAX_TURNS 1000
 
 #define MAP_ID -1
-
-
-typedef struct{
-	int key;
-	void * args;
-} PThreadArg;
+#define ANTHILL_KEY 2
 
 typedef struct{
 	int x;

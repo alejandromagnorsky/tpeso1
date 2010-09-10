@@ -31,6 +31,7 @@ void printMessage(Message * msg){
 		case SHOUT: opCodeStr = "SHOUT"; break;
 		case TRACE: opCodeStr = "Trace"; break;
 		case TURN: opCodeStr = "Turn"; break;
+		default: break;
 	}
 
 	switch(msg->param){
@@ -41,6 +42,7 @@ void printMessage(Message * msg){
 		case OCCUPIED: opCodeParamStr = "Occupied"; break;
 		case EMPTY: opCodeParamStr = "Empty"; break;
 		case BIG: opCodeParamStr = "Big food"; break;
+		default: break;
 	}
 
 	printf("OpCode: %s \n", opCodeStr);
