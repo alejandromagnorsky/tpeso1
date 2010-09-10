@@ -1,6 +1,7 @@
 #include <SDL.h>
 #include <SDL_audio.h>
 #include <SDL_mixer.h>
+#include <time.h>
 #include <SDL_rotozoom.h>
 #include "../include/SDL_utils.h"
 #include "../include/SDL_World.h"
@@ -24,6 +25,8 @@
 #define TRACE_LAYER 1
 #define BG_LAYER 0
 
+#define MAX_SOUNDS 1
+
 typedef enum { MoveFoodCommand, MoveAntCommand, RegisterAnthillCommand, \
 	RegisterCommand, RegisterFoodCommand, RegisterBigFoodCommand, DeleteFoodCommand, SetTraceCommand, DeleteTraceCommand } CommandOp;
 
@@ -43,6 +46,8 @@ extern int EOT; // End of turn
 extern pthread_mutex_t EOT_mutex;
 extern pthread_cond_t EOT_cond;
 
+extern Mix_Chunk * sounds[MAX_SOUNDS];
+
 void startGame(SDL_Surface * screen, int sizeX, int sizeY);
 
 void registerAnts(SDL_World * gameWorld);
@@ -59,9 +64,10 @@ void addCommand(Command c);
 
 // SDL SOUNDS
 void shout();
-Mix_Chunk * openSound(char * file);
+void playMusic();
+void openSounds();
 void playSound(Mix_Chunk * sound);
-void closeSounds(/*Mix_Chunk * sound*/);
+void closeSounds();
 
 int checkEOT();
 
