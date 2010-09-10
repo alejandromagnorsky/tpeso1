@@ -471,35 +471,38 @@ void getFoodFromWorld(Message * msg, World * world){
 	
 		Cell * foodCell = &world->cells[desiredPos.x][desiredPos.y];
 
-		// If foodCell has food
-		if(foodCell->type == FOOD_CELL ){
+		int antIndex =  antExistsInAnthill(world, msg->keyFrom);
 
-			//If it has small food
-			if(foodCell->foodType == SMALL_FOOD){
-				ans = createMessage( MAP_ID, msg->keyFrom, FOOD, OK, msg->pos, msg->trace);
+		// If ant IS NOT in anthill, then continue
+		if( antIndex == -1 )
+			// If foodCell has food
+			if(foodCell->type == FOOD_CELL ){
 
-				// Take food from cell, give it to ant
-				foodCell->type = EMPTY_CELL;
-				foodCell->foodType = NO_FOOD; // Doesn't really matter if EMPTY_CELL active
-				antCell->foodType = SMALL_FOOD;
+				//If it has small food
+				if(foodCell->foodType == SMALL_FOOD){
 
-				// Tell frontend to move food to ant
-				Command comm;
-				comm.fromX = foodCell->pos.x;
-				comm.fromY = foodCell->pos.y;
+						ans = createMessage( MAP_ID, msg->keyFrom, FOOD, OK, msg->pos, msg->trace);
+						// Take food from cell, give it to ant
+						foodCell->type = EMPTY_CELL;
+						foodCell->foodType = NO_FOOD; // Doesn't really matter if EMPTY_CELL active
+						antCell->foodType = SMALL_FOOD;
 
-				comm.toX = antCell->pos.x;
-				comm.toY = antCell->pos.y;
-				comm.op = MoveFoodCommand;	
-				addCommand(comm);
+						// Tell frontend to move food to ant
+						Command comm;
+						comm.fromX = foodCell->pos.x;
+						comm.fromY = foodCell->pos.y;
 
-			} else // If it has big food, warn ant
-			if(foodCell->foodType == BIG_FOOD)
-				ans = createMessage(MAP_ID, msg->keyFrom, FOOD, BIG, msg->pos, msg->trace);
+						comm.toX = antCell->pos.x;
+						comm.toY = antCell->pos.y;
+						comm.op = MoveFoodCommand;	
+						addCommand(comm);
+				// If it has big food, warn ant // LATER
+				} else if(foodCell->foodType == BIG_FOOD)
+						ans = createMessage(MAP_ID, msg->keyFrom, FOOD, BIG, msg->pos, msg->trace);
 
-			// Either take food or wait till someone helps
-			world->clients[clientIndex].turnLeft = NO_TURN;
-		}
+				// Either take food or wait till someone helps
+				world->clients[clientIndex].turnLeft = NO_TURN;
+			}
 	}
 
 	sendMessage(CLIENT, ans);
