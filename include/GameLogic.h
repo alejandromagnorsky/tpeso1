@@ -18,6 +18,7 @@
 #define SCREEN_HEIGHT 480
 
 #define SENSITIVITY 15
+#define ZOOM 0.1
 #define DELAY 10	// delay in ms
 
 #define ANT_LAYER 4

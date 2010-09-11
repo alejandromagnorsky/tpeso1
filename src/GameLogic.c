@@ -268,6 +268,9 @@ int getUserInput(SDL_World * gameWorld){
 	SDL_Event event;
 	Uint8 * keystate;
 
+	double z = 1;
+	bool hasZoomed = false;
+
 	while( SDL_PollEvent( &event ) ){
             /* See if user  quits */
 		if(event.type == SDL_QUIT )
@@ -283,10 +286,12 @@ int getUserInput(SDL_World * gameWorld){
 		else if(event.type == SDL_MOUSEBUTTONDOWN)
 			switch(event.button.button){
 				case SDL_BUTTON_WHEELUP:
-					zoom(gameWorld,1.05);
+					z += ZOOM;
+					hasZoomed = true;
 					break;
 				case SDL_BUTTON_WHEELDOWN:
-					zoom(gameWorld,0.95);
+					z -= ZOOM;
+					hasZoomed = true;
 					break;
 				case SDL_BUTTON(SDL_BUTTON_LEFT):
 					SDL_GetRelativeMouseState(NULL,NULL); // set postiion here
@@ -296,6 +301,9 @@ int getUserInput(SDL_World * gameWorld){
 		else if(event.type == SDL_MOUSEBUTTONUP)
 			mouseClicked = false; //change cursor here
 	}
+	
+	if(hasZoomed)
+		zoom(gameWorld,z);
 
 	/* Get a keyboard snapshot */
 	keystate = SDL_GetKeyState( NULL );
