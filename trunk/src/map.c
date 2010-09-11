@@ -377,12 +377,12 @@ int getQtyRegistered(World * world){
 }
 
 // Ants with turn left
-int getQtyActiveAnts(World * world){
+int getQtyWastedTurns(World * world){
 	int i;
 	int out = 0;
 	for(i=0;i<world->maxConnections;i++)
 		if(world->clients[i].key != INVALID_ID &&
-			world->clients[i].turnLeft > 0)
+			world->clients[i].turnLeft == NO_TURN)
 			out++;
 	return out;	
 }
@@ -390,11 +390,11 @@ int getQtyActiveAnts(World * world){
 int nextTurn(World * world){
 
 	//printWorldData(world);
-	int active =  getQtyActiveAnts(world);
+	int active =  getQtyWastedTurns(world);
 	Message * turn;
 
 //	printf("Active: %d\n", active);
-	if( active == 0 ){
+	if( active == world->maxConnections ){
 	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
 		Pos tmp = {0,0};
@@ -500,8 +500,6 @@ void getFoodFromWorld(Message * msg, World * world){
 						comm.op = MoveFoodCommand;	
 						addCommand(comm);
 
-						shout();
-
 				} else if(foodCell->foodType == BIG_FOOD){
 
 						// If there is no one helping, help
@@ -559,6 +557,7 @@ void setShout(Message *msg, World * world){
 		world->clients[clientIndex].turnLeft = NO_TURN;
 
 		// SHOUT! This is just to waste turn and tell frontend!
+		shout();
 
 		turn =  createMessage( MAP_ID, msg->keyFrom, SHOUT, OK, msg->pos, msg->trace);
 	}

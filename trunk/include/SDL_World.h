@@ -2,7 +2,7 @@
 #include "SDL_utils.h" 
 #include "SDL_AssetManager.h"
 
-#define LAYERS 5
+#define LAYERS 8
 
 #define ANIMATED 1
 #define ORIENTED 1

@@ -14,7 +14,7 @@ int currentScreams = 0;
 void * antMain(void * arg){
 
 	int key = (int)arg;
-//	printf("Ant Key: %d \n", key);
+	printf("Ant Key: %d \n", key);
 
 	Ant * ant = malloc(sizeof(Ant));        
     ant->food = false;

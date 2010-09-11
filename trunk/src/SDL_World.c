@@ -56,12 +56,15 @@ void endWorld(SDL_World * world){
 void zoom(SDL_World * world, double z){
 	if(z * world->zoomFactor < 0.1 )
 		return;
-
+	printf("voy a zoomear\n");
 	world->zoomFactor = ( z * world->zoomFactor >= 1) ? 1 : world->zoomFactor * z;
 	int qty = getQtyActiveAssets(world->vector);
 	int i;
 	for(i=0;i<qty;i++)
 		modifyAssetImage(world->vector, world->vector->assets[i].name, 0, world->zoomFactor);
+
+	printf("Termine de zoomear\n");
+
 }
 
 void renderGrid(SDL_World * world, SDL_Surface * screen, int gridSize){
@@ -95,9 +98,10 @@ void renderSDLWorld(SDL_World * world, SDL_Surface * screen){
 
 	// Esta es una solucion barata para que se mueva, y nada mas
 	blitSurface( screen, world->bgimage, world->cameraX , world->cameraY);
-	renderGrid(world,screen, world->gridSize);
+	//renderGrid(world,screen, world->gridSize);
 
 	int i,j,k;
+
 
 	for(i=0;i<LAYERS;i++)
 		for(j=0;j<world->sizeX;j++)
@@ -124,6 +128,7 @@ void renderSDLWorld(SDL_World * world, SDL_Surface * screen){
 					
 				}
 			}
+
 }
 
 int verifyGrid(SDL_World * world, int x, int y, int layer){
@@ -160,7 +165,6 @@ void setFrame(SDL_World * world, int x, int y, int layer, int frame) {
 
 void addObject(SDL_World * world, char * id, int x, int y, int layer, int animated, int oriented){
 	int index = getAssetIndex( world->vector, id);
-
 	// If asset exists and position is valid
 	if( index >= 0 && verifyGrid(world, x, y, layer))
 		if(world->grid[layer][x][y].id == -1){	// Grid must be empty
@@ -184,80 +188,88 @@ void deleteObject(SDL_World * world, int x, int y, int layer ){
 // Returns 1 if finished moving
 // Returns 0 if still waiting to move
 int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int layer){
-	int index = world->grid[layer][fromX][fromY].id;
 
-	// If object doesn't exist, finish
-	if(index <0)
-		return 1;
+	
 
-	// If asset exists and position is valid
-	if( verifyGrid(world, fromX, fromY, layer) && verifyGrid(world, toX, toY, layer)
-		&& ( fromX != toX || fromY != toY )){
+	if( verifyGrid(world, fromX, fromY, layer) && verifyGrid(world, toX, toY, layer)){
+	
+		int index = world->grid[layer][fromX][fromY].id;
 
-		// Still on fromX,fromY.. moving with offset
-		GridObject * nextGrid = &world->grid[layer][toX][toY];	
-		GridObject * oldGrid = &world->grid[layer][fromX][fromY];	
+		// If object doesn't exist, finish
+		if(index <0)
+			return 1;
 
-		int dX = toX - fromX;
-		int dY = toY - fromY;
+		// If asset exists and position is valid
+		if( fromX != toX || fromY != toY ){
 
-		int * dG; // Generic derivative
-		double * offset; // Generic offset
+			// Still on fromX,fromY.. moving with offset
+			GridObject * nextGrid = &world->grid[layer][toX][toY];	
+			GridObject * oldGrid = &world->grid[layer][fromX][fromY];	
 
-		// Move must be done in one direction, by one unit
-		if( (dX == 0 || dY == 0) && (abs(dX) == 1 || abs(dY) == 1) ){
+			int dX = toX - fromX;
+			int dY = toY - fromY;
 
-			// Guess frames
-			int frames;
-			int orientation;
-			if(oldGrid->animated){
-				if(oldGrid->oriented)	// If oriented, h is 4 times larger, for orientation sprites 
-					frames = world->vector->assets[index].image->w / (world->vector->assets[index].image->h/4);
-				else					
-					frames = world->vector->assets[index].image->w / world->vector->assets[index].image->h;
-			} else frames = 5;	// default movement 
+			int * dG; // Generic derivative
+			double * offset; // Generic offset
 
-			// Lets guess what to move
-			if(abs(dX) == 1){
-				dG = &dX;	
-				offset = &(oldGrid->offsetX);
-				orientation = dX > 0 ? SPRITE_LEFT : SPRITE_RIGHT;
+			// Move must be done in one direction, by one unit
+			if( (dX == 0 || dY == 0) && (abs(dX) == 1 || abs(dY) == 1) ){
 
-			} else if( abs(dY) == 1){
-				dG = &dY;
-				offset = &(oldGrid->offsetY);
-				orientation = dY > 0 ? SPRITE_UP : SPRITE_DOWN;
-			}
+				// Guess frames
+				int frames;
+				int orientation;
+				if(oldGrid->animated){
+					if(oldGrid->oriented)	// If oriented, h is 4 times larger, for orientation sprites 
+						frames = world->vector->assets[index].image->w / (world->vector->assets[index].image->h/4);
+					else					
+						frames = world->vector->assets[index].image->w / world->vector->assets[index].image->h;
+				} else frames = 5;	// default movement 
 
-			if(oldGrid->oriented)
-				oldGrid->orientation = orientation;
+				// Lets guess what to move
+				if(abs(dX) == 1){
+					dG = &dX;	
+					offset = &(oldGrid->offsetX);
+					orientation = dX > 0 ? SPRITE_LEFT : SPRITE_RIGHT;
 
-			// Move until got to next grid
-			if( (*offset) <= abs(*dG) && oldGrid->frame <= frames){
-				(*offset) += (*dG) / (double)frames;
-				oldGrid->frame++;
-			}
+				} else if( abs(dY) == 1){
+					dG = &dY;
+					offset = &(oldGrid->offsetY);
+					orientation = dY > 0 ? SPRITE_UP : SPRITE_DOWN;
+				}
 
-			// When finally moved, change grid values
-			if(fabs((*offset) - (*dG)) <= 0.1 ){
-				nextGrid->id = index;
-				nextGrid->offsetX = 0;
-				nextGrid->offsetY = 0;
-				nextGrid->frame = 1;
-				nextGrid->animated = oldGrid->animated;
-				nextGrid->oriented = oldGrid->oriented;
-				nextGrid->orientation = oldGrid->orientation;
+				if(oldGrid->oriented)
+					oldGrid->orientation = orientation;
 
-				oldGrid->id = -1;
-				(*offset) = 0;
-				oldGrid->frame = 1;
-				oldGrid->animated = !ANIMATED;
-				oldGrid->oriented = !ORIENTED;
-				oldGrid->orientation = SPRITE_DOWN; // Down is default
+				// Move until got to next grid
+				if( (*offset) <= abs(*dG) && oldGrid->frame <= frames){
+					(*offset) += (*dG) / (double)frames;
+					oldGrid->frame++;
+				}
 
-				return 1; // finished moving
+				// When finally moved, change grid values
+				if(fabs((*offset) - (*dG)) <= 0.1 ){
+					nextGrid->id = index;
+					nextGrid->offsetX = 0;
+					nextGrid->offsetY = 0;
+					nextGrid->frame = 1;
+					nextGrid->animated = oldGrid->animated;
+					nextGrid->oriented = oldGrid->oriented;
+					nextGrid->orientation = oldGrid->orientation;
+
+					oldGrid->id = -1;
+					(*offset) = 0;
+					oldGrid->frame = 1;
+					oldGrid->animated = !ANIMATED;
+					oldGrid->oriented = !ORIENTED;
+					oldGrid->orientation = SPRITE_DOWN; // Down is default
+
+					return 1; // finished moving
+				}
 			}
 		}
+	} else{
+	 printf("Falle: from (%d,%d) to (%d,%d), layer:%d, sizeX %d sizeY %d \n", fromX, fromY, toX,toY, layer, world->sizeX, world->sizeY);
+		exit(1);
 	}
 
 	return 0;	// still moving

@@ -15,20 +15,21 @@
 	Asi que sepan entender :P
 */
 
+
+int EOT = 0;
+
 pthread_mutex_t EOT_mutex =  PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t EOT_cond = PTHREAD_COND_INITIALIZER;
-
-
-
-pthread_mutex_t commands_mutex =  PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t commands_cond = PTHREAD_COND_INITIALIZER;
 
 Command * commands = NULL;
 int commandsSize;
 
-int EOT = 0;
+pthread_mutex_t commands_mutex =  PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t commands_cond = PTHREAD_COND_INITIALIZER;
 
 Mix_Chunk * sounds[MAX_SOUNDS];
+
+int mouseClicked = 0;
 
 void startGame(SDL_Surface * screen, int sizeX, int sizeY){
 
@@ -44,10 +45,22 @@ void initWorldRandomization(SDL_World * gameWorld){
 
 	int i;
 	int x,y;
-	for(i=0;i < gameWorld->sizeX + gameWorld->sizeY ;i+= 8){
+	for(i=0;i<gameWorld->sizeX;i+=2){
+		addObject(gameWorld, "Piedra1",i, 0, BG_LAYER, !ANIMATED,!ORIENTED);
+		addObject(gameWorld, "Piedra1",i, gameWorld->sizeY-1, BG_LAYER, !ANIMATED,!ORIENTED);
+	}
+
+	for(i=0;i<gameWorld->sizeY ;i+=2){
+		addObject(gameWorld, "Piedra1",0,i, BG_LAYER, !ANIMATED,!ORIENTED);
+		addObject(gameWorld, "Piedra1",gameWorld->sizeX -1,i, BG_LAYER, !ANIMATED,!ORIENTED);
+	}
+
+
+	int grietas = gameWorld->sizeX /(rand()%5);
+	for(i=0;i < grietas ;i+= 8){
 		x = rand()%gameWorld->sizeX;
 		y = rand()%gameWorld->sizeY;
-		addObject(gameWorld, "Piedra1",x, y, BG_LAYER, !ANIMATED,!ORIENTED);
+		addObject(gameWorld, "Grieta",x, y, BG_LAYER, !ANIMATED,!ORIENTED);
 	}
 
 }
@@ -68,6 +81,7 @@ SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
 
 	// Eye candyness X TREMEEEEEEee
 	addAsset(out->vector, "assets/piedra1.png", "PNG", "Piedra1", ALPHA);
+	addAsset(out->vector, "assets/grieta.png", "PNG", "Grieta", ALPHA);
 
 	initWorldRandomization(out);
 
@@ -198,7 +212,6 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 			return;
 	
 		pthread_mutex_lock(&EOT_mutex);
-
 		// If turn has ended, wait till all commands are executed 
 		if(EOT)
 			if(executeMoveCommands(gameWorld)){
@@ -231,7 +244,7 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 
 		/* Delay */
 		SDL_Delay( DELAY );
-	
+
 	}
 }
 
@@ -244,6 +257,14 @@ int getUserInput(SDL_World * gameWorld){
             /* See if user  quits */
 		if(event.type == SDL_QUIT )
 			return -1;
+		else if(event.type == SDL_MOUSEMOTION){
+			if(mouseClicked){
+				int x,y;
+				SDL_GetRelativeMouseState(&x,&y);
+				translateCamera(gameWorld,x,y);
+			}
+
+		}
 		else if(event.type == SDL_MOUSEBUTTONDOWN)
 			switch(event.button.button){
 				case SDL_BUTTON_WHEELUP:
@@ -252,7 +273,13 @@ int getUserInput(SDL_World * gameWorld){
 				case SDL_BUTTON_WHEELDOWN:
 					zoom(gameWorld,0.9);
 					break;
+				case SDL_BUTTON(SDL_BUTTON_LEFT):
+					SDL_GetRelativeMouseState(NULL,NULL); // set postiion here
+					mouseClicked = true; // change cursor to move cursor
+					break;
 			}
+		else if(event.type == SDL_MOUSEBUTTONUP)
+			mouseClicked = false; //change cursor here
 	}
 
 	/* Get a keyboard snapshot */
@@ -266,6 +293,7 @@ int getUserInput(SDL_World * gameWorld){
 	if(keystate[SDLK_UP])	translateCamera(gameWorld,0,SENSITIVITY);
 	if(keystate[SDLK_LEFT])	translateCamera(gameWorld,SENSITIVITY,0);
 	if(keystate[SDLK_RIGHT])translateCamera(gameWorld,-SENSITIVITY,0);
+
 
 	return 0;
 }
