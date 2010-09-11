@@ -20,9 +20,9 @@
 #define SENSITIVITY 15
 #define DELAY 10	// delay in ms
 
-#define ANT_LAYER 2
-#define FOOD_LAYER 3
-#define TRACE_LAYER 1
+#define ANT_LAYER 4
+#define FOOD_LAYER 5
+#define TRACE_LAYER 3
 #define BG_LAYER 0
 
 #define MAX_SOUNDS 3

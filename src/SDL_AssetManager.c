@@ -23,7 +23,7 @@ SDL_AssetVector * createAssetVector(int size){
 
 int getQtyActiveAssets(SDL_AssetVector * vector){
 	int i;
-	for(i=0;i<vector->size && vector->assets[i].original != NULL;i++);	
+	for(i=0;i<vector->size && vector->assets[i].original != NULL;i++);
 	return i;
 }
 
@@ -50,8 +50,6 @@ SDL_Asset * getAssetByName(SDL_AssetVector * vector,char * name){
 	if( i == vector->size && vector->assets[i].original != NULL && !strcmp(name, vector->assets[i-1].name))
 		return NULL;
 
-
-//	printf("Busque: %s. Encontre: %s, %d \n", name, assets[i].name, i);
 	return (vector->assets) + i;
 }
 
@@ -65,9 +63,19 @@ void addAsset(SDL_AssetVector * vector, char * filename, char * ext,  char * nam
 	// If there is no more place, alloc 10 more empty assets
 	if(index == vector->size && vector->assets[index-1].image != NULL){
 		vector->assets = realloc(vector->assets, (vector->size+10)*sizeof(SDL_Asset));
+		vector->size+= 10;
+
+		// And initialize new assets
+		int i;
+		for(i=index+1;i<vector->size;i++){
+			vector->assets[i].original = NULL;
+			vector->assets[i].image = NULL;
+			vector->assets[i].name = NULL;
+			vector->assets[i].filename = NULL;
+		}
 	}
 
-	vector->size++;
+
 	vector->assets[index].original = loadImageSDL( filename, ext , alpha);
 	vector->assets[index].image = rotozoomSurface(vector->assets[index].original, 0, 1, 1);
 	vector->assets[index].name = name;
@@ -75,9 +83,13 @@ void addAsset(SDL_AssetVector * vector, char * filename, char * ext,  char * nam
 }
 
 void modifyAssetImage(SDL_AssetVector * vector,char * name, double rotate, double zoom ){
+
 	// Rotation not implemented
 	SDL_Asset * asset = getAssetByName(vector,name);
-	SDL_FreeSurface(asset->image);
+
+	if(asset->image != NULL)
+		SDL_FreeSurface(asset->image);
+
 	asset->image = rotozoomSurface(asset->original, 0, zoom, 1);
 }
 
