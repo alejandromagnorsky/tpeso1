@@ -395,7 +395,7 @@ int nextTurn(World * world){
 
 //	printf("Active: %d\n", active);
 	if( active == world->maxConnections ){
-		printf("NUEVO TURNO: %d \n", world->turnsLeft);
+	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
 		Pos tmp = {0,0};
 
