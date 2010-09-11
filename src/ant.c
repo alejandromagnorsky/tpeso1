@@ -155,6 +155,7 @@ randomMove(Ant * ant, bool trace){
 	Pos currentPos = getCurrentPos(ant->key);
 	int index, count = 0;
 	Pos to;
+	bool moved;
 	bool tried[4] = {false, false, false, false};	// Verify if the ant tried to go to the i direction
 	do{
 		do{
@@ -170,9 +171,9 @@ randomMove(Ant * ant, bool trace){
 			if(getNearFood(ant, to))
 				return true; // The ant took food
 		}
-	} while(!move(to, trace, ant->key) && count < 4);
+	} while(!(moved=move(to, trace, ant->key)) && count < 4);
 	
-	if(count == 4)
+	if(!moved && count == 4)
 		return false;	// It didn't move or take food
 	return true;	// The ant moved
 }
