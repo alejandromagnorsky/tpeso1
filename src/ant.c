@@ -2,19 +2,24 @@
 #include "../include/common.h"
 
 int vecMov[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // Represents: up, right, down and left
+pthread_mutex_t shoutMutex;
+pthread_cond_t shoutCond;
+int antsToWait = -1;
 int futureScreams = 0;
 int currentScreams = 0;
+int antsQuantity;
+int _count = 0;
 
 //---------------------------------------------
 //FALTA:
 //DEFINIR LA INTERACCION ENTRE HORMIGAS JUNTAS
-//AGREGAR EL COMPORTAMIENTO PARA LAS BIG INCLUYENDO EL SHOUT
+//AGREGAR EL COMPORTAMIENTO PARA SHOUT
 //---------------------------------------------
 
 void * antMain(void * arg){
 
 	int key = (int)arg;
-	printf("Ant Key: %d \n", key);
+	//printf("Ant Key: %d \n", key);
 
 	Ant * ant = malloc(sizeof(Ant));        
     ant->food = false;
@@ -23,9 +28,7 @@ void * antMain(void * arg){
 
 	setRegister(ant);
 
-	//printf("KEY: %d. Intensity: %d. FS: %d\n", key, screams[key-3].intensity, futureScreams++);
-
-	Pos to = {0,1};
+	Pos to = {0,0};
 	Message * send;
 	Message * received;
 
@@ -52,6 +55,41 @@ void * antMain(void * arg){
 
 bool
 action(Ant * ant){
+	pthread_mutex_lock(&shoutMutex);
+
+	/*if(antsToWait == -1){ // Initialize
+		antsToWait = futureScreams+currentScreams;	// Quantity of ants that has to update the intensity of their screams
+		printf("ANTSTOWAIT: %d\n", antsToWait);
+	}
+	printf("Future: %d. Current: %d\n", futureScreams, currentScreams);
+	reduceScreamIntensity(ant);		// Validate or delete the scream if the ant has shouted
+	printf("KEY: %d. antsToWait = %d\n", ant->key, antsToWait);
+	if(antsToWait > 0)
+		pthread_cond_wait(&shoutCond, &shoutMutex);
+	else 
+		pthread_cond_broadcast(&shoutCond);
+	*/
+	
+	printf("Ant Key: %d \n", ant->key);
+	_count++;
+	if(_count == antsQuantity){ // The last ant in the turn
+		printf("TERMINO TURNO\n");
+		_count = 0;
+		antsToWait = -1;
+	}
+	pthread_mutex_unlock(&shoutMutex);
+
+/*
+	if(ant->op != -1 || ant->food){	// If the ant isn't doing anything
+		if(getNearestScream(ant))	// If the ant has any partner who shouted near, go to help
+			ant->op = FOLLOW_SHOUT;
+	}*/
+	
+		
+
+	
+
+
 	if(ant->op == -1){	// If the ant 	
 		if(ant->food)	// If the ant is carrying food
 			return goAnthill(ant);
@@ -63,24 +101,25 @@ action(Ant * ant){
 				return randomMove(ant, false);
 		}
 	} else {
-		if(ant->op == GET_FOOD){
+		switch(ant->op){
+		case GET_FOOD:
 			ant->op = -1;
 			return getNearFood(ant, ant->auxPos);	// Get the food that the ant found in the previous turn
-		} else if(ant->op == FOLLOW_TRACE){
+		case FOLLOW_TRACE:
 			if(rand()%100 < 80)
 				ant->op = SMELL; // The next turn use search
 			else
 				ant->op = -1;
 			return move(ant->auxPos, false, ant->key);	// Follows the trace
-		} else if(ant->op == SMELL) { // The ant has to search
+		case SMELL:	// The ant has to search
 			ant->op = -1;
 			search(ant);
 			return false;
-		} else if(ant->op == SET_SHOUT) {
-			ant->op = GET_FOOD;
+		case SET_SHOUT:
 			setShout(ant);
+			ant->op = GET_FOOD;
 			return true;
-		} else {
+		default:
 			return followShout(ant);
 		}
 	}
@@ -327,13 +366,6 @@ setFood(Ant * ant, Pos to){
 }
 
 
-bool
-hasShouted(Ant * ant, Pos to){
-	int index = ant->key - 3;
-	return ant->op != FOLLOW_SHOUT && screams[index].pos.x == to.x && screams[index].pos.y == to.y;
-}
-
-
 void
 setShout(Ant * ant){
 	int index = ant->key - 3;
@@ -346,11 +378,12 @@ setShout(Ant * ant){
 	sendMessage(SERVER, send);
 
 	received = receiveMessage(SERVER, ant->key);
-	if(received->opCode == SHOUT && received->opCode == OK){
+	if(received->opCode == SHOUT && received->param == OK){
 		screams[index].intensity = 1;
 		screams[index].pos = ant->auxPos;
 		futureScreams++;
-	} else 
+		printf("KEY: %d. Intensity: %d. Pos: (%d,%d) \n", ant->key, screams[index].intensity, screams[index].pos.x, screams[index].pos.y);
+	} else
 		printf("I cannot shout!\n");
 	
 }
@@ -380,11 +413,11 @@ followShout(Ant * ant){
 
 
 bool
-getNearestShout(Ant * ant){
+getNearestScream(Ant * ant){
 	int i = 0, j = 0;
 	Pos currentPos = getCurrentPos(ant->key);
 	Pos tmpPos;
-	int tmpDist = 15; // Starts whit the maximun distance
+	int tmpDist = 15; // Starts with the maximun distance
 	while(j < currentScreams){
 		if(screams[i].intensity == 0){
 			j++;
@@ -401,6 +434,30 @@ getNearestShout(Ant * ant){
 		return true;
 	}
 	return false;
+}
+
+
+bool
+hasShouted(Ant * ant, Pos to){
+	int index = ant->key - 3;
+	return ant->op == FOLLOW_SHOUT || (screams[index].pos.x == to.x && screams[index].pos.y == to.y);
+}
+
+
+void
+reduceScreamIntensity(Ant * ant){
+	int index = ant->key - 3;
+	if(screams[index].intensity > -1){
+		if(screams[index].intensity == 1){
+			futureScreams--;
+			currentScreams++;
+		} else if(screams[index].intensity == 0){
+			currentScreams--;
+			screams[index].intensity--;
+		}		
+		screams[index].intensity--;
+		antsToWait--;
+	}
 }
 
 

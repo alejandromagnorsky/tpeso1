@@ -395,7 +395,7 @@ int nextTurn(World * world){
 
 //	printf("Active: %d\n", active);
 	if( active == world->maxConnections ){
-	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
+		printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
 		Pos tmp = {0,0};
 
@@ -434,7 +434,7 @@ int nextTurn(World * world){
 				turn = createMessage( MAP_ID, world->clients[i].key, TURN, SET, tmp, 0);
 				sendMessage(CLIENT, turn);
 			}
-
+		sleep(1);
 		// Tell frontend turn has ended
 		pthread_mutex_lock(&EOT_mutex);
 
