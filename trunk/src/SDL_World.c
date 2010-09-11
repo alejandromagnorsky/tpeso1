@@ -54,14 +54,9 @@ void endWorld(SDL_World * world){
 }
 
 void zoom(SDL_World * world, double z){
-	int x,y;
 	int cursorX, cursorY;
-	x = world->cameraX;
-	y = world->cameraY;
 
 	SDL_GetMouseState(&cursorX,&cursorY);
-
-//	translateCamera(world,-cursorX,-cursorY);
 
 	if(z * world->zoomFactor < 0.1  || z * world->zoomFactor >= 1)
 		return;
