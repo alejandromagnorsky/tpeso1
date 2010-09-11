@@ -551,8 +551,6 @@ void setTurn(Message *msg, World * world){
 void setShout(Message *msg, World * world){
 	Message * turn =  createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
 	
-	printf("Grite!\n");
-
 	int clientIndex = getAntIndexByKey(world, msg->keyFrom);
 	if( world->clients[clientIndex].turnLeft == LEFT_TURN){
 
@@ -560,7 +558,6 @@ void setShout(Message *msg, World * world){
 
 		// SHOUT! This is just to waste turn and tell frontend!
 		shout();
-		printf("Grite!\n");
 
 		turn =  createMessage( MAP_ID, msg->keyFrom, SHOUT, OK, msg->pos, msg->trace);
 	}

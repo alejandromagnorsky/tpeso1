@@ -56,7 +56,7 @@ void initWorldRandomization(SDL_World * gameWorld){
 	}
 
 
-	int grietas = gameWorld->sizeX /(rand()%5);
+	int grietas = gameWorld->sizeX /((rand()%4)+1);
 	for(i=0;i < grietas ;i+= 8){
 		x = rand()%gameWorld->sizeX;
 		y = rand()%gameWorld->sizeY;
@@ -66,6 +66,7 @@ void initWorldRandomization(SDL_World * gameWorld){
 }
 
 SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
+
 	SDL_World * out = getSDLWorld(sizeX, sizeY, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
 //	addAsset(out->vector, "assets/ant.png", "PNG", "Ant", ALPHA);
@@ -282,10 +283,10 @@ int getUserInput(SDL_World * gameWorld){
 		else if(event.type == SDL_MOUSEBUTTONDOWN)
 			switch(event.button.button){
 				case SDL_BUTTON_WHEELUP:
-					zoom(gameWorld,1.1);
+					zoom(gameWorld,1.05);
 					break;
 				case SDL_BUTTON_WHEELDOWN:
-					zoom(gameWorld,0.9);
+					zoom(gameWorld,0.95);
 					break;
 				case SDL_BUTTON(SDL_BUTTON_LEFT):
 					SDL_GetRelativeMouseState(NULL,NULL); // set postiion here
@@ -302,12 +303,12 @@ int getUserInput(SDL_World * gameWorld){
 	// If user presses ESC
 	if(keystate[SDLK_ESCAPE])
 		return -1;
-
+/*
 	if(keystate[SDLK_DOWN])	translateCamera(gameWorld,0,-SENSITIVITY);
 	if(keystate[SDLK_UP])	translateCamera(gameWorld,0,SENSITIVITY);
 	if(keystate[SDLK_LEFT])	translateCamera(gameWorld,SENSITIVITY,0);
 	if(keystate[SDLK_RIGHT])translateCamera(gameWorld,-SENSITIVITY,0);
-
+*/
 
 	return 0;
 }
