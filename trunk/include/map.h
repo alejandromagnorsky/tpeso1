@@ -54,6 +54,7 @@ typedef struct World{
 	Client * clients;
 	int turnsLeft;
 	int points;
+	int maxPoints;
 } World;
 
 void * mapMain(void * arg);

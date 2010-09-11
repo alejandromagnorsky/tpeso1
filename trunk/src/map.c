@@ -397,6 +397,9 @@ int nextTurn(World * world){
 	if( active == world->maxConnections ){
 	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
+		if(world->points == world->maxPoints)
+			return 0;
+
 		Pos tmp = {0,0};
 
 		Command comm;
@@ -629,8 +632,9 @@ World * mondoGenerator(){
 	out->anthill.maxPopulation = out->maxConnections;;
 	out->turnsLeft = MAX_TURNS;
 	out->points = 0;
+	out->maxPoints = 0;
 	smallFood = (rand() % (out->sizeX - 1)) + 1;
-	bigFood = 0;
+	bigFood = (rand() % (out->sizeX - 1)) + 1;
 
 	/* Clients initialization */
 	out->anthill.ants = malloc(out->maxConnections * sizeof(int));
@@ -672,6 +676,7 @@ World * mondoGenerator(){
 		} while (out->cells[x][y].type == ANTHILL_CELL);
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = SMALL_FOOD;
+		out->maxPoints++;
 	}
 
 	/* Validate and set big food cells */
@@ -682,6 +687,7 @@ World * mondoGenerator(){
 		} while (out->cells[x][y].type == ANTHILL_CELL);
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = BIG_FOOD;
+		out->maxPoints+=5;
 	}
 
 	return out;	
@@ -718,6 +724,7 @@ World * getWorld(char * filename){
 	out->anthill.maxPopulation = out->maxConnections;
 	out->turnsLeft = MAX_TURNS;
 	out->points = 0;
+	out->maxPoints = 0;
 
 	/* Clients initialization */
 	out->anthill.ants = malloc(out->maxConnections * sizeof(int));
@@ -759,6 +766,7 @@ World * getWorld(char * filename){
 			parseError("I find your lack of faith in my parser disturbing.");
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = SMALL_FOOD;
+		out->maxPoints++;
 	}
 
 	/* Read world's big food quantity, then validate it*/
@@ -775,6 +783,7 @@ World * getWorld(char * filename){
 			parseError("May the parser be with you.");
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = BIG_FOOD;
+		out->maxPoints+= 5;
 	}
 
 	if ( fclose(fd) < 0 )

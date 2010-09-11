@@ -283,6 +283,9 @@ int getUserInput(SDL_World * gameWorld){
 			}
 
 		}
+		// I prevented calling zoom() for each event, because
+		// it slows down fps. It polls way too many events,
+		// so that many calls to zoom is inefficient.
 		else if(event.type == SDL_MOUSEBUTTONDOWN)
 			switch(event.button.button){
 				case SDL_BUTTON_WHEELUP:
