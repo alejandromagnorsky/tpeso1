@@ -57,19 +57,20 @@ bool
 action(Ant * ant){
 	pthread_mutex_lock(&shoutMutex);
 
-	/*if(antsToWait == -1){ // Initialize
+	if(antsToWait == -1){ // Initialize
 		antsToWait = futureScreams+currentScreams;	// Quantity of ants that has to update the intensity of their screams
-		printf("ANTSTOWAIT: %d\n", antsToWait);
+		//printf("ANTSTOWAIT: %d\n", antsToWait);
 	}
-	printf("Future: %d. Current: %d\n", futureScreams, currentScreams);
+	//printf("Future: %d. Current: %d\n", futureScreams, currentScreams);
 	reduceScreamIntensity(ant);		// Validate or delete the scream if the ant has shouted
-	printf("KEY: %d. antsToWait = %d\n", ant->key, antsToWait);
+	//printf("KEY: %d. antsToWait = %d\n", ant->key, antsToWait);
 	if(antsToWait > 0)
 		pthread_cond_wait(&shoutCond, &shoutMutex);
 	else 
-		pthread_cond_broadcast(&shoutCond);
-	*/
-	
+		pthread_cond_broadcast(&shoutCond);	
+
+	pthread_mutex_unlock(&shoutMutex);
+
 //	printf("Ant Key: %d \n", ant->key);
 	_count++;
 	if(_count == antsQuantity){ // The last ant in the turn
@@ -77,19 +78,11 @@ action(Ant * ant){
 		_count = 0;
 		antsToWait = -1;
 	}
-	pthread_mutex_unlock(&shoutMutex);
 
-/*
-	if(ant->op != -1 || ant->food){	// If the ant isn't doing anything
-		if(getNearestScream(ant))	// If the ant has any partner who shouted near, go to help
-			ant->op = FOLLOW_SHOUT;
-	}*/
+	if(ant->op == -1 && !ant->food)	// If the ant isn't doing anything
+		getNearestScream(ant); 	// If the ant has any partner who shouted near, go to help
 	
-		
-
 	
-
-
 	if(ant->op == -1){	// If the ant 	
 		if(ant->food)	// If the ant is carrying food
 			return goAnthill(ant);
@@ -103,7 +96,6 @@ action(Ant * ant){
 	} else {
 		switch(ant->op){
 		case GET_FOOD:
-			ant->op = -1;
 			return getNearFood(ant, ant->auxPos);	// Get the food that the ant found in the previous turn
 		case FOLLOW_TRACE:
 			if(rand()%100 < 80)
@@ -119,8 +111,11 @@ action(Ant * ant){
 			setShout(ant);
 			ant->op = GET_FOOD;
 			return true;
-		default:
+		case FOLLOW_SHOUT:
 			return followShout(ant);
+		default:
+			printf("Error. The ant hasn't got any valid operation\n");
+			return true;
 		}
 	}
 }
@@ -322,6 +317,7 @@ getNearFood(Ant * ant, Pos to){
 	if(received->opCode == FOOD && received->param == OK){
 		//printf("I get food! \n");
 		ant->food = true;
+		ant->op = -1;
 		return true;
 	} else if(received->opCode == FOOD && received->param == BIG){
 		//printf("I cannot get food, too big! \n");
@@ -332,6 +328,7 @@ getNearFood(Ant * ant, Pos to){
 		ant->auxPos = to;
 		return true;
 	}
+	ant->op = -1;
 	//else 
 	//		printf("I cannot get food =( \n");
 	return false;
@@ -357,7 +354,7 @@ setFood(Ant * ant, Pos to){
 	received = receiveMessage(SERVER, ant->key);
 	//printMessage(received);
 	if(received->opCode == FOOD && received->param == OK ){
-		printf("I left food at anthill!\n");
+		//printf("I left food at anthill!\n");
 		ant->food = false;
 		return true;
 	} else {
@@ -397,12 +394,11 @@ followShout(Ant * ant){
 	Pos mov, to;
 	mov.x = vecMov[card][0]; 
 	mov.y = vecMov[card][1];
-	
+	printf("%d siguiendo el grito\n", ant->key);
 	to.x = currentPos.x+mov.x;
 	to.y = currentPos.y+mov.y;
 	// If the ant is going to arrive to the big food
 	if( ant->auxPos.x == to.x && ant->auxPos.y == to.y ){
-		ant->op = -1;
 		return getNearFood(ant, to);
 	}
 	// Tries to move closer, but if it can't then, move to another direction
@@ -425,11 +421,13 @@ getNearestScream(Ant * ant){
 			if(getDistance(currentPos, screams[i].pos) < tmpDist){
 				tmpPos = screams[i].pos;
 				tmpDist = getDistance(currentPos, tmpPos);
+				//printf("Candidata de %d: (%d,%d). Dist: %d\n", ant->key, tmpPos.x, tmpPos.y, tmpDist);
 			}
 		}
 		i++;
 	}
 	if(tmpDist != 15){
+		printf("Elegida por %d: (%d, %d) -- (%d,%d). Dist: %d\n", ant->key, currentPos.x, currentPos.y, tmpPos.x, tmpPos.y, tmpDist);
 		ant->op = FOLLOW_SHOUT;
 		ant->auxPos = tmpPos;
 		return true;
