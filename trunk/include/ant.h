@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include "../include/common.h"
 #include "../include/communication.h"
-#include "../include/map.h"
+
 
 typedef enum { north, east, south, west, northwest, northeast, southeast, southwest } Cardinal;
 typedef enum {GET_FOOD, FOLLOW_TRACE, SET_SHOUT, FOLLOW_SHOUT, SMELL} AntOp;
@@ -52,7 +52,11 @@ void setShout(Ant * ant);
 
 bool followShout(Ant * ant);
 
+bool getNearestScream(Ant * ant);
+
 bool hasShouted(Ant * ant, Pos to);
+
+void reduceScreamIntensity(Ant * ant);
 
 int getDistance(Pos from, Pos to);
 

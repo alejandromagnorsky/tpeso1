@@ -70,7 +70,7 @@ SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
 
 //	addAsset(out->vector, "assets/ant.png", "PNG", "Ant", ALPHA);
 
-	addAsset(out->vector, "assets/cavemen.png", "PNG", "Ant", ALPHA);
+	addAsset(out->vector, "assets/ant.png", "PNG", "Ant", ALPHA);
 	addAsset(out->vector, "assets/anthill.png", "PNG", "Anthill", ALPHA);
 	addAsset(out->vector, "assets/trace.png", "PNG", "Trace", ALPHA);
 	addAsset(out->vector, "assets/smallFood1.png", "PNG", "SmallFood1", ALPHA);

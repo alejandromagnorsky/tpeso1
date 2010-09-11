@@ -6,6 +6,7 @@
 #include <pthread.h>
 
 Scream * screams;
+extern int antsQuantity;
 
 int main(int argc, char * argv[]){
 
@@ -16,7 +17,7 @@ int main(int argc, char * argv[]){
 //	printf("Anthill Key: %d Ants: %d\n", key, ants);
 
 	openClient((void*)ants);
-
+	antsQuantity = ants;
 	screams = malloc(ants*sizeof(Scream));
 	for(i = 0; i < ants; i++)
 		screams[i].intensity = -1;

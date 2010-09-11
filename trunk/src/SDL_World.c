@@ -98,7 +98,7 @@ void renderSDLWorld(SDL_World * world, SDL_Surface * screen){
 
 	// Esta es una solucion barata para que se mueva, y nada mas
 	blitSurface( screen, world->bgimage, world->cameraX , world->cameraY);
-	//renderGrid(world,screen, world->gridSize);
+	renderGrid(world,screen, world->gridSize);
 
 	int i,j,k;
 
