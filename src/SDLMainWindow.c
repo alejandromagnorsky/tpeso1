@@ -68,6 +68,7 @@ int main(int argc, char * argv[]){
 	//world = mondoGenerator();	
 
 	openSounds();
+
 	world = getWorld("testmap");
 	pthread_t mapThread;
 	pthread_create(&mapThread, NULL, mapMain,(void *) world);

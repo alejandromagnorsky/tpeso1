@@ -54,16 +54,25 @@ void endWorld(SDL_World * world){
 }
 
 void zoom(SDL_World * world, double z){
-	if(z * world->zoomFactor < 0.1 )
+	int x,y;
+	int cursorX, cursorY;
+	x = world->cameraX;
+	y = world->cameraY;
+
+	SDL_GetMouseState(&cursorX,&cursorY);
+
+//	translateCamera(world,-cursorX,-cursorY);
+
+	if(z * world->zoomFactor < 0.1  || z * world->zoomFactor >= 1)
 		return;
-	printf("voy a zoomear\n");
-	world->zoomFactor = ( z * world->zoomFactor >= 1) ? 1 : world->zoomFactor * z;
+
+	world->zoomFactor *= z;
 	int qty = getQtyActiveAssets(world->vector);
 	int i;
 	for(i=0;i<qty;i++)
 		modifyAssetImage(world->vector, world->vector->assets[i].name, 0, world->zoomFactor);
 
-	printf("Termine de zoomear\n");
+	translateCamera(world,cursorX*(1.0-z),cursorY*(1.0-z));
 
 }
 
@@ -242,7 +251,7 @@ int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int la
 
 				// Move until got to next grid
 				if( (*offset) <= abs(*dG) && oldGrid->frame <= frames){
-					(*offset) += (*dG) / (double)frames;
+					(*offset) += (*dG) / (double)frames;	// frames cant be 0, this would imply image->w is 0
 					oldGrid->frame++;
 				}
 

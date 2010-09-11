@@ -205,6 +205,9 @@ void SDL_printLine(SDL_Surface * screen, int x1, int y1, int x2, int y2, Uint32 
 
 	distance =  sqrt( pow( x2 - x1, 2 ) + pow( y2 - y1, 2 ) );
 
+	if(distance == 0 ) 
+		return;
+
 	SDL_LockSurface(screen);
 
 	for( lambda=0;lambda<1;lambda+=1/distance)
