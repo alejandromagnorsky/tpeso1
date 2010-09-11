@@ -70,10 +70,10 @@ action(Ant * ant){
 		pthread_cond_broadcast(&shoutCond);
 	*/
 	
-	printf("Ant Key: %d \n", ant->key);
+//	printf("Ant Key: %d \n", ant->key);
 	_count++;
 	if(_count == antsQuantity){ // The last ant in the turn
-		printf("TERMINO TURNO\n");
+	//	printf("TERMINO TURNO\n");
 		_count = 0;
 		antsToWait = -1;
 	}
@@ -325,9 +325,9 @@ getNearFood(Ant * ant, Pos to){
 		return true;
 	} else if(received->opCode == FOOD && received->param == BIG){
 		//printf("I cannot get food, too big! \n");
-		/*if(!hasShouted(ant, to)) // If the ant didn't shout yet about that big food, shout in the next turn
+		if(!hasShouted(ant, to)) // If the ant didn't shout yet about that big food, shout in the next turn
 			ant->op = SET_SHOUT;
-		else*/
+		else
 			ant->op = GET_FOOD;
 		ant->auxPos = to;
 		return true;

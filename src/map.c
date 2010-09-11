@@ -434,7 +434,7 @@ int nextTurn(World * world){
 				turn = createMessage( MAP_ID, world->clients[i].key, TURN, SET, tmp, 0);
 				sendMessage(CLIENT, turn);
 			}
-		sleep(1);
+
 		// Tell frontend turn has ended
 		pthread_mutex_lock(&EOT_mutex);
 
@@ -551,6 +551,8 @@ void setTurn(Message *msg, World * world){
 void setShout(Message *msg, World * world){
 	Message * turn =  createMessage( MAP_ID, msg->keyFrom, TURN, NOT_OK, msg->pos, msg->trace);
 	
+	printf("Grite!\n");
+
 	int clientIndex = getAntIndexByKey(world, msg->keyFrom);
 	if( world->clients[clientIndex].turnLeft == LEFT_TURN){
 
@@ -558,6 +560,7 @@ void setShout(Message *msg, World * world){
 
 		// SHOUT! This is just to waste turn and tell frontend!
 		shout();
+		printf("Grite!\n");
 
 		turn =  createMessage( MAP_ID, msg->keyFrom, SHOUT, OK, msg->pos, msg->trace);
 	}
@@ -595,7 +598,6 @@ void parseMessage(Message * msg, World * world){
 				if(msg->param == SET)
 					setTurn(msg, world);
 				break;
-
 			case SHOUT:
 				if(msg->param == SET)
 					setShout(msg, world);

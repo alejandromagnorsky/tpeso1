@@ -205,6 +205,14 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 
 	pthread_mutex_unlock(&commands_mutex);
 
+
+	SDL_Surface * cursor = loadImageSDL("assets/cursor_base.png", "PNG", ALPHA);
+	SDL_Surface * moveCursor = loadImageSDL("assets/cursor_move.png", "PNG", ALPHA);
+
+	SDL_ShowCursor(SDL_DISABLE);
+	int cursorX,cursorY;
+
+
 	while(1){
 
 		// Pan & zoom
@@ -238,6 +246,12 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 
 		// Render world
 		renderSDLWorld(gameWorld, screen);
+
+		// Render custom cursor
+		SDL_GetMouseState(&cursorX,&cursorY);
+		if(mouseClicked)
+			blitSurface(screen, moveCursor,cursorX,cursorY);
+		else blitSurface(screen, cursor,cursorX,cursorY);
 
 		/* Update screen */
 		SDL_Flip(screen);  
