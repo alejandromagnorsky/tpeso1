@@ -296,8 +296,10 @@ search(Ant * ant){
 bool 
 getNearFood(Ant * ant, Pos to){
 	Pos currentPos = getCurrentPos(ant->key);
-	if(currentPos.x == ant->anthill.x && currentPos.y == ant->anthill.y) // Ants cannot get food from the anthill
+	if(currentPos.x == ant->anthill.x && currentPos.y == ant->anthill.y){ // Ants cannot get food from the anthill
+		ant->op = -1;	
 		return false;
+	}
 	
 	Pos mov;
 	Message * send;	
