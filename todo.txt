@@ -1,0 +1,11 @@
+TODO
+
+- Directorio de assets no hardcodeado
+- Handling de errores, y termino del mapa (broadcast de EXIT - OK/NOT_OK)
+- Conflictos entre mensajes, swappeo de hormigas
+- Arreglar bug de shm (?)
+- Adaptar fifo y sockets a la nueva interfaz
+- Terminar de graficar
+- Implementar fondo tileable
+- Liberar recursor, debuggear con valgrind
+- Arreglar bug del zoom (segfault)
