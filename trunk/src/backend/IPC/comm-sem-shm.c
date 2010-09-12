@@ -10,7 +10,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/sem.h>
-#include "../include/communication.h"
+#include "../../../include/transport.h"
 
 // Semaphores
 key_t keyRead = 1000;
@@ -21,8 +21,8 @@ int semWrite;
 // For the shm
 int serverFd; 
 int clientFd;
-Message * memServer;
-Message * memClient;
+char * memServer;
+char * memClient;
 
 
 int clientquant;

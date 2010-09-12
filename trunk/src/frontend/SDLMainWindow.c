@@ -2,14 +2,14 @@
 #include <signal.h>
 #include <unistd.h>
 #include <SDL_rotozoom.h>
-#include "../include/SDL_utils.h"
-#include "../include/SDL_AssetManager.h"
-#include "../include/GameLogic.h"
-#include "../include/communication.h"
+#include "../../include/SDL_utils.h"
+#include "../../include/SDL_AssetManager.h"
+#include "../../include/GameLogic.h"
+#include "../../include/transport.h"
 
-#include "../include/ant.h"
-#include "../include/anthill.h"
-#include "../include/map.h"
+#include "../../include/ant.h"
+#include "../../include/anthill.h"
+#include "../../include/map.h"
 #include <pthread.h>
 
 #define SCREEN_WIDTH 644
@@ -65,11 +65,11 @@ int main(int argc, char * argv[]){
 
 	// MAP LOADER HERE
 	World * world;
-	world = mondoGenerator();	
+	//world = mondoGenerator();	
 
 	openSounds();
 
-	//world = getWorld("testmap");
+	world = getWorld("testmap");
 	pthread_t mapThread;
 	pthread_create(&mapThread, NULL, mapMain,(void *) world);
 
@@ -77,7 +77,6 @@ int main(int argc, char * argv[]){
 
 //	endWorld(world);
 
-	closeIPC();
 	destroyIPC();
 
 //	SDL_FreeSurface(screen);

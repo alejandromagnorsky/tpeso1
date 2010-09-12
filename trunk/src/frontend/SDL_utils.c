@@ -1,4 +1,4 @@
-#include "../include/SDL_utils.h"
+#include "../../include/SDL_utils.h"
 #include <math.h>
 
 /* Load an optimized image */

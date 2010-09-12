@@ -6,7 +6,7 @@
 #include "../include/SDL_utils.h"
 #include "../include/SDL_World.h"
 #include "../include/SDL_AssetManager.h"
-#include "../include/communication.h"
+#include "../include/transport.h"
 #include <pthread.h>
 
 #define AVL_SOUND_CHANNEL -1
@@ -42,6 +42,7 @@ typedef struct{
 		double trace;
 	} extra;
 } Command; 
+
 
 extern int EOT; // End of turn
 extern pthread_mutex_t EOT_mutex;

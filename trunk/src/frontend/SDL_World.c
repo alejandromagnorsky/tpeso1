@@ -1,6 +1,6 @@
-#include "../include/SDL_World.h"
-#include "../include/SDL_utils.h"
-#include "../include/SDL_AssetManager.h"
+#include "../../include/SDL_World.h"
+#include "../../include/SDL_utils.h"
+#include "../../include/SDL_AssetManager.h"
 
 SDL_World * getSDLWorld(int sizeX, int sizeY, char * filename, char * ext, Uint32 bgcolor){
 	SDL_World * out = malloc(sizeof(SDL_World));
@@ -56,6 +56,7 @@ void endWorld(SDL_World * world){
 void zoom(SDL_World * world, double z){
 	int cursorX, cursorY;
 
+	
 	SDL_GetMouseState(&cursorX,&cursorY);
 
 	if(z * world->zoomFactor < 0.1  || z * world->zoomFactor >= 1)
@@ -64,11 +65,16 @@ void zoom(SDL_World * world, double z){
 	world->zoomFactor *= z;
 	int qty = getQtyActiveAssets(world->vector);
 	int i;
-	for(i=0;i<qty;i++)
+//	printf("Zoomear\n");
+
+	for(i=0;i<qty;i++){
+//		printf("zoomeando\n");
 		modifyAssetImage(world->vector, world->vector->assets[i].name, 0, world->zoomFactor);
+	}
 
 	translateCamera(world,cursorX*(1.0-z),cursorY*(1.0-z));
 
+//	printf("Zoomee\n");
 }
 
 void renderGrid(SDL_World * world, SDL_Surface * screen, int gridSize){
