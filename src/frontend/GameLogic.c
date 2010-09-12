@@ -1,4 +1,4 @@
-#include "../include/GameLogic.h"
+#include "../../include/GameLogic.h"
 
 #define COMMAND_SIZE_THRESHOLD 50
 
@@ -221,6 +221,7 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 			return;
 	
 		pthread_mutex_lock(&EOT_mutex);
+
 		// If turn has ended, wait till all commands are executed 
 		if(EOT)
 			if(executeMoveCommands(gameWorld)){
@@ -269,7 +270,7 @@ int getUserInput(SDL_World * gameWorld){
 	Uint8 * keystate;
 
 	double z = 1;
-	bool hasZoomed = false;
+	int hasZoomed = 0;
 
 	while( SDL_PollEvent( &event ) ){
             /* See if user  quits */
@@ -290,19 +291,19 @@ int getUserInput(SDL_World * gameWorld){
 			switch(event.button.button){
 				case SDL_BUTTON_WHEELUP:
 					z += ZOOM;
-					hasZoomed = true;
+					hasZoomed = 1;
 					break;
 				case SDL_BUTTON_WHEELDOWN:
 					z -= ZOOM;
-					hasZoomed = true;
+					hasZoomed = 1;
 					break;
 				case SDL_BUTTON(SDL_BUTTON_LEFT):
 					SDL_GetRelativeMouseState(NULL,NULL); // set postiion here
-					mouseClicked = true; // change cursor to move cursor
+					mouseClicked = 1; // change cursor to move cursor
 					break;
 			}
 		else if(event.type == SDL_MOUSEBUTTONUP)
-			mouseClicked = false; //change cursor here
+			mouseClicked = 0; //change cursor here
 	}
 	
 	if(hasZoomed)

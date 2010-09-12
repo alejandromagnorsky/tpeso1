@@ -15,7 +15,7 @@
 #include <arpa/inet.h>
 #include <poll.h>
 #include <pthread.h>
-#include "../include/communication.h"
+#include "../../../include/communication.h"
 
 #define LOCALHOST INADDR_LOOPBACK
 #define SERVER_IP LOCALHOST

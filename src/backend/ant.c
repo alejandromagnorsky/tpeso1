@@ -1,5 +1,5 @@
-#include "../include/ant.h"
-#include "../include/common.h"
+#include "../../include/ant.h"
+#include "../../include/communication.h"
 
 int vecMov[4][2] = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // Represents: up, right, down and left
 pthread_mutex_t shoutMutex;

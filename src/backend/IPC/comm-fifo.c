@@ -11,7 +11,7 @@
 #include <sys/msg.h>
 #include <errno.h>
 #include <pthread.h>
-#include "../include/communication.h"
+#include "../../../include/communication.h"
 
 #define SRV_FIFO "/tmp/server"
 #define CLT_FIFO "/tmp/client_"

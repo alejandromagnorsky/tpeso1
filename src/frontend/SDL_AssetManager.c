@@ -1,5 +1,5 @@
-#include "../include/SDL_AssetManager.h"
-#include "../include/SDL_utils.h"
+#include "../../include/SDL_AssetManager.h"
+#include "../../include/SDL_utils.h"
 #include <string.h>
 
 SDL_AssetVector * createAssetVector(int size){
@@ -84,13 +84,16 @@ void addAsset(SDL_AssetVector * vector, char * filename, char * ext,  char * nam
 
 void modifyAssetImage(SDL_AssetVector * vector,char * name, double rotate, double zoom ){
 
+	if(vector == NULL || name == NULL)
+		return;
+
 	// Rotation not implemented
 	SDL_Asset * asset = getAssetByName(vector,name);
 
-	if(asset->image != NULL)
+	if(asset!=NULL && asset->image != NULL && asset->original != NULL){
 		SDL_FreeSurface(asset->image);
-
-	asset->image = rotozoomSurface(asset->original, 0, zoom, 1);
+		asset->image = rotozoomSurface(asset->original, 0, zoom, 1);	
+	}
 }
 
 SDL_Surface * getAssetImage(SDL_AssetVector * vector,char * name){

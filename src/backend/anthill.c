@@ -1,6 +1,6 @@
-#include "../include/common.h"
-#include "../include/communication.h"
-#include "../include/ant.h"
+#include "../../include/communication.h"
+#include "../../include/transport.h"
+#include "../../include/ant.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -16,7 +16,8 @@ int main(int argc, char * argv[]){
 	sscanf(argv[2], "%d", &ants);
 //	printf("Anthill Key: %d Ants: %d\n", key, ants);
 
-	openClient((void*)ants);
+	openClientIPC((void*)ants);
+
 	antsQuantity = ants;
 	screams = malloc(ants*sizeof(Scream));
 	for(i = 0; i < ants; i++)
@@ -27,7 +28,7 @@ int main(int argc, char * argv[]){
 	for(i=0;i<ants;i++)
      		pthread_create(&antThreads[i], NULL, antMain, (void *)(i+1+key));
 
-
+	while(1);
 
 	int smallPoints,bigPoints;
 	smallPoints = 0;
@@ -45,7 +46,7 @@ int main(int argc, char * argv[]){
 		}
 	}
 
-	closeIPC();
+	closeClientIPC();
 
 	return 0;
 }

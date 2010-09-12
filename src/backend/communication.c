@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../include/common.h"
-
+#include "../../include/communication.h"
+#include "../../include/transport.h"
 
 Message * createMessage(int keyFrom,int keyTo, OpCode opCode, OpCodeParam param, Pos pos, double trace){
 	Message * out = malloc(sizeof(Message));
@@ -15,7 +15,6 @@ Message * createMessage(int keyFrom,int keyTo, OpCode opCode, OpCodeParam param,
 
 	return out;
 }
-
 
 void printMessage(Message * msg){
 	printf("Message Data || ");
@@ -47,6 +46,45 @@ void printMessage(Message * msg){
 
 	printf("OpCode: %s \n", opCodeStr);
 	printf("Parameter: %s, Trace: %f, x=%d, y=%d \n", opCodeParamStr, msg->trace, msg->pos.x, msg->pos.y);
+}
+
+
+
+void closeServerIPC(){
+	closeServer();
+}
+
+void closeClientIPC(){
+	closeClient();
+}
+
+void openServerIPC(void * t){
+	openServer(t, sizeof(Message));
+}
+
+void openClientIPC(void * t){
+	openClient(t, sizeof(Message));
+}
+
+Message * receiveMessage(NodeType from, int key){
+	Message * out = malloc(sizeof(Message));
+
+	if( from == SERVER ){
+		if(receiveFromServer( key, (char *)out, sizeof(Message) ) == -1 )
+			errorLog("Failed to receive from server.");
+	} else if( receiveFromClient(key,(char *)out,sizeof(Message)) == -1 )
+			errorLog("Failed to receive from client.");
+
+	return out;
+}
+
+int sendMessage(NodeType to, Message * msg){
+	if( to == SERVER ){
+		if(sendToServer(msg->keyTo,(char *)msg,sizeof(Message)) == -1 )
+			errorLog("Failed to send to server.");
+	}else if( sendToClient(msg->keyTo,(char *)msg,sizeof(Message)) == -1)
+			errorLog("Failed to send to client.");
+	return 0;
 }
 
 void

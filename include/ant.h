@@ -3,8 +3,8 @@
 #include <time.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "../include/common.h"
 #include "../include/communication.h"
+#include "../include/transport.h"
 
 
 typedef enum { north, east, south, west, northwest, northeast, southeast, southwest } Cardinal;

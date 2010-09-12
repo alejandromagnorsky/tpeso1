@@ -1,8 +1,7 @@
-#include "../include/common.h"
-#include "../include/communication.h"
-#include "../include/map.h"
-#include "../include/anthill.h"
-#include "../include/GameLogic.h"
+#include "../../include/communication.h"
+#include "../../include/map.h"
+#include "../../include/anthill.h"
+#include "../../include/GameLogic.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -438,6 +437,7 @@ int nextTurn(World * world){
 				sendMessage(CLIENT, turn);
 			}
 		//sleep(1);
+
 		// Tell frontend turn has ended
 		pthread_mutex_lock(&EOT_mutex);
 
@@ -856,7 +856,7 @@ void * mapMain(void * arg){
 	// MAP LOADER HERE
 	World * world = (World *) arg;
 
-	openServer((void *)world->maxConnections);
+	openServerIPC((void *)world->maxConnections);
 
 	createAnthill(world->maxConnections);
 
@@ -881,6 +881,8 @@ void * mapMain(void * arg){
 	//	printWorldData(world);
 	
 	}
+
+	closeServer();
 
 	printf("Termino el mapa!\n");
 
