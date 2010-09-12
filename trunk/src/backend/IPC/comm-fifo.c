@@ -34,7 +34,6 @@ void sigHandler(){
 	exit(1);
 }
 
-
 // Close IPC resource
 void closeIPC(){
 	if ( close(serverRD) == -1 )
@@ -45,8 +44,7 @@ void closeIPC(){
 			errorLog("A client's FIFO could not be closed.");
 }
 
-// Eliminar closeIPC cuando esté la interfaz hecha para closeServer y closeCLient. Ahora adelanto esto.
-void closeServer(){
+void closeServer(void * t, int size){
 	int i;
 	if ( close(serverRD) == -1 )
 		errorLog("Server's RDONLY FIFO could not be closed.");
@@ -56,7 +54,7 @@ void closeServer(){
 			errorLog("Clients' WRONLY FIFOs could not be closed.");
 }
 
-void closeClient(){
+void closeClient(void * t, int size){
 	int i;
 	if ( close(serverWR) == -1 )
 		errorLog("Server's WRONLY FIFO could not be closed.");
@@ -122,7 +120,7 @@ void * openServerFifos(void * t){
 	pthread_exit(NULL);
 }
 
-void openServer(void * t){
+void openServer(void * t, int size){
 	clientQuant = (int) t + CLT_KEY_BASE;
 
 	createFifos(clientQuant);
@@ -131,7 +129,7 @@ void openServer(void * t){
 	pthread_create(&serverFifoThread, NULL, openServerFifos, NULL);
 }
 
-void openClient(void * t){
+void openClient(void * t, int size){
 	int i;
 	clientQuant = (int) t + CLT_KEY_BASE;
 	int len = strlen(CLT_FIFO) + digits(clientQuant-1);
@@ -155,26 +153,38 @@ void openClient(void * t){
         }
 }
 
-Message * receiveMessage(NodeType from, int key){
-	int fd;
-	Message * out = malloc(sizeof(Message));
+int receiveFromClient(int key, char * buf, int size){
+	int bytes;
+	char * msg = malloc(size);
 
-	if (from == CLIENT)	// I'm SERVER and have to read from my FIFO.
-		fd = serverRD;
-	else
-		fd = clientsRD[key];	// I'm CLIENT and have to read from my FIFO.
-	
-	read(fd, out, sizeof(Message));
-	return out;
+	bytes = read(serverRD, msg, size);
+	memcpy(buf, msg, size);
+
+	free(msg);
+	return bytes;
 }
 
-int sendMessage(NodeType to, Message * msg){
-	int fd;
-	if (to == SERVER)	// I'm CLIENT and have to write in SERVER's FIFO.
-		fd = serverWR;
-	else 
-		fd = clientsWR[msg->keyTo];	// I'm SERVER and have to write in CLIENT's FIFO.
+int receiveFromServer(int key, char * buf, int size){
+	int bytes;
+	char * msg = malloc(size);
 
-	write(fd, msg, sizeof(Message));
-	return 0;
+	bytes = read(clientsRD[key], msg, size);
+	memcpy(buf, msg, size);
+
+	free(msg);
+	return bytes;
+}
+
+int sendToClient(int key, char * buf, int size){
+	int bytes;
+	bytes = write(clientsWR[key], buf, size);
+
+	return bytes;
+}
+
+int sendToServer(int serverKey, char * buf, int size){
+	int bytes;
+	bytes = write(serverWR, buf, size);
+
+	return bytes;
 }
