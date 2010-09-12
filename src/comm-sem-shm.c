@@ -12,8 +12,6 @@
 #include <sys/sem.h>
 #include "../include/communication.h"
 
-#define SIZE sizeof(Message)
-
 // Semaphores
 key_t keyRead = 1000;
 key_t keyWrite = 2000;
@@ -47,7 +45,7 @@ destroyIPC(){
 
 
 void 
-openServer(void * t){
+openServer(void * t, int size){
 	int i;
 	clientquant = (int)t+3;
 		
@@ -64,26 +62,26 @@ openServer(void * t){
 	
 	if ( (serverFd = shm_open("/server", O_RDWR|O_CREAT, 0666)) == -1 )
 		errorLog("sh_open");
-	ftruncate(serverFd, SIZE);
+	ftruncate(serverFd, size);
 
 	if ( (clientFd = shm_open("/client", O_RDWR|O_CREAT, 0666)) == -1 )
 		errorLog("sh_open");
-	ftruncate(clientFd, clientquant*SIZE);
+	ftruncate(clientFd, clientquant*size);
 
 
-	if ( (memServer = mmap(NULL, SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, serverFd, 0)) == (void *)-1)
+	if ( (memServer = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, serverFd, 0)) == (void *)-1)
 			errorLog("mmap");
-	memset(memServer, 0, SIZE);
-	if ( (memClient = mmap(NULL, clientquant*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, clientFd, 0)) == (void *)-1)
+	memset(memServer, 0, size);
+	if ( (memClient = mmap(NULL, clientquant*size, PROT_READ|PROT_WRITE, MAP_SHARED, clientFd, 0)) == (void *)-1)
 			errorLog("mmap");
-	memset(memClient, 0, clientquant*SIZE);
+	memset(memClient, 0, clientquant*size);
 	
 }
 
 
 
 void 
-openClient(void * t){
+openClient(void * t, int size){
 	clientquant = (int)t+3;
 	
 	if( (semRead = semget(keyRead, clientquant, 0666 | IPC_CREAT)) == -1)
@@ -94,26 +92,138 @@ openClient(void * t){
 
 	if ( (serverFd = shm_open("/server", O_RDWR|O_CREAT, 0666)) == -1 )
 		errorLog("sh_open");
-	ftruncate(serverFd, SIZE);
+	ftruncate(serverFd, size);
 
 	if ( (clientFd = shm_open("/client", O_RDWR|O_CREAT, 0666)) == -1 )
 		errorLog("sh_open");
-	ftruncate(clientFd, clientquant*SIZE);
+	ftruncate(clientFd, clientquant*size);
 
-	if ( (memServer = mmap(NULL, SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, serverFd, 0)) == (void *)-1)
+	if ( (memServer = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, serverFd, 0)) == (void *)-1)
 			errorLog("mmap");
-	if ( (memClient = mmap(NULL, clientquant*SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, clientFd, 0)) == (void *)-1)
+	if ( (memClient = mmap(NULL, clientquant*size, PROT_READ|PROT_WRITE, MAP_SHARED, clientFd, 0)) == (void *)-1)
 			errorLog("mmap");
 }
 
 
 void
-closeIPC(){
+closeServer(){
 	close(serverFd);
 	close(clientFd);
+
+}
+
+void
+closeClient(){
+	close(serverFd);
+	close(clientFd);
+
 }
 
  
+// Key is client key
+int 
+receiveFromServer( int key, char * buf, int size ){
+	char * mem;	
+	mem = memClient + key*size;
+
+	struct sembuf semOpRead; // Operation for the read semaphore
+	semOpRead.sem_num = key; // Number of semaphore in the array
+	semOpRead.sem_op = -1;	
+	semOpRead.sem_flg = 0; // Set to wait
+
+	struct sembuf semOpWrite; // Operation for the write semaphore
+	semOpWrite.sem_num = key; // Number of semaphore in the array
+	semOpWrite.sem_op = 1;
+	semOpWrite.sem_flg = 0; // Set to wait
+
+	semop(semRead, &semOpRead, 1);
+
+	memcpy(buf, mem, size);
+	
+	semop(semWrite, &semOpWrite, 1);
+	//printMessage(buf);
+	return 0;
+}
+
+
+// Key is MAP_ID
+int 
+receiveFromClient( int key, char * buf, int size ){
+	char * mem;
+	mem = memServer;
+
+	struct sembuf semOpRead; // Operation for the read semaphore
+	semOpRead.sem_num = 0; // Number of semaphore in the array
+	semOpRead.sem_op = -1;	
+	semOpRead.sem_flg = 0; // Set to wait
+
+	struct sembuf semOpWrite; // Operation for the write semaphore
+	semOpWrite.sem_num = 0; // Number of semaphore in the array
+	semOpWrite.sem_op = 1;
+	semOpWrite.sem_flg = 0; // Set to wait
+
+	semop(semRead, &semOpRead, 1);
+
+	memcpy(buf, mem, size);
+	
+	semop(semWrite, &semOpWrite, 1);
+	//printMessage(buf);
+	return 0;
+}
+
+
+int 
+sendToServer( int key, char * buf, int size ){
+	char * mem;
+	mem = memServer;
+
+	struct sembuf semOpWrite; // Operation for the write semaphore
+	semOpWrite.sem_num = 0; // Number of semaphore in the array
+	semOpWrite.sem_op = -1;
+	semOpWrite.sem_flg = 0; // Set to wait
+	
+	struct sembuf semOpRead; // Operation for the read semaphore
+	semOpRead.sem_num = 0; // Number of semaphore in the array
+	semOpRead.sem_op = 1;
+	semOpRead.sem_flg = 0; // Set to wait
+
+	semop(semWrite, &semOpWrite, 1);
+	
+	memcpy(mem, buf, size);
+	
+	semop(semRead, &semOpRead, 1);
+	//printMessage(mem);
+	return 0;
+}
+
+
+int 
+sendToClient( int key, char * buf, int size ){
+	char * mem;
+	mem = memClient + key*size;
+	
+	struct sembuf semOpWrite; // Operation for the write semaphore
+	semOpWrite.sem_num = key; // Number of semaphore in the array
+	semOpWrite.sem_op = -1;
+	semOpWrite.sem_flg = 0; // Set to wait
+	
+	struct sembuf semOpRead; // Operation for the read semaphore
+	semOpRead.sem_num = key; // Number of semaphore in the array
+	semOpRead.sem_op = 1;
+	semOpRead.sem_flg = 0; // Set to wait
+
+	semop(semWrite, &semOpWrite, 1);
+	
+	memcpy(mem, buf, size);
+	
+	semop(semRead, &semOpRead, 1);
+	//printMessage(mem);
+	return 0;
+}
+
+
+
+/*
 Message * 
 receiveMessage(NodeType from, int key){
 
@@ -153,6 +263,7 @@ receiveMessage(NodeType from, int key){
 }
 
 
+
 int 
 sendMessage(NodeType to, Message * msg){
 
@@ -188,5 +299,5 @@ sendMessage(NodeType to, Message * msg){
 	
 
 	return 0;
-}
+}*/
 
