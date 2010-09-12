@@ -21,7 +21,7 @@ int sendToClient( int key, char * buf, int size );
 
 int receiveFromClient( int serverKey, char * buf, int size );
 
-int sendToServer( int serverKey, char * buf, int size );
+int sendToServer( int key, char * buf, int size );
 
 // This function MUST! be called for signal handling (close channel, etc)
 // usage: signal(SIGINT, sigHandler)

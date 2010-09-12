@@ -80,7 +80,7 @@ Message * receiveMessage(NodeType from, int key){
 
 int sendMessage(NodeType to, Message * msg){
 	if( to == SERVER ){
-		if(sendToServer(msg->keyTo,(char *)msg,sizeof(Message)) == -1 )
+		if(sendToServer(msg->keyFrom,(char *)msg,sizeof(Message)) == -1 )
 			errorLog("Failed to send to server.");
 	}else if( sendToClient(msg->keyTo,(char *)msg,sizeof(Message)) == -1)
 			errorLog("Failed to send to client.");

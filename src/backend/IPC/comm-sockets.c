@@ -30,10 +30,6 @@ int serverSd;
 int * clientSds;
 int * acceptedClients;
 
-// Socket structures
-struct sockaddr_in serverSide;
-struct sockaddr_in clientSide;
-
 // poll() structure
 struct pollfd * toRead;
 
@@ -61,8 +57,9 @@ void * acceptClients(void * t){
 	pthread_exit(NULL);
 }
 
-void openServer(void *t){
+void openServer(void * t, int size){
 	int i, optionValue = 1;
+	struct sockaddr_in serverSide;
 	clientCount = (int) t + CLT_KEY_BASE;
 
 	/* Fill serverSide structure */
@@ -91,7 +88,7 @@ void openServer(void *t){
 
 	/* Initializes poll() struct */	
 	toRead = malloc(clientCount * sizeof(struct pollfd));
-	for (i=CLT_KEY_BASE-1; i<clientCount; i++)
+	for (i=0; i<clientCount; i++)
 		toRead[i].fd = INVALID_SOCKET;
 
 	pthread_t acceptClientThread;
@@ -99,9 +96,10 @@ void openServer(void *t){
 
 }
 
-void openClient(void *t){
+void openClient(void *t, int size){
+	struct sockaddr_in clientSide;
 	clientCount = (int) t + CLT_KEY_BASE;
-
+	
 	/* Fill clientSide structure */
 	memset(&clientSide, 0, sizeof(struct sockaddr_in));
 	clientSide.sin_family = AF_INET;
@@ -120,14 +118,7 @@ void openClient(void *t){
 	}
 }
 
-// Close IPC resource
-void closeIPC(){
-	if ( close(serverSd) == -1 )
-		errorLog("Server's socket descriptor could not be closed.");
-}
-
-// Eliminar closeIPC cuando esté la interfaz hecha para closeServer y closeCLient. Ahora adelanto esto.
-void closeServer(){
+void closeServer(void * t, int size){
 	int i;
 	if ( close(serverSd) == -1 )
 		errorLog("Failed to close server socket descriptor.");
@@ -137,54 +128,73 @@ void closeServer(){
 			errorLog("Failed to close accepted client socket descriptor.");
 }
 
-void closeClient(){
+void closeClient(void * t, int size){
 	int i;
 	for (i=CLT_KEY_BASE-1; i<clientCount; i++)
 		if (close(clientSds[i]) == -1)
 			errorLog("Failed to close client socket descriptor.");
 }
 
-Message * receiveMessage(NodeType from, int key){
-	Message * out = malloc(sizeof (Message));
+int receiveFromServer(int key, char * buf, int size){
+	int bytes;
+	char * msg = malloc(size);
 
-	int sd, i, polled;
-	if (from == CLIENT){	// I'm SERVER and I receive from CLIENT.
-		polled = poll(toRead, clientCount, 5000000);
+	if ( (bytes = recv(clientSds[key], msg, size, 0)) < 0)
+		errorLog("Failed to receive data from server.");
 
-		if (polled == 0)
-			errorLog("SERVER: poll() timed out.");
-		else if (polled < 0)
-			errorLog("SERVER: Failed to poll() connections.");
-
-		/* See which socket is the one ready to be read. */
-		for (i = CLT_KEY_BASE-1; i<clientCount; i++){
-			if (toRead[i].revents & POLLIN){
-				sd = toRead[i].fd;
-				toRead[i].revents = 0;
-				break;
-			}
-		}
-
-		if ( recv(sd, out, sizeof(Message), 0) < 0)
-			errorLog("SERVER: Failed to receive data from client.");
-
-	} else {		// I'm CLIENT and I receive from SERVER.
-		if ( recv(clientSds[key], out, sizeof(Message), 0) < 0)
-			errorLog("CLIENT: Failed to receive data from server.");
-	}
-
-	return out;
+	memcpy(buf, msg, size);
+	free(msg);
+	return bytes;
 }
 
-int sendMessage(NodeType to, Message * msg){
-	if (to == CLIENT){	// I'm SERVER and I send to CLIENT.	
-		if ( send(acceptedClients[msg->keyTo], msg, sizeof(Message), 0) < 0)
-			errorLog("SERVER: Failed to send data to client.");
+int receiveFromClient(int serverKey, char * buf, int size){
+	int sd, i, polled, bytes;
+	char * msg = malloc(size);
 
-	} else			// I'm CLIENT and I send to SERVER.
-		if ( send(clientSds[msg->keyFrom], msg, sizeof(Message), 0) < 0)
-			errorLog("CLIENT: Failed to send data to server.");
+	polled = poll(toRead, clientCount, 5000000);
+	if (polled == 0)
+		errorLog("poll() timed out.");
+	else if (polled < 0)
+		errorLog("Failed to poll() connections.");
 
-	return 0;
+	/* See which socket is the one ready to be read. */
+	for (i = 0; i<clientCount; i++){
+		if (toRead[i].revents & POLLIN){
+			printf("sd to read: %d\n", toRead[i].fd);
+			sd = toRead[i].fd;
+			toRead[i].revents = 0;
+			break;
+		}
+	}
+	if ( (bytes = recv(sd, msg, size, 0)) < 0)
+		errorLog("Failed to receive data from client.");
+;
+	memcpy(buf, msg, size);
+	free(msg);
+	return bytes;
+}
+
+int sendToServer(int key, char * buf, int size){
+	int bytes;
+	char * msg = malloc(size);
+
+	memcpy(msg, buf, size);
+	if ( (bytes = send(clientSds[key], msg, size, 0)) < 0)
+		errorLog("Failed to send data to server.");
+
+	free(msg);
+	return bytes;
+}
+
+int sendToClient(int key, char * buf, int size){
+	int bytes;
+	char * msg = malloc(size);
+
+	memcpy(msg, buf, size);
+	if ( (bytes = send(acceptedClients[key], msg, size, 0)) < 0)
+		errorLog("Failed to send data to client.");
+
+	free(msg);
+	return bytes;
 }
 
