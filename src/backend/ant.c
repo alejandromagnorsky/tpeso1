@@ -55,6 +55,7 @@ void * antMain(void * arg){
 
 bool
 action(Ant * ant){
+
 	pthread_mutex_lock(&shoutMutex);
 
 	if(antsToWait == -1){ // Initialize
@@ -81,7 +82,6 @@ action(Ant * ant){
 
 	if(ant->op == -1 && !ant->food)	// If the ant isn't doing anything
 		getNearestScream(ant); 	// If the ant has any partner who shouted near, go to help
-	
 	
 	if(ant->op == -1){	// If the ant 	
 		if(ant->food)	// If the ant is carrying food
@@ -382,7 +382,7 @@ setShout(Ant * ant){
 		screams[index].intensity = 1;
 		screams[index].pos = ant->auxPos;
 		futureScreams++;
-		printf("KEY: %d. Intensity: %d. Pos: (%d,%d) \n", ant->key, screams[index].intensity, screams[index].pos.x, screams[index].pos.y);
+		//printf("KEY: %d. Intensity: %d. Pos: (%d,%d) \n", ant->key, screams[index].intensity, screams[index].pos.x, screams[index].pos.y);
 	} else
 		printf("I cannot shout!\n");
 	
@@ -396,7 +396,7 @@ followShout(Ant * ant){
 	Pos mov, to;
 	mov.x = vecMov[card][0]; 
 	mov.y = vecMov[card][1];
-	printf("%d siguiendo el grito\n", ant->key);
+	//printf("%d siguiendo el grito\n", ant->key);
 	to.x = currentPos.x+mov.x;
 	to.y = currentPos.y+mov.y;
 	// If the ant is going to arrive to the big food
@@ -429,7 +429,7 @@ getNearestScream(Ant * ant){
 		i++;
 	}
 	if(tmpDist != 15){
-		printf("Elegida por %d: (%d, %d) -- (%d,%d). Dist: %d\n", ant->key, currentPos.x, currentPos.y, tmpPos.x, tmpPos.y, tmpDist);
+	//	printf("Elegida por %d: (%d, %d) -- (%d,%d). Dist: %d\n", ant->key, currentPos.x, currentPos.y, tmpPos.x, tmpPos.y, tmpDist);
 		ant->op = FOLLOW_SHOUT;
 		ant->auxPos = tmpPos;
 		return true;

@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 #include <sys/sem.h>
 #include "../../../include/transport.h"
+#include "../../../include/communication.h"
 
 // Semaphores
 key_t keyRead = 1000;

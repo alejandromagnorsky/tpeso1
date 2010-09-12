@@ -28,8 +28,6 @@ int main(int argc, char * argv[]){
 	for(i=0;i<ants;i++)
      		pthread_create(&antThreads[i], NULL, antMain, (void *)(i+1+key));
 
-	while(1);
-
 	int smallPoints,bigPoints;
 	smallPoints = 0;
 	bigPoints = 0;
