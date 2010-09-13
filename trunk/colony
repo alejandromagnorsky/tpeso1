@@ -1,3 +1,6 @@
+killall anthill
+killall map
+
 case $1 in
 	fifos)	make -B IPC=fifo
 		./map
