@@ -67,7 +67,7 @@ void addAsset(SDL_AssetVector * vector, char * filename, char * ext,  char * nam
 
 		// And initialize new assets
 		int i;
-		for(i=index+1;i<vector->size;i++){
+		for(i=index;i<vector->size;i++){
 			vector->assets[i].original = NULL;
 			vector->assets[i].image = NULL;
 			vector->assets[i].name = NULL;
@@ -75,20 +75,23 @@ void addAsset(SDL_AssetVector * vector, char * filename, char * ext,  char * nam
 		}
 	}
 
+	char * buf = malloc(sizeof(char)*256);
+	sprintf(buf, "%s%s", ASSETDIR, filename);
 
-	vector->assets[index].original = loadImageSDL( filename, ext , alpha);
-	vector->assets[index].image = rotozoomSurface(vector->assets[index].original, 0, 1, 1);
+	vector->assets[index].original = loadImageSDL( buf, ext, alpha);
+	vector->assets[index].image = loadImageSDL( buf, ext, alpha);
 	vector->assets[index].name = name;
-	vector->assets[index].filename = filename;
+	vector->assets[index].filename = buf;
+
+	free(buf);
 }
 
-void modifyAssetImage(SDL_AssetVector * vector,char * name, double rotate, double zoom ){
-
-	if(vector == NULL || name == NULL)
+void modifyAssetImage(SDL_AssetVector * vector,int index, double rotate, double zoom ){
+	if(vector == NULL || vector->assets == NULL )
 		return;
 
 	// Rotation not implemented
-	SDL_Asset * asset = getAssetByName(vector,name);
+	SDL_Asset * asset = vector->assets + index ;
 
 	if(asset!=NULL && asset->image != NULL && asset->original != NULL){
 		SDL_FreeSurface(asset->image);

@@ -110,6 +110,8 @@ typedef struct{
 
 Message * createMessage(int keyFrom, int keyTo, OpCode opCode, OpCodeParam param, Pos pos, double trace );
 
+void deleteMessage(Message * msg);
+
 void printMessage(Message * msg);
 
 // Destroy communication channel

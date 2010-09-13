@@ -12,8 +12,8 @@
 #include "../../include/map.h"
 #include <pthread.h>
 
-#define SCREEN_WIDTH 644
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH 1024
+#define SCREEN_HEIGHT 768
 
 #define AUDIO_RATE 22050
 #define AUDIO_FORMAT AUDIO_S16SYS

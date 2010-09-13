@@ -52,7 +52,7 @@ int receiveFromServer( int key, char * buf, int size ){
 	// This is the equivalent of msgbuf struct 
 	char * data = malloc(size + sizeof(long int));
 
-	int out =	msgrcv(queueID, data, size, key, 0);
+	int out = msgrcv(queueID, data, size, key, 0);
 
 	// Now copy data and point buf to it
 	memcpy(buf, data + sizeof(long int), size);
@@ -68,14 +68,13 @@ int receiveFromClient( int key, char * buf, int size ){
 	// This is the equivalent of msgbuf struct 
 	char * data = malloc(size + sizeof(long int));
 
-	int out =	msgrcv(queueID, data, size, 1, 0);
+	int out = msgrcv(queueID, data, size, 1, 0);
 
 	// Now copy data and point buf to it
 	memcpy(buf, data + sizeof(long int), size);
 
 	// Free data already copied
 	free(data);
-
 	return out;
 }
 
