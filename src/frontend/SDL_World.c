@@ -197,9 +197,14 @@ void deleteObject(SDL_World * world, int x, int y, int layer ){
 // Move objects in same layer
 // Returns 1 if finished moving
 // Returns 0 if still waiting to move
-int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int layer){
+// If swap is true, then swap objects in same layer (using tmp layer SWAP_LAYER)
+int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int layer, int swap){
 
-	
+	if(swap -1 > SWAP_OFFSET ){
+		printf("Bad swap offset\n");
+		exit(1);
+	}
+
 
 	if( verifyGrid(world, fromX, fromY, layer) && verifyGrid(world, toX, toY, layer)){
 	
@@ -256,23 +261,90 @@ int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int la
 					oldGrid->frame++;
 				}
 
-				// When finally moved, change grid values
+				// When finally moved,
 				if(fabs((*offset) - (*dG)) <= 0.1 ){
-					nextGrid->id = index;
-					nextGrid->offsetX = 0;
-					nextGrid->offsetY = 0;
-					nextGrid->frame = 1;
-					nextGrid->animated = oldGrid->animated;
-					nextGrid->oriented = oldGrid->oriented;
-					nextGrid->orientation = oldGrid->orientation;
 
-					oldGrid->id = -1;
-					(*offset) = 0;
-					oldGrid->frame = 1;
-					oldGrid->animated = !ANIMATED;
-					oldGrid->oriented = !ORIENTED;
-					oldGrid->orientation = SPRITE_DOWN; // Down is default
+					// If it has to swap objects in same layer
+					if(swap){
+		
+						// swap > 0 means layer offset
+						int swapLayer = SWAP_LAYER + swap - 1;
+	
+						// Check if other cell has already finished, and swap
+						if(nextGrid->id == -1 ){
 
+							// Fill other cell data with my data
+							nextGrid->id = index;
+							nextGrid->offsetX = 0;
+							nextGrid->offsetY = 0;
+							nextGrid->frame = 1;
+							nextGrid->animated = oldGrid->animated;
+							nextGrid->oriented = oldGrid->oriented;
+							nextGrid->orientation = oldGrid->orientation;
+
+							// Fill my cell with other cell data (which is in SWAP_LAYER
+							GridObject * swapGrid =  &world->grid[swapLayer][toX][toY];
+
+							oldGrid->id = swapGrid->id;
+							oldGrid->offsetX = 0;
+							oldGrid->offsetY = 0;
+							oldGrid->frame = 1;
+							oldGrid->animated = swapGrid->animated;
+							oldGrid->oriented = swapGrid->oriented;
+							oldGrid->orientation = swapGrid->orientation;
+					
+							// And erase swap cell data
+							swapGrid->id = -1;
+							swapGrid->offsetX = 0;
+							swapGrid->offsetY = 0;
+							swapGrid->frame = 1;
+							swapGrid->animated = !ANIMATED;
+							swapGrid->oriented = !ORIENTED;
+							swapGrid->orientation = SPRITE_DOWN; // Down is default
+
+							// Too verbose, i know.. :S
+						} else {
+							// Else, i must wait other cell to swap myself, so
+							// erase my cell and move it to swap layer
+
+							GridObject * swapGrid =  &world->grid[swapLayer][fromX][fromY];
+							
+							swapGrid->id = oldGrid->id;
+							swapGrid->offsetX = 0;
+							swapGrid->offsetY = 0;
+							swapGrid->frame = 1;
+							swapGrid->animated = oldGrid->animated;
+							swapGrid->oriented = oldGrid->oriented;
+							swapGrid->orientation = oldGrid->orientation;
+
+							// And erase swap cell data
+							oldGrid->id = -1;
+							oldGrid->offsetX = 0;
+							oldGrid->offsetY = 0;
+							oldGrid->frame = 1;
+							oldGrid->animated = !ANIMATED;
+							oldGrid->oriented = !ORIENTED;
+							oldGrid->orientation = SPRITE_DOWN; // Down is default
+
+						}
+
+					} else {
+						nextGrid->id = index;
+						nextGrid->offsetX = 0;
+						nextGrid->offsetY = 0;
+						nextGrid->frame = 1;
+						nextGrid->animated = oldGrid->animated;
+						nextGrid->oriented = oldGrid->oriented;
+						nextGrid->orientation = oldGrid->orientation;
+
+						oldGrid->id = -1;
+						(*offset) = 0;
+						oldGrid->frame = 1;
+						oldGrid->animated = !ANIMATED;
+						oldGrid->oriented = !ORIENTED;
+						oldGrid->orientation = SPRITE_DOWN; // Down is default
+
+					}
 					return 1; // finished moving
 				}
 			}

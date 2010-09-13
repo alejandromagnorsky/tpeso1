@@ -20,11 +20,6 @@
 #define ZOOM 0.1
 #define DELAY 10	// delay in ms
 
-#define ANT_LAYER 4
-#define FOOD_LAYER 5
-#define TRACE_LAYER 3
-#define BG_LAYER 0
-
 #define MAX_SOUNDS 3
 
 typedef enum { MoveFoodCommand, MoveAntCommand, RegisterAnthillCommand, \
@@ -39,6 +34,7 @@ typedef struct{
 	union {
 		int points;
 		double trace;
+		int swap;
 	} extra;
 } Command; 
 

@@ -131,6 +131,13 @@ bool isOccupied(Pos * pos, World * world){
 	return world->cells[pos->x][pos->y].type != EMPTY_CELL;
 }
 
+/*
+ * Check if cell at pos is occupied.
+*/
+bool isOccupiedByAnt(Pos * pos, World * world){
+	return world->cells[pos->x][pos->y].type == ANT_CELL;
+}
+
 bool verifyPosition(Pos pos){
 	if((abs(pos.x) == 1 && pos.y == 0) 
         || (abs(pos.y) == 1 && pos.x == 0) )
@@ -224,7 +231,26 @@ int getAntIndexByKey(World * world, int key){
 	return -1;
 }
 
-void setWorldPosition(Message * msg,World * world){
+int addConflictiveMessage(Message * * conflictive, Message * msg, int size){
+	int i;
+	for(i=0;i<size;i++)
+		if(conflictive[i] == NULL ){
+			conflictive[i] = msg;
+			return 1;
+		}
+	return 0;
+}
+
+int getQtyConflictiveMessages(Message** conflictive, int size){
+	int i;
+	int qty = 0;
+	for(i=0;i<size;i++)
+		if(conflictive[i] != NULL)
+			qty++;
+	return qty;
+}
+
+void setWorldPosition(Message * msg,World * world, Message * * conflictive){
 
 	Message * ans;
 	ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
@@ -242,60 +268,72 @@ void setWorldPosition(Message * msg,World * world){
 		Pos desiredPos = addPositions(antPos, msg->pos);
 
 		// If cell is empty and move is valid
-		if(withinMapRange(world,desiredPos) &&!isOccupied(&desiredPos, world) 
-		&& verifyPosition(msg->pos))
+		if(withinMapRange(world,desiredPos) && verifyPosition(msg->pos))
 		{
 			// If leaves or not trace 
 			if((int)msg->trace == 1 || (int) msg->trace == 0){
-			
-				int antIndex =  antExistsInAnthill(world, msg->keyFrom);
-				Cell * nextCell = &world->cells[desiredPos.x][desiredPos.y];
 
-				Command comm;
+				// If everything is ok except that position is occupied by ANT
+				if(isOccupiedByAnt(&desiredPos, world)){
+					// Take turn, so map knows it received msg
+					world->clients[clientIndex].turnLeft = NO_TURN;
+					// there is conflict. Save it for later analysis
+					addConflictiveMessage(conflictive, msg, world->maxConnections);
+					return;
 
-				// Check if ant is in anthill, then erase it from anthill
-				if( antIndex >= 0){
-					world->anthill.ants[antIndex] = INVALID_ID;
+				// Check if it is occupied by food
+				} else if(!isOccupied(&desiredPos, world)){
 
-					// Tell frontend to register ant at new pos,
-					// to prevent multi layering.
-					comm.fromX = world->anthill.pos.x + msg->pos.x;
-					comm.fromY = world->anthill.pos.y + msg->pos.y;
-					comm.op = RegisterCommand;	
+					int antIndex =  antExistsInAnthill(world, msg->keyFrom);
+					Cell * nextCell = &world->cells[desiredPos.x][desiredPos.y];
 
-				} else {
-					// If ant is in world, erase old cell data, and if food is carried, keep carrying
-					Cell * oldCell = getAntCellByPID(world, msg->keyFrom );
+					Command comm;
+					comm.extra.swap = 0; // No swapping here
+
+					// Check if ant is in anthill, then erase it from anthill
+					if( antIndex >= 0){
+						world->anthill.ants[antIndex] = INVALID_ID;
+
+						// Tell frontend to register ant at new pos,
+						// to prevent multi layering.
+						comm.fromX = world->anthill.pos.x + msg->pos.x;
+						comm.fromY = world->anthill.pos.y + msg->pos.y;
+						comm.op = RegisterCommand;	
+
+					} else {
+						// If ant is in world, erase old cell data, and if food is carried, keep carrying
+						Cell * oldCell = getAntCellByPID(world, msg->keyFrom );
 				
-					oldCell->type = EMPTY_CELL;
-					oldCell->typeID = INVALID_ID;
-					nextCell->foodType = oldCell->foodType; // carry food if possible
+						oldCell->type = EMPTY_CELL;
+						oldCell->typeID = INVALID_ID;
+						nextCell->foodType = oldCell->foodType; // carry food if possible
 
-					// Tell frontend to move ant
-					comm.fromX = oldCell->pos.x;
-					comm.fromY = oldCell->pos.y;
-					comm.toX = msg->pos.x + oldCell->pos.x;
-					comm.toY = msg->pos.y + oldCell->pos.y;
+						// Tell frontend to move ant
+						comm.fromX = oldCell->pos.x;
+						comm.fromY = oldCell->pos.y;
+						comm.toX = msg->pos.x + oldCell->pos.x;
+						comm.toY = msg->pos.y + oldCell->pos.y;
 
-					// If it carries food, add another command
-					if(nextCell->foodType != NO_FOOD ){
-						comm.op = MoveFoodCommand;	
-						addCommand(comm);
+						// If it carries food, add another command
+						if(nextCell->foodType != NO_FOOD ){
+							comm.op = MoveFoodCommand;	
+							addCommand(comm);
+						}
+						comm.op = MoveAntCommand;
 					}
-					comm.op = MoveAntCommand;
+
+					addCommand(comm);
+
+					// Set next cell data
+					nextCell->type = ANT_CELL;
+
+					// If trace 1 change it, if not, leave it unchanged
+					nextCell->trace =( (int) msg->trace == 1) ? msg->trace : nextCell->trace;
+					nextCell->typeID = msg->keyFrom;
+
+					world->clients[clientIndex].turnLeft = NO_TURN;
+					ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OK, msg->pos, msg->trace);
 				}
-
-				addCommand(comm);
-
-				// Set next cell data
-				nextCell->type = ANT_CELL;
-
-				// If trace 1 change it, if not, leave it unchanged
-				nextCell->trace =( (int) msg->trace == 1) ? msg->trace : nextCell->trace;
-				nextCell->typeID = msg->keyFrom;
-
-				world->clients[clientIndex].turnLeft = NO_TURN;
-				ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OK, msg->pos, msg->trace);
 			}
 		}
 	}
@@ -385,15 +423,174 @@ int getQtyWastedTurns(World * world){
 	return out;	
 }
 
-int nextTurn(World * world){
+//Get index of message in which ant wants to exchange with another ant
+int getConflictiveIndexByPos(Message * * conflictive, int size, World * world, Pos from, Pos to ){
+	int i;
+	for(i=0;i<size;i++)
+		if(conflictive[i] != NULL ){
 
-	//printWorldData(world);
+			Message * msg = conflictive[i];
+
+			Cell * antCell = getAntCellByPID(world,msg->keyFrom );
+			Pos antPos = antCell->pos;
+
+			// Desired position is already validated 
+			Pos desiredPos = addPositions(antPos, msg->pos);
+
+			if( desiredPos.x == from.x && desiredPos.y == from.y &&
+				antPos.x == to.x && antPos.y == to.y){
+				return i;
+			}
+		}
+	return -1;
+}
+
+/*
+The idea is simple: check for confrontating ants.
+If there is a pair of ants who want to exchange places, swap them.
+In any other case, just send them NOT_OK messages.
+
+At this point, every ant who could move moved or stayed.
+This means that this is a second sweep of message parsing.
+Having this in mind is important as context for the code.
+
+Returns quantity of ants that still have turn left. (0 if next turn)
+
+Note 1: This DOES NOT happen when ants are in anthill, so that case is discarded.
+
+Note 2: doing a real conflict analysis could lead to O(n!)
+temporal complexity, which
+1) is very complex 
+2) may not always find an exact solution (may not satisfy every message)
+so its easier to just send them negative messages.
+*/
+int resolveConflicts(Message * * conflictive, int size, World * world){
+	
+	Message * ans;// = createMessage( MAP_ID, 0, MOVE, NOT_OK, msg->pos, msg->trace);
+
+	int i;
+	for(i=0;i<size;i++)
+		if(conflictive[i] != NULL){
+
+			Message * msg = conflictive[i];
+
+			Cell * antCell = getAntCellByPID(world,msg->keyFrom );
+			Pos antPos = antCell->pos;
+
+			// Desired position is already validated 
+			Pos desiredPos = addPositions(antPos, msg->pos);
+
+			int otherAntIndex = getConflictiveIndexByPos(conflictive, size, world, antPos, desiredPos);
+
+			// If the other ant wishes to exchange,
+			if( otherAntIndex != -1 ){
+
+				ans = createMessage( MAP_ID, msg->keyFrom, MOVE, OK, msg->pos, msg->trace);
+				sendMessage(CLIENT, ans);
+
+				Message * otherMsg = conflictive[otherAntIndex];
+
+				ans = createMessage( MAP_ID, otherMsg->keyFrom, MOVE, OK, otherMsg->pos, otherMsg->trace);
+				sendMessage(CLIENT, ans);
+
+				Cell * otherAnt = getAntCellByPID(world,otherMsg->keyFrom );
+
+				Command comm;
+
+				// First move antCell
+				comm.fromX = antCell->pos.x;
+				comm.fromY = antCell->pos.y;
+				comm.toX = otherAnt->pos.x;
+				comm.toY = otherAnt->pos.y;
+
+				// If it carries food, add another command
+				if(antCell->foodType != NO_FOOD ){
+					comm.op = MoveFoodCommand;	
+					comm.extra.swap = 0;
+					addCommand(comm);
+				}
+				comm.extra.swap = 1;
+				comm.op = MoveAntCommand;
+				addCommand(comm);
+
+				// Now move the other ant
+				comm.fromX = otherAnt->pos.x;
+				comm.fromY = otherAnt->pos.y;
+				comm.toX = antCell->pos.x;
+				comm.toY = antCell->pos.y;
+		
+				// If it carries food, add another command
+				if(otherAnt->foodType != NO_FOOD ){
+					comm.op = MoveFoodCommand;
+					comm.extra.swap = 0;	
+					addCommand(comm);
+				}
+				comm.extra.swap = 1;
+				comm.op = MoveAntCommand;
+				addCommand(comm);
+
+				printf("Swap ocurred!\n");
+
+				// Now swap them!
+				CellType type = otherAnt->type;
+				FoodType foodType = otherAnt->foodType;
+				int typeID = otherAnt->typeID;
+
+				otherAnt->type = antCell->type;
+				otherAnt->foodType = antCell->foodType;
+				otherAnt->typeID = antCell->typeID;
+				otherAnt->trace =( (int) msg->trace == 1) ? msg->trace : otherAnt->trace;
+			
+				antCell->type = type;
+				antCell->foodType = foodType;
+				antCell->typeID = typeID;
+				antCell->trace =( (int) otherMsg->trace == 1) ? otherMsg->trace : antCell->trace;
+
+				conflictive[i] = NULL;
+				conflictive[otherAntIndex] = NULL;
+			// Else, just a negative message response
+			} else {
+				ans = createMessage( MAP_ID, msg->keyFrom, MOVE, NOT_OK, msg->pos, msg->trace);
+				sendMessage(CLIENT, ans);
+			}
+		}
+
+	int leftAnts = 0;
+
+	// Now give turn to resolved messages
+	for(i=0;i<size;i++)
+		if(conflictive[i] != NULL){
+			Message * msg = conflictive[i];
+
+			int clientIndex = getAntIndexByKey(world,msg->keyFrom);
+		
+			// Give turn
+			world->clients[clientIndex].turnLeft = LEFT_TURN;
+
+			conflictive[i] = NULL;
+			leftAnts++;
+		}
+
+	return leftAnts;
+}
+
+int nextTurn(World * world, Message * * conflictive){
+
 	int active =  getQtyWastedTurns(world);
 	Message * turn;
 
-//	printf("Active: %d\n", active);
 	if( active == world->maxConnections ){
 	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
+
+
+		//printf("Conflictive: %d\n", getQtyConflictiveMessages(conflictive, world->maxConnections));
+
+		// If there are ants left, skip turn logic, and wait them 
+		if( resolveConflicts(conflictive, world->maxConnections, world) ){
+		//	printWorldData(world);
+	//		printf("Hay hormigas que tienen otro turno!\n");
+			return 1;
+		}
 
 		if(world->points == world->maxPoints)
 			return 0;
@@ -429,6 +626,10 @@ int nextTurn(World * world){
 				}
 			}
 
+
+//		printf("NUEVO TURNO: %d \n", world->turnsLeft);
+	//	printWorldData(world);
+
 		for(i=0;i<world->maxConnections;i++)
 			if(world->clients[i].key != INVALID_ID){
 				world->clients[i].turnLeft = LEFT_TURN;
@@ -448,6 +649,7 @@ int nextTurn(World * world){
 		pthread_mutex_unlock(&EOT_mutex);
 
 		world->turnsLeft--;
+
 	}
 
 
@@ -494,6 +696,7 @@ void getFoodFromWorld(Message * msg, World * world){
 
 						// Tell frontend to move food to ant
 						Command comm;
+						comm.extra.swap = 0;
 						comm.fromX = foodCell->pos.x;
 						comm.fromY = foodCell->pos.y;
 
@@ -521,6 +724,7 @@ void getFoodFromWorld(Message * msg, World * world){
 
 							// Tell frontend to move food to ant
 							Command comm;
+							comm.extra.swap = 0;
 							comm.fromX = foodCell->pos.x;
 							comm.fromY = foodCell->pos.y;
 
@@ -569,7 +773,7 @@ void setShout(Message *msg, World * world){
 
 
 /* Message parser */
-void parseMessage(Message * msg, World * world){
+void parseMessage(Message * msg, World * world, Message * * conflictive){
 
 	// If ant doesn't exist and wants to register
 	if(msg->opCode == REGISTER ){
@@ -585,7 +789,7 @@ void parseMessage(Message * msg, World * world){
 				if(msg->param == GET)
 					getWorldPosition(msg, world);
 				else if(msg->param == SET)
-					setWorldPosition(msg, world);
+					setWorldPosition(msg, world, conflictive);
 				break;
 			case FOOD:
 				if(msg->param == SET)
@@ -627,7 +831,7 @@ World * mondoGenerator(){
 	anthillPos.x = rand() % out->sizeX;
 	anthillPos.y = rand() % out->sizeY;
 	out->anthill.pos = anthillPos;
-	out->maxConnections = (rand() % (out->sizeX + out->sizeY  )) + 5;
+	out->maxConnections =  15;
 	out->anthill.maxPopulation = out->maxConnections;;
 	out->turnsLeft = MAX_TURNS;
 	out->points = 0;
@@ -849,7 +1053,6 @@ void * mapMain(void * arg){
 	srand(time(NULL));
 
 	signal(SIGINT, sigHandler);
-	Message * sndMsg;
 	Message * rcvMsg;
 
 	// MAP LOADER HERE
@@ -859,26 +1062,20 @@ void * mapMain(void * arg){
 
 	createAnthill(world->maxConnections);
 
-
 	printf("Ants: %d\n", world->maxConnections);
-
 
 	sendDataToFrontend(world);
 
-	while(nextTurn(world)){
-		sndMsg = NULL;
-		rcvMsg = NULL;
+	// Array of pointers
+	Message * * conflictive = calloc(world->maxConnections, sizeof(Message *));
 
-//		printWorldData(world);		
-	//	printf("Waiting to receive...\n\n");
+	while(nextTurn(world, conflictive)){
+		rcvMsg = NULL;
 		rcvMsg = receiveMessage(CLIENT,MAP_ID);
-	//	printf("Received.\n");
-	//	printMessage(rcvMsg);
+
 		if(rcvMsg != NULL)
-			parseMessage(rcvMsg, world);
-//		printf("Parsed\n");
-	//	printWorldData(world);
-	
+			parseMessage(rcvMsg, world, conflictive);
+		
 	}
 
 	closeServer();

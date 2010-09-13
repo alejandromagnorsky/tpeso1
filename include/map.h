@@ -75,11 +75,11 @@ void registerAnt(Message * msg, World * world);
 
 void checkRegistered(Message * msg, World * world);
 
-void parseMessage(Message * msg, World * world);
+void parseMessage(Message * msg, World * world, Message * * conflictive );
 
 Cell * getAntCellByPID(World * world, int pid );
 
-void setWorldPosition(Message * msg,World * world);
+void setWorldPosition(Message * msg,World * world, Message * * conflictive);
 
 void getWorldPosition(Message * msg,World * world);
 

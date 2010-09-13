@@ -2,7 +2,15 @@
 #include "SDL_utils.h" 
 #include "SDL_AssetManager.h"
 
-#define LAYERS 8
+#define LAYERS 10
+
+#define SWAP_OFFSET 2
+#define SWAP_LAYER 6
+
+#define ANT_LAYER 4
+#define FOOD_LAYER 5
+#define TRACE_LAYER 3
+#define BG_LAYER 0
 
 #define ANIMATED 1
 #define ORIENTED 1
@@ -55,4 +63,4 @@ void addObjectAlpha(SDL_World * world, char * id, int x, int y, int layer, int a
 void deleteObject(SDL_World * world, int x, int y, int layer );
 
 // Move objects in same layer
-int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int layer);
+int moveObject(SDL_World * world, int fromX, int fromY, int toX, int toY, int layer, int swap);
