@@ -2,7 +2,9 @@
 
 #define COMMAND_SIZE_THRESHOLD 50
 #define SHOUT_BASE "assets/audio/shout_"
+#define PATH_LENGTH 19
 #define SHOUT_EXTENSION ".wav"
+#define EXT_LENGTH 4
 
 /*
 	Disclaimer: Es un desastre la logica del frontend, como no era el principal
@@ -346,14 +348,13 @@ void shout(){
 void openSounds(){
 	int i;
 	char * path;
-	if ( (path = malloc(19 + 1 + 4)) == NULL){
+	if ( (path = malloc(PATH_LENGTH + 1 + EXT_LENGTH)) == NULL){
 		fprintf(stderr, "%s\n", "Memory allocation error in sounds opening.");
 		exit(1);
 	}
 
 	for (i=0; i<MAX_SOUNDS; i++){
 		sprintf(path, "%s%d%s", SHOUT_BASE, i+1, SHOUT_EXTENSION);
-		printf("path: %s\n", path);
 		if ( (sounds[i] = malloc(sizeof(Mix_Chunk))) == NULL ){
 			fprintf(stderr, "%s\n", "Memory allocation error in sounds opening.");
 			exit(1);
