@@ -92,7 +92,6 @@ void registerAnt(Message * msg, World * world){
 
 			ans = createMessage( MAP_ID, msg->keyFrom, REGISTER, OK, anthillPos, 0);
 			//printf("Registered ant %d at (%d,%d) \n", msg->keyFrom, world->anthill.pos.x, world->anthill.pos.y);
-			//shout();
 		}
 	}
 

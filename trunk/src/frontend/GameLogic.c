@@ -1,13 +1,8 @@
 #include "../../include/GameLogic.h"
 
 #define COMMAND_SIZE_THRESHOLD 50
-
-//#define MAX_SOUNDS 1  is in GameLogic.h
-// there is an extern definition of Mix_chunk * sounds[] in GameLogic.h
-// added openSounds in SDLMainWindow and shout in map.c
 #define SHOUT_BASE "assets/audio/shout_"
 #define SHOUT_EXTENSION ".wav"
-#define BACKGROUND_MUSIC "assets/audio/musictemp.wav"
 
 /*
 	Disclaimer: Es un desastre la logica del frontend, como no era el principal
@@ -27,6 +22,7 @@ int commandsSize;
 pthread_mutex_t commands_mutex =  PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t commands_cond = PTHREAD_COND_INITIALIZER;
 
+// extern definition of sounds[] and MAX_SOUNDS in GameLogic.h
 Mix_Chunk * sounds[MAX_SOUNDS];
 
 int mouseClicked = 0;
@@ -329,10 +325,6 @@ void shout(){
 	playSound(sounds[index]);
 }
 
-//void playMusic(){
-//	playSound(sounds[0]);
-//}
-
 void openSounds(){
 	int i;
 	char * path;
@@ -340,11 +332,8 @@ void openSounds(){
 		fprintf(stderr, "%s\n", "Memory allocation error in sounds opening.");
 		exit(1);
 	}
-//	if((sounds[0] = Mix_LoadWAV(BACKGROUND_MUSIC)) == NULL) {
-//		fprintf(stderr, "Unable to load backgound music: %s\n", Mix_GetError());
-//		exit(1);
-//	}
-	for (i=0/*1*/; i</*=*/MAX_SOUNDS; i++){
+
+	for (i=0; i<MAX_SOUNDS; i++){
 		sprintf(path, "%s%d%s", SHOUT_BASE, i+1, SHOUT_EXTENSION);
 		printf("path: %s\n", path);
 		if ( (sounds[i] = malloc(sizeof(Mix_Chunk))) == NULL ){
