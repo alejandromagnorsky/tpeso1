@@ -322,9 +322,6 @@ void setWorldPosition(Message * msg,World * world, Message * * conflictive){
 						comm.op = MoveAntCommand;
 					}
 	
-					printf("P: %d, MP:%d\n", world->points, world->maxPoints);
-
-
 					addCommand(comm);
 
 					// Set next cell data
@@ -578,33 +575,59 @@ int resolveConflicts(Message * * conflictive, int size, World * world){
 	return leftAnts;
 }
 
+void waitFrontend(){
+
+	// Tell frontend turn has ended
+	pthread_mutex_lock(&EOT_mutex);
+
+	EOT = 1;
+
+	// Wait till frontend has finished processing and rendering turn
+	pthread_cond_wait(&EOT_cond, &EOT_mutex);
+
+	pthread_mutex_unlock(&EOT_mutex);
+
+}
+
 int nextTurn(World * world, Message * * conflictive){
 
+	// Here traces are decreased.
+	int i,j;
+	int changedState;
 	int active =  getQtyWastedTurns(world);
 	Message * turn;
+	Pos tmp = {0,0};
 
 	if( active == world->maxConnections ){
-	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
-		//printf("Conflictive: %d\n", getQtyConflictiveMessages(conflictive, world->maxConnections));
+
 		int left = resolveConflicts(conflictive, world->maxConnections, world);
 		// If there are ants left, skip turn logic, and wait them 
 		if( left ){
-		//	printWorldData(world);
 			printf("Hay %d hormigas que tienen otro turno!\n", left );
 			return 1;
 		}
 
-		if(world->points == world->maxPoints)
-			return 0;
+		// Success!
+		if(world->points == world->maxPoints){
+			for(i=0;i<world->maxConnections;i++)
+				if(world->clients[i].key != INVALID_ID){
+					Message * end = createMessage( MAP_ID, world->clients[i].key, TURN, EMPTY, tmp, 0);
+					sendMessage(CLIENT, end);
+					deleteMessage(end);
+				}
 
-		Pos tmp = {0,0};
+			Message * end = createMessage( MAP_ID, ANTHILL_KEY, TURN, EMPTY, tmp, 0);
+			sendMessage(CLIENT, end);
+			deleteMessage(end);
+
+			printf("El mapa ha finalizado con exito!\n");
+			return 0;
+		}
+
 
 		Command comm;
 
-		// Here traces are decreased.
-		int i,j;
-		int changedState;
 		for(i=0;i<world->sizeX;i++)
 			for(j=0;j<world->sizeY;j++){
 
@@ -641,20 +664,11 @@ int nextTurn(World * world, Message * * conflictive){
 			}
 		//sleep(1);
 
-		// Tell frontend turn has ended
-		pthread_mutex_lock(&EOT_mutex);
-
-		EOT = 1;
-
-		// Wait till frontend has finished processing and rendering turn
-		pthread_cond_wait(&EOT_cond, &EOT_mutex);
-
-		pthread_mutex_unlock(&EOT_mutex);
+		waitFrontend();
 
 		world->turnsLeft--;
 
 	}
-
 
 	return world->turnsLeft;
 }
@@ -878,7 +892,7 @@ World * mondoGenerator(){
 		do {
 			x = rand() % out->sizeX;
 			y = rand() % out->sizeY;
-		} while (out->cells[x][y].type == ANTHILL_CELL);
+		} while (out->cells[x][y].type == ANTHILL_CELL || out->cells[x][y].type == FOOD_CELL);
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = SMALL_FOOD;
 		out->maxPoints++;
@@ -889,7 +903,7 @@ World * mondoGenerator(){
 		do {
 			x = rand() % out->sizeX;
 			y = rand() % out->sizeY;
-		} while (out->cells[x][y].type == ANTHILL_CELL);
+		} while (out->cells[x][y].type == ANTHILL_CELL || out->cells[x][y].type == FOOD_CELL);
 		out->cells[x][y].type = FOOD_CELL;
 		out->cells[x][y].foodType = BIG_FOOD;
 		out->maxPoints+=5;
@@ -1029,16 +1043,15 @@ void sendDataToFrontend(World * world){
 		for(y=0;y<world->sizeY;y++)
 			if(world->cells[x][y].type == FOOD_CELL ){
 				if( world->cells[x][y].foodType == SMALL_FOOD){
-				comm.fromX = x;
-				comm.fromY = y;
-				comm.op = RegisterFoodCommand;
-				addCommand(comm);
+					comm.fromX = x;
+					comm.fromY = y;
+					comm.op = RegisterFoodCommand;
+					addCommand(comm);
 				} else if(world->cells[x][y].foodType == BIG_FOOD ){
-				comm.fromX = x;
-				comm.fromY = y;
-				comm.op = RegisterBigFoodCommand;
-				addCommand(comm);
-
+					comm.fromX = x;
+					comm.fromY = y;
+					comm.op = RegisterBigFoodCommand;
+					addCommand(comm);
 				}
 			}
 
@@ -1075,16 +1088,23 @@ void * mapMain(void * arg){
 		rcvMsg = NULL;
 		rcvMsg = receiveMessage(CLIENT,MAP_ID);
 
-		printf("Receiving..\n");
 		if(rcvMsg != NULL)
 			parseMessage(rcvMsg, world, conflictive);
-		printf("Received\n");
 		
 	}
 
-	closeServer();
+	// Wait till anthill finishes
+	rcvMsg = receiveMessage(CLIENT,MAP_ID);
+	if(rcvMsg->opCode == EXIT ){
+		printf("Mapa terminando...\n");
+		closeServer();
+	}
 
-	printf("Termino el mapa!\n");
+	// Tell frontend map has finished
+	Command comm;
+	comm.op = ExitCommand;
+	addCommand(comm);
+	waitFrontend();
 
 	pthread_exit(NULL);
 }
