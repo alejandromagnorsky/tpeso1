@@ -42,6 +42,7 @@ int main(int argc, char * argv[]){
 			else if(received->param == BIG)
 				bigPoints+=5;
 		}
+		deleteMessage(received);
 	}
 
 	closeClientIPC();

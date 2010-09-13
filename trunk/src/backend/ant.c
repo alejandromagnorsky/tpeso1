@@ -10,11 +10,6 @@ int currentScreams = 0;
 int antsQuantity;
 int _count = 0;
 
-//---------------------------------------------
-//FALTA:
-//DEFINIR LA INTERACCION ENTRE HORMIGAS JUNTAS
-//AGREGAR EL COMPORTAMIENTO PARA SHOUT
-//---------------------------------------------
 
 void * antMain(void * arg){
 
@@ -35,18 +30,23 @@ void * antMain(void * arg){
 	while(1){
 
 		received = receiveMessage(SERVER, ant->key);
-		
+
 		if(received->opCode == TURN && received->param == SET){
 	//		printf("Tengo turno: %d\n", key);
+			deleteMessage(received);
 
 			if(!action(ant)){ // If the ant didn't take any action that consumes a turn, then waste it
 				send = createMessage(key, MAP_ID, TURN, SET, to, 0);
 				sendMessage(SERVER, send);
+				deleteMessage(send);
 
 				received = receiveMessage(SERVER, key);
+				deleteMessage(received);
 			}
 		}
 	}
+
+	free(ant);
 
 	printf("Hormiga muriendo!\n");
 	pthread_exit(NULL);
@@ -144,7 +144,6 @@ goAnthill(Ant * ant){
 	return true;
 }
 
-
 bool
 randomMove(Ant * ant, bool trace){
 	Pos currentPos = getCurrentPos(ant->key);
@@ -192,16 +191,19 @@ move(Pos to, bool trace, int key){
 		send = createMessage(key, MAP_ID, MOVE, SET, mov, 0);
 	//printMessage(send);
 	sendMessage(SERVER, send);
+	deleteMessage(send);
 	//printf("Sent message.\n");
 
 	received = receiveMessage(SERVER, key);
 	//printMessage(received);
 	if(received->opCode == MOVE && received->param == OK ){
 	//	printf("I moved! \n");	
+		deleteMessage(received);
 		return true;
 	} else {
 	//	printMessage(received);
 	//	printf("Couldn't move! =( \n");
+		deleteMessage(received);
 		return false;
 	}
 }
@@ -215,16 +217,20 @@ getCurrentPos(int key){
 	
 	send = createMessage(key, MAP_ID, REGISTER, GET, pos, 0);	
 	sendMessage(SERVER, send);
+	deleteMessage(send);
+
 	received = receiveMessage(SERVER, key);
 	pos = received->pos;
+
+	deleteMessage(received);
 	return pos;
 }
 
 
 void 
 setRegister(Ant * ant){
-	Message * send;
-	Message * received;
+	Message * send = NULL;
+	Message * received = NULL;
 
 	Pos pos = {0,0};
 
@@ -233,6 +239,7 @@ setRegister(Ant * ant){
 	send = createMessage(ant->key, MAP_ID, REGISTER, SET, pos, 0);
 	//printMessage(send);
 	sendMessage(SERVER, send);
+	deleteMessage(send);
 
 	received = receiveMessage(SERVER, ant->key);
 	//printMessage(received);
@@ -242,6 +249,8 @@ setRegister(Ant * ant){
 		ant->anthill.y = received->pos.y;
 	} else
 		printf("Register failed.\n");
+
+	deleteMessage(received);
 }
 
 
@@ -250,8 +259,8 @@ search(Ant * ant){
 	int i;
 	Pos currentPos = getCurrentPos(ant->key);
 	Pos mov, to;
-	Message * send;	
-	Message * received[4];
+	Message * send = NULL;	
+	Message * received[4] = { NULL };
 	
 	// Search food
 	for(i = 0; i < 4; i++){
@@ -263,6 +272,7 @@ search(Ant * ant){
 		send = createMessage(ant->key, MAP_ID, MOVE, GET, mov, 0);  
 		//printMessage(send);
 		sendMessage(SERVER, send);
+		deleteMessage(send);
 
 		received[i] = receiveMessage(SERVER, ant->key);
 		//printMessage(received[i]);
@@ -290,6 +300,10 @@ search(Ant * ant){
 		ant->op = FOLLOW_TRACE;
 		ant->auxPos = tmpPos;
 	}	
+
+	// Free messages
+	for(i=0;i<4;i++)
+		deleteMessage(received[i]);
 }
 
 
@@ -314,6 +328,7 @@ getNearFood(Ant * ant, Pos to){
 	send = createMessage(ant->key, MAP_ID, FOOD, GET, mov, 0);
 	//printMessage(send);
 	sendMessage(SERVER, send);
+	deleteMessage(send);
 
 	received = receiveMessage(SERVER, ant->key);
 	//printMessage(received);
@@ -321,6 +336,7 @@ getNearFood(Ant * ant, Pos to){
 		//printf("I get food! \n");
 		ant->food = true;
 		ant->op = -1;
+		deleteMessage(received);
 		return true;
 	} else if(received->opCode == FOOD && received->param == BIG){
 		//printf("I cannot get food, too big! \n");
@@ -329,21 +345,22 @@ getNearFood(Ant * ant, Pos to){
 		else
 			ant->op = GET_FOOD;
 		ant->auxPos = to;
+		deleteMessage(received);
 		return true;
 	}
+	deleteMessage(received);
 	ant->op = -1;
 	//else 
 	//		printf("I cannot get food =( \n");
 	return false;
 }
 
-
 bool 
 setFood(Ant * ant, Pos to){
 	Pos currentPos = getCurrentPos(ant->key);
 	Pos mov;
-	Message * send;	
-	Message * received;
+	Message * send = NULL;	
+	Message * received = NULL;
 
 	Cardinal card = getCardinal(currentPos, to) % 4;
 	mov.x = vecMov[card][0];
@@ -353,30 +370,33 @@ setFood(Ant * ant, Pos to){
 	send = createMessage(ant->key, MAP_ID, FOOD, SET, mov, 0);
 	//printMessage(send);
 	sendMessage(SERVER, send);
+	deleteMessage(send);
 
 	received = receiveMessage(SERVER, ant->key);
 	//printMessage(received);
 	if(received->opCode == FOOD && received->param == OK ){
 		//printf("I left food at anthill!\n");
 		ant->food = false;
+		deleteMessage(received);
 		return true;
 	} else {
 		printf("I have no food! \n");
+		deleteMessage(received);
 		return false;
 	}
 }
-
 
 void
 setShout(Ant * ant){
 	int index = ant->key - 3;
 	
-	Message * send;	
-	Message * received;
+	Message * send = NULL;	
+	Message * received = NULL;
 	Pos mov = {0,0};
 
 	send = createMessage(ant->key, MAP_ID, SHOUT, SET, mov, 0);
 	sendMessage(SERVER, send);
+	deleteMessage(send);
 
 	received = receiveMessage(SERVER, ant->key);
 	if(received->opCode == SHOUT && received->param == OK){
@@ -386,9 +406,8 @@ setShout(Ant * ant){
 		//printf("KEY: %d. Intensity: %d. Pos: (%d,%d) \n", ant->key, screams[index].intensity, screams[index].pos.x, screams[index].pos.y);
 	} else
 		printf("I cannot shout!\n");
-	
+	deleteMessage(received);
 }
-
 
 bool
 followShout(Ant * ant){
@@ -410,7 +429,6 @@ followShout(Ant * ant){
 	}
 	return true;
 }
-
 
 bool
 getNearestScream(Ant * ant){

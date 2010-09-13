@@ -13,14 +13,12 @@
 #define PLAYS 1
 #define LOOP PLAYS-1
 
-#define SCREEN_WIDTH 644
-#define SCREEN_HEIGHT 480
-
 #define SENSITIVITY 15
 #define ZOOM 0.1
-#define DELAY 10	// delay in ms
+#define DELAY 5	// delay in ms
 
 #define MAX_SOUNDS 3
+
 
 typedef enum { MoveFoodCommand, MoveAntCommand, RegisterAnthillCommand, \
 	RegisterCommand, RegisterFoodCommand, RegisterBigFoodCommand, DeleteFoodCommand, SetTraceCommand, DeleteTraceCommand } CommandOp;

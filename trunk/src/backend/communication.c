@@ -16,6 +16,11 @@ Message * createMessage(int keyFrom,int keyTo, OpCode opCode, OpCodeParam param,
 	return out;
 }
 
+void deleteMessage(Message * msg){
+	if(msg != NULL)
+		free(msg);
+}
+
 void printMessage(Message * msg){
 	printf("Message Data || ");
 	printf("From: %d To: %d  || ", msg->keyFrom, msg->keyTo);

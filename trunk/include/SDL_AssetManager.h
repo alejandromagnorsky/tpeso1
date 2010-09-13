@@ -3,6 +3,8 @@
 #ifndef SDL_ASSETMANAGER
 #define SDL_ASSETMANAGER
 
+#define ASSETDIR "assets/standard/"
+
 typedef struct{
 	SDL_Surface * image;
 	SDL_Surface * original;
@@ -24,7 +26,7 @@ SDL_Asset * getAssetByName(SDL_AssetVector * vector, char * name);
 
 int getQtyActiveAssets(SDL_AssetVector * vector);
 
-void modifyAssetImage(SDL_AssetVector * vector , char * name, double rotate, double zoom );
+void modifyAssetImage(SDL_AssetVector * vector , int index, double rotate, double zoom );
 
 // Add if possible, realloc if not
 void addAsset(SDL_AssetVector * vector, char * filename, char * ext, char * name, int alpha);

@@ -51,6 +51,11 @@ void blitSurfaceCentered(SDL_Surface * dst, SDL_Surface *src, int x, int y){
 	if( dst == NULL)
 		return;
 
+	if(src == NULL){
+		printf("NULL\n");
+		getchar();
+	}
+
 	SDL_Rect rect;
 
 	rect.x = x - src->w /2;

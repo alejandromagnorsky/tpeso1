@@ -62,24 +62,36 @@ void zoom(SDL_World * world, double z){
 	if(z * world->zoomFactor < 0.1  || z * world->zoomFactor >= 1)
 		return;
 
+	//printf("Por zoomear\n");
 	world->zoomFactor *= z;
 	int qty = getQtyActiveAssets(world->vector);
 	int i;
-//	printf("Zoomear\n");
-
 	for(i=0;i<qty;i++){
-//		printf("zoomeando\n");
-		modifyAssetImage(world->vector, world->vector->assets[i].name, 0, world->zoomFactor);
+		if(world->vector->assets[i].original != NULL)
+			modifyAssetImage(world->vector, i, 0, world->zoomFactor);
 	}
+//	printf("Termine de zoomear\n");
 
 	translateCamera(world,cursorX*(1.0-z),cursorY*(1.0-z));
+}
 
-//	printf("Zoomee\n");
+
+void renderBorder(SDL_World * world, SDL_Surface * screen, int gridSize){
+
+	int i;
+
+	Uint32 gridColor = SDL_MapRGB( screen->format, 255, 255, 255 );
+
+	// Verticales
+	for(i=0;i<world->sizeX+1;i+=world->sizeX)
+		SDL_printLine(screen, world->cameraX + i*gridSize * world->zoomFactor, world->cameraY, world->cameraX + i*gridSize * world->zoomFactor, world->sizeY*world->gridSize*world->zoomFactor + world->cameraY, gridColor );
+
+	// Horizontales
+	for(i=0;i<world->sizeY+1;i+=world->sizeY)
+		SDL_printLine(screen, world->cameraX , world->cameraY + i*gridSize * world->zoomFactor, world->sizeX*world->gridSize*world->zoomFactor + world->cameraX, world->cameraY + i*gridSize * world->zoomFactor, gridColor );
 }
 
 void renderGrid(SDL_World * world, SDL_Surface * screen, int gridSize){
-
-	// Nota: tengo que saber la posicion de la camara, para desfasar todo.. es facil
 
 	int i;
 
@@ -96,23 +108,23 @@ void renderGrid(SDL_World * world, SDL_Surface * screen, int gridSize){
 
 void renderSDLWorld(SDL_World * world, SDL_Surface * screen){
 
-	SDL_Rect bg;
-
-	bg.x = 0;
-	bg.y = 0;
-	bg.h = screen->h;
-	bg.w = screen->w;
-
-	// Clear map
-	 SDL_FillRect( screen, &bg, world->bgcolor);         
-
-	// Esta es una solucion barata para que se mueva, y nada mas
-	blitSurface( screen, world->bgimage, world->cameraX , world->cameraY);
-	renderGrid(world,screen, world->gridSize);
-
 	int i,j,k;
 
+	int qtyBgsX = 2 + screen->w / world->bgimage->w;
+	int qtyBgsY = 2 + screen->h / world->bgimage->h;
 
+	int dX = world->cameraX % world->bgimage->w;
+	int dY = world->cameraY % world->bgimage->h;
+
+	//printf("Voy a dibujar fondo\n");
+	for(j=-1;j<qtyBgsY;j++)
+		for(i=-1;i<qtyBgsX;i++)
+			blitSurface( screen, world->bgimage, i*world->bgimage->w + dX, j*world->bgimage->h + dY);
+
+
+	//renderGrid(world,screen, world->gridSize);
+
+//	printf("Hola\n");
 	for(i=0;i<LAYERS;i++)
 		for(j=0;j<world->sizeX;j++)
 			for(k=0;k<world->sizeY;k++){
@@ -138,6 +150,10 @@ void renderSDLWorld(SDL_World * world, SDL_Surface * screen){
 					
 				}
 			}
+	//printf("Chau\n");
+
+	// Overlay border
+	renderBorder(world,screen, world->gridSize);
 
 }
 

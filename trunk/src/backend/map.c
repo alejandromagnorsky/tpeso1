@@ -321,6 +321,9 @@ void setWorldPosition(Message * msg,World * world, Message * * conflictive){
 						}
 						comm.op = MoveAntCommand;
 					}
+	
+					printf("P: %d, MP:%d\n", world->points, world->maxPoints);
+
 
 					addCommand(comm);
 
@@ -383,11 +386,11 @@ void setFoodAtAnthill(Message * msg, World * world){
 
 			switch( antCell->foodType){
 				case SMALL_FOOD:
-					sendFood =  createMessage( getpid(), ANTHILL_KEY, FOOD, SET, msg->pos, msg->trace);
+					sendFood =  createMessage( MAP_ID, ANTHILL_KEY, FOOD, SET, msg->pos, msg->trace);
 					world->points++;
 					break;
 				case BIG_FOOD:
-					sendFood =  createMessage( getpid(), ANTHILL_KEY, FOOD, BIG, msg->pos, msg->trace);
+					sendFood =  createMessage( MAP_ID, ANTHILL_KEY, FOOD, BIG, msg->pos, msg->trace);
 					world->points+=5;
 					break;
 				default: break;
@@ -466,7 +469,7 @@ so its easier to just send them negative messages.
 */
 int resolveConflicts(Message * * conflictive, int size, World * world){
 	
-	Message * ans;// = createMessage( MAP_ID, 0, MOVE, NOT_OK, msg->pos, msg->trace);
+	Message * ans;
 
 	int i;
 	for(i=0;i<size;i++)
@@ -539,12 +542,12 @@ int resolveConflicts(Message * * conflictive, int size, World * world){
 				otherAnt->type = antCell->type;
 				otherAnt->foodType = antCell->foodType;
 				otherAnt->typeID = antCell->typeID;
-				otherAnt->trace =( (int) msg->trace == 1) ? msg->trace : otherAnt->trace;
+				otherAnt->trace =( (int) otherMsg->trace == 1) ? otherMsg->trace : otherAnt->trace;
 			
 				antCell->type = type;
 				antCell->foodType = foodType;
 				antCell->typeID = typeID;
-				antCell->trace =( (int) otherMsg->trace == 1) ? otherMsg->trace : antCell->trace;
+				antCell->trace =( (int) msg->trace == 1) ? msg->trace : antCell->trace;
 
 				conflictive[i] = NULL;
 				conflictive[otherAntIndex] = NULL;
@@ -560,9 +563,9 @@ int resolveConflicts(Message * * conflictive, int size, World * world){
 	// Now give turn to resolved messages
 	for(i=0;i<size;i++)
 		if(conflictive[i] != NULL){
-			Message * msg = conflictive[i];
+			Message * leftMsg = conflictive[i];
 
-			int clientIndex = getAntIndexByKey(world,msg->keyFrom);
+			int clientIndex = getAntIndexByKey(world,leftMsg->keyFrom);
 		
 			// Give turn
 			world->clients[clientIndex].turnLeft = LEFT_TURN;
@@ -582,13 +585,12 @@ int nextTurn(World * world, Message * * conflictive){
 	if( active == world->maxConnections ){
 	//	printf("NUEVO TURNO: %d \n", world->turnsLeft);
 
-
 		//printf("Conflictive: %d\n", getQtyConflictiveMessages(conflictive, world->maxConnections));
-
+		int left = resolveConflicts(conflictive, world->maxConnections, world);
 		// If there are ants left, skip turn logic, and wait them 
-		if( resolveConflicts(conflictive, world->maxConnections, world) ){
+		if( left ){
 		//	printWorldData(world);
-	//		printf("Hay hormigas que tienen otro turno!\n");
+			printf("Hay %d hormigas que tienen otro turno!\n", left );
 			return 1;
 		}
 
@@ -831,7 +833,7 @@ World * mondoGenerator(){
 	anthillPos.x = rand() % out->sizeX;
 	anthillPos.y = rand() % out->sizeY;
 	out->anthill.pos = anthillPos;
-	out->maxConnections =  15;
+	out->maxConnections =  (rand() % (out->sizeX + out->sizeY  )) + 5;
 	out->anthill.maxPopulation = out->maxConnections;;
 	out->turnsLeft = MAX_TURNS;
 	out->points = 0;
@@ -1073,8 +1075,10 @@ void * mapMain(void * arg){
 		rcvMsg = NULL;
 		rcvMsg = receiveMessage(CLIENT,MAP_ID);
 
+		printf("Receiving..\n");
 		if(rcvMsg != NULL)
 			parseMessage(rcvMsg, world, conflictive);
+		printf("Received\n");
 		
 	}
 

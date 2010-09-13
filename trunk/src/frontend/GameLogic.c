@@ -38,45 +38,40 @@ void startGame(SDL_Surface * screen, int sizeX, int sizeY){
 
 void initWorldRandomization(SDL_World * gameWorld){
 
-
 	int i;
 	int x,y;
-	for(i=0;i<gameWorld->sizeX;i+=2){
-		addObject(gameWorld, "Piedra1",i, 0, BG_LAYER, !ANIMATED,!ORIENTED);
-		addObject(gameWorld, "Piedra1",i, gameWorld->sizeY-1, BG_LAYER, !ANIMATED,!ORIENTED);
+
+	int piedras = gameWorld->sizeX /((rand()%4)+1);
+	for(i=0;i < piedras ;i+= 8){
+		x = rand()%gameWorld->sizeX;
+		y = rand()%gameWorld->sizeY;
+		addObject(gameWorld, "Piedra",x, y, BG_LAYER, !ANIMATED,!ORIENTED);
 	}
-
-	for(i=0;i<gameWorld->sizeY ;i+=2){
-		addObject(gameWorld, "Piedra1",0,i, BG_LAYER, !ANIMATED,!ORIENTED);
-		addObject(gameWorld, "Piedra1",gameWorld->sizeX -1,i, BG_LAYER, !ANIMATED,!ORIENTED);
-	}
-
-
+	
 	int grietas = gameWorld->sizeX /((rand()%4)+1);
 	for(i=0;i < grietas ;i+= 8){
 		x = rand()%gameWorld->sizeX;
 		y = rand()%gameWorld->sizeY;
 		addObject(gameWorld, "Grieta",x, y, BG_LAYER, !ANIMATED,!ORIENTED);
 	}
-
 }
 
 SDL_World * initGame(SDL_Surface * screen, int sizeX, int sizeY){
 
-	SDL_World * out = getSDLWorld(sizeX, sizeY, "assets/bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
+	SDL_World * out = getSDLWorld(sizeX, sizeY, "bg.jpg", "JPG", SDL_MapRGB( screen->format, 0, 0, 0 ) );
 
-	addAsset(out->vector, "assets/prehistoric/ant.png", "PNG", "Ant", ALPHA);
-	addAsset(out->vector, "assets/prehistoric/anthill.png", "PNG", "Anthill", ALPHA);
-	addAsset(out->vector, "assets/trace.png", "PNG", "Trace", ALPHA);
-	addAsset(out->vector, "assets/prehistoric/smallFood1.png", "PNG", "SmallFood1", ALPHA);
-	addAsset(out->vector, "assets/prehistoric/smallFood2.png", "PNG", "SmallFood2", ALPHA);
-	addAsset(out->vector, "assets/prehistoric/bigFood2.png", "PNG", "BigFood2", ALPHA);
-	addAsset(out->vector, "assets/prehistoric/bigFood1.png", "PNG", "BigFood1", ALPHA);
+	addAsset(out->vector, "ant.png", "PNG", "Ant", ALPHA);
+	addAsset(out->vector, "anthill.png", "PNG", "Anthill", ALPHA);
+	addAsset(out->vector, "trace.png", "PNG", "Trace", ALPHA);
+	addAsset(out->vector, "smallFood1.png", "PNG", "SmallFood1", ALPHA);
+	addAsset(out->vector, "smallFood2.png", "PNG", "SmallFood2", ALPHA);
+	addAsset(out->vector, "bigFood2.png", "PNG", "BigFood2", ALPHA);
+	addAsset(out->vector, "bigFood1.png", "PNG", "BigFood1", ALPHA);
 
 
-	// Eye candyness X TREMEEEEEEee
-	addAsset(out->vector, "assets/piedra1.png", "PNG", "Piedra1", ALPHA);
-	addAsset(out->vector, "assets/grieta.png", "PNG", "Grieta", ALPHA);
+	// Eye candyness X TREMEEEEEEee !!!111oneONE!!11!
+	addAsset(out->vector, "piedra1.png", "PNG", "Piedra", ALPHA);
+	addAsset(out->vector, "grieta.png", "PNG", "Grieta", ALPHA);
 
 	initWorldRandomization(out);
 
@@ -107,6 +102,24 @@ void addCommand(Command c){
 			pthread_mutex_unlock(&commands_mutex);
 			return;	// Command added
 		}
+
+	// If not enough space
+	if(i==commandsSize){
+
+		// Realloc new space
+		commandsSize += 15;
+		commands = realloc(commands, commandsSize*sizeof(Command));
+
+		// Save command
+		commands[i].fromX = c.fromX;
+		commands[i].fromY = c.fromY;
+		commands[i].toX = c.toX;
+		commands[i].toY = c.toY;
+		commands[i].op = c.op;
+		commands[i].extra = c.extra;
+		commands[i].valid = 1;
+	}
+
 
 	pthread_mutex_unlock(&commands_mutex);
 }
@@ -143,7 +156,7 @@ void executeDeleteFood(SDL_World * gameWorld,Command * comm){
 
 // Basically execute Food commands.
 void executeRegisterFood(SDL_World * gameWorld,Command * comm){
-	char * name = malloc(sizeof(char)*10);
+	char * name = malloc(sizeof(char)*15);
 	sprintf(name, "SmallFood%d", rand()%2 + 1 );
 
 	addObject(gameWorld, name,comm->fromX, comm->fromY, FOOD_LAYER, !ANIMATED,!ORIENTED);
@@ -153,7 +166,7 @@ void executeRegisterFood(SDL_World * gameWorld,Command * comm){
 
 // Basically execute Food commands.
 void executeRegisterBigFood(SDL_World * gameWorld, Command * comm){
-	char * name = malloc(sizeof(char)*10);
+	char * name = malloc(sizeof(char)*15);
 	sprintf(name, "BigFood%d", rand()%2 + 1 );
 
 	addObject(gameWorld, name,comm->fromX, comm->fromY, FOOD_LAYER, !ANIMATED,!ORIENTED);
@@ -165,9 +178,9 @@ void executeSetTrace(SDL_World * gameWorld, Command * comm){
 	// Clear trace before, so it can be updated
 	deleteObject(gameWorld,comm->fromX, comm->fromY, TRACE_LAYER );
 
-	int alpha = (1.0 - comm->extra.trace) * 4 + 1;
+	int frame = (1.0 - comm->extra.trace) * 4 + 1;
 	addObject(gameWorld, "Trace",comm->fromX, comm->fromY, TRACE_LAYER, ANIMATED,!ORIENTED);
-	setFrame(gameWorld, comm->fromX, comm->fromY, TRACE_LAYER, alpha); 
+	setFrame(gameWorld, comm->fromX, comm->fromY, TRACE_LAYER, frame); 
 	comm->valid = 0;
 }
 
@@ -191,14 +204,12 @@ void executeRegisterCommands(SDL_World * gameWorld, Command * comm){
 void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 
 	int i;
-	int antQty = 20;
-
 	pthread_mutex_lock(&commands_mutex);
 
-	// Initialize commands, should use mutex
-	commandsSize = antQty + COMMAND_SIZE_THRESHOLD;
+	// Initialize commands
+	commandsSize = COMMAND_SIZE_THRESHOLD;
 	commands = calloc(commandsSize, sizeof(Command));
-	for(i=0;i<antQty;i++)
+	for(i=0;i<commandsSize;i++)
 		commands[i].valid = 0;
 
 	pthread_cond_signal(&commands_cond);
@@ -245,8 +256,10 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 
 		pthread_mutex_unlock(&EOT_mutex);
 
+	//	printf("Voy a renderizar\n");
 		// Render world
 		renderSDLWorld(gameWorld, screen);
+	//	printf("Termine de renderizar\n");
 
 		// Render custom cursor
 		SDL_GetMouseState(&cursorX,&cursorY);
