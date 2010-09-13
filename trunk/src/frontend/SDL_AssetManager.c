@@ -87,15 +87,12 @@ void addAsset(SDL_AssetVector * vector, char * filename, char * ext,  char * nam
 }
 
 void modifyAssetImage(SDL_AssetVector * vector,int index, double rotate, double zoom ){
-	if(vector == NULL || vector->assets == NULL )
+	if(vector == NULL || vector->assets == NULL || index >= vector->size )
 		return;
 
-	// Rotation not implemented
-	SDL_Asset * asset = vector->assets + index ;
-
-	if(asset!=NULL && asset->image != NULL && asset->original != NULL){
-		SDL_FreeSurface(asset->image);
-		asset->image = rotozoomSurface(asset->original, 0, zoom, 1);	
+	if(vector->assets[index].original != NULL){
+		SDL_FreeSurface(vector->assets[index].image);
+		vector->assets[index].image = rotozoomSurface(vector->assets[index].original, 0, zoom, 1);	
 	}
 }
 
