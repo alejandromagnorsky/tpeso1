@@ -1,0 +1,16 @@
+case "$1" in
+	fifos)	make -B IPC=fifo
+		./map
+		exit 1;;
+	queues)	make -B IPC=queue
+		./map
+		exit 1;;
+	shm)	make -B IPC=shm
+		./map
+		exit 1;;
+	sockets)make -B IPC=sockets
+		./map
+		exit 1;;
+	*)	echo >&2 "Usage: colony [ fifos | queues | shm | sockets ]"
+		exit 1;;
+esac

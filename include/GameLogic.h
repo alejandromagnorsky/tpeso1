@@ -1,5 +1,4 @@
 #include <SDL.h>
-#include <SDL_audio.h>
 #include <SDL_mixer.h>
 #include <time.h>
 #include <SDL_rotozoom.h>
