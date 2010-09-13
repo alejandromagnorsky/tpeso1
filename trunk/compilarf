@@ -1,4 +1,0 @@
-gcc src/backend/map.c src/frontend/GameLogic.c src/backend/communication.c src/backend/IPC/comm-fifo.c src/frontend/SDLMainWindow.c src/frontend/SDL_rotozoom.c src/frontend/SDL_utils.c src/frontend/SDL_World.c src/frontend/SDL_AssetManager.c -Iinclude/SDL `sdl-config --libs --cflags` -Llib -lSDL -lSDL_image -lSDL_mixer -g -Wall -o map -lm -lrt
-
-gcc src/backend/anthill.c src/backend/ant.c src/backend/communication.c src/backend/IPC/comm-fifo.c -g -Wall -o anthill -lm -lrt
-
