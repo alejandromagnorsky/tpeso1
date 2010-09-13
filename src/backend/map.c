@@ -530,8 +530,6 @@ int resolveConflicts(Message * * conflictive, int size, World * world){
 				comm.op = MoveAntCommand;
 				addCommand(comm);
 
-				printf("Swap ocurred!\n");
-
 				// Now swap them!
 				CellType type = otherAnt->type;
 				FoodType foodType = otherAnt->foodType;
@@ -604,7 +602,6 @@ int nextTurn(World * world, Message * * conflictive){
 		int left = resolveConflicts(conflictive, world->maxConnections, world);
 		// If there are ants left, skip turn logic, and wait them 
 		if( left ){
-			printf("Hay %d hormigas que tienen otro turno!\n", left );
 			return 1;
 		}
 
