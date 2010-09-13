@@ -89,7 +89,7 @@ typedef enum { SET, GET, OK, NOT_OK, EMPTY, OCCUPIED, BIG } OpCodeParam;
 
 typedef enum {  SERVER, CLIENT } NodeType;
 
-#define MAX_TURNS 1000
+#define MAX_TURNS 10000
 
 #define MAP_ID -1
 #define ANTHILL_KEY 2

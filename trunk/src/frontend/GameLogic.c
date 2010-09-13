@@ -119,10 +119,15 @@ int executeMoveCommands(SDL_World * gameWorld){
 	int finished = 1;
 	int finishedTotal = 1;
 	int layer = ANT_LAYER;
+	int swap = 0;
 	for(i=0;i<commandsSize;i++){
 		if(commands[i].valid == 1 && ( commands[i].op == MoveAntCommand || commands[i].op == MoveFoodCommand )  ){
 				layer = commands[i].op == MoveAntCommand ? ANT_LAYER : FOOD_LAYER;
-				finished = moveObject(gameWorld, commands[i].fromX, commands[i].fromY,commands[i].toX, commands[i].toY, layer);
+				if( commands[i].extra.swap > 0 ){
+					if( commands[i].op == MoveAntCommand ) swap = 1; // swap offset 1
+					else swap = 2; // swap offset 2
+				} else swap = 0;
+				finished = moveObject(gameWorld, commands[i].fromX, commands[i].fromY,commands[i].toX, commands[i].toY, layer,swap);
 				if(finished)
 					commands[i].valid = 0;
 				finishedTotal = finishedTotal && finished;

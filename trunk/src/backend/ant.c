@@ -37,7 +37,7 @@ void * antMain(void * arg){
 		received = receiveMessage(SERVER, ant->key);
 		
 		if(received->opCode == TURN && received->param == SET){
-		//	printf("Tengo turno: %d\n", key);
+	//		printf("Tengo turno: %d\n", key);
 
 			if(!action(ant)){ // If the ant didn't take any action that consumes a turn, then waste it
 				send = createMessage(key, MAP_ID, TURN, SET, to, 0);
@@ -200,6 +200,7 @@ move(Pos to, bool trace, int key){
 	//	printf("I moved! \n");	
 		return true;
 	} else {
+	//	printMessage(received);
 	//	printf("Couldn't move! =( \n");
 		return false;
 	}
