@@ -75,20 +75,15 @@ Message * receiveMessage(NodeType from, int key){
 	Message * out = malloc(sizeof(Message));
 
 	if( from == SERVER ){
-		if(receiveFromServer( key, (char *)out, sizeof(Message) ) == -1 )
-			errorLog("Failed to receive from server.");
-	} else if( receiveFromClient(key,(char *)out,sizeof(Message)) == -1 )
-			errorLog("Failed to receive from client.");
-
+		receiveFromServer( key, (char *)out, sizeof(Message) );
+	} else receiveFromClient(key,(char *)out,sizeof(Message));
 	return out;
 }
 
 int sendMessage(NodeType to, Message * msg){
 	if( to == SERVER ){
-		if(sendToServer(msg->keyFrom,(char *)msg,sizeof(Message)) == -1 )
-			errorLog("Failed to send to server.");
-	}else if( sendToClient(msg->keyTo,(char *)msg,sizeof(Message)) == -1)
-			errorLog("Failed to send to client.");
+		sendToServer(msg->keyFrom,(char *)msg,sizeof(Message));
+	}else sendToClient(msg->keyTo,(char *)msg,sizeof(Message));
 	return 0;
 }
 
