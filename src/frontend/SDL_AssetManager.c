@@ -97,19 +97,6 @@ void modifyAssetImage(SDL_AssetVector * vector,int index, double rotate, double 
 }
 
 SDL_Surface * getAssetImage(SDL_AssetVector * vector,char * name){
-
-/*	int i;
-	// Look for asset
-	for(i=0;i<qtyAssets && assets[i].image !=NULL && !strcmp(name, assets[i].name);i++);
-
-	// check last one
-	if( i == qtyAssets && assets[i].image != NULL && !strcmp(name, assets[i-1].name))
-		return NULL;
-
-	printf("Image: %p, Name: %s, Filename: %s \n", assets[i-1].image, assets[i-1].name, assets[i-1].filename);
-
-	return assets[i-1].image;
-*/
 	return getAssetByName(vector,name)->image;
 }
 

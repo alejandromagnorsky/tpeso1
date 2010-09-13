@@ -248,6 +248,7 @@ void gameLoop(SDL_World * gameWorld, SDL_Surface * screen){
 						case DeleteFoodCommand:	executeDeleteFood(gameWorld, commands+i); break;
 						case SetTraceCommand: executeSetTrace(gameWorld,commands+i); break;
 						case DeleteTraceCommand: executeDeleteTrace(gameWorld,commands+i); break;
+						case ExitCommand: return; break;
 						default:break;
 					}
 

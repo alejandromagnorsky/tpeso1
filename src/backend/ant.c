@@ -14,7 +14,6 @@ int _count = 0;
 void * antMain(void * arg){
 
 	int key = (int)arg;
-	//printf("Ant Key: %d \n", key);
 
 	Ant * ant = malloc(sizeof(Ant));        
     ant->food = false;
@@ -31,8 +30,10 @@ void * antMain(void * arg){
 
 		received = receiveMessage(SERVER, ant->key);
 
+		if(received->opCode == TURN && received->param == EMPTY)
+			break;
+
 		if(received->opCode == TURN && received->param == SET){
-	//		printf("Tengo turno: %d\n", key);
 			deleteMessage(received);
 
 			if(!action(ant)){ // If the ant didn't take any action that consumes a turn, then waste it
@@ -48,7 +49,7 @@ void * antMain(void * arg){
 
 	free(ant);
 
-	printf("Hormiga muriendo!\n");
+//	printf("Hormiga muriendo!\n");
 	pthread_exit(NULL);
 }
 
@@ -60,11 +61,8 @@ action(Ant * ant){
 
 	if(antsToWait == -1){ // Initialize
 		antsToWait = futureScreams+currentScreams;	// Quantity of ants that has to update the intensity of their screams
-		//printf("ANTSTOWAIT: %d\n", antsToWait);
 	}
-	//printf("Future: %d. Current: %d\n", futureScreams, currentScreams);
 	reduceScreamIntensity(ant);		// Validate or delete the scream if the ant has shouted
-	//printf("KEY: %d. antsToWait = %d\n", ant->key, antsToWait);
 	if(antsToWait > 0)
 		pthread_cond_wait(&shoutCond, &shoutMutex);
 	else 
@@ -72,10 +70,8 @@ action(Ant * ant){
 
 	pthread_mutex_unlock(&shoutMutex);
 
-//	printf("Ant Key: %d \n", ant->key);
 	_count++;
 	if(_count == antsQuantity){ // The last ant in the turn
-	//	printf("TERMINO TURNO\n");
 		_count = 0;
 		antsToWait = -1;
 	}

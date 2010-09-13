@@ -41,7 +41,7 @@ SDL_Surface * initSDL(int argc, char * argv[]){
 
 	/* Initialize video mode */
 	if( (screen = SDL_SetVideoMode(SCREEN_WIDTH,
-	       SCREEN_HEIGHT, 32,/* SDL_NOFRAME |*/ SDL_DOUBLEBUF | SDL_SWSURFACE | SDL_ANYFORMAT | SDL_HWPALETTE )) == NULL )
+	       SCREEN_HEIGHT, 32, SDL_FULLSCREEN | SDL_DOUBLEBUF | SDL_SWSURFACE | SDL_ANYFORMAT | SDL_HWPALETTE )) == NULL )
 	{
 		fprintf(stderr, "SDL could not set video mode: %s\n", SDL_GetError());
 		cleanUp(1);
@@ -83,8 +83,6 @@ int main(int argc, char * argv[]){
 
 	startGame(screen, world->sizeX, world->sizeY);
 
-//	endWorld(world);
 
-//	SDL_FreeSurface(screen);
 	return cleanUp(1);
 }

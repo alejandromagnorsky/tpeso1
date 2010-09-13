@@ -61,7 +61,6 @@ void zoom(SDL_World * world, double z){
 	if(z * world->zoomFactor < 0.1  || z * world->zoomFactor >= 1)
 		return;
 
-	//printf("Por zoomear\n");
 	world->zoomFactor *= z;
 	int qty = getQtyActiveAssets(world->vector);
 	int i;
@@ -69,8 +68,6 @@ void zoom(SDL_World * world, double z){
 		if(world->vector->assets[i].original != NULL)
 			modifyAssetImage(world->vector, i, 0, world->zoomFactor);
 	}
-//	printf("Termine de zoomear\n");
-
 	translateCamera(world,cursorX*(1.0-z),cursorY*(1.0-z));
 }
 

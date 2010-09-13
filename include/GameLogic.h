@@ -21,7 +21,7 @@
 
 
 typedef enum { MoveFoodCommand, MoveAntCommand, RegisterAnthillCommand, \
-	RegisterCommand, RegisterFoodCommand, RegisterBigFoodCommand, DeleteFoodCommand, SetTraceCommand, DeleteTraceCommand } CommandOp;
+	RegisterCommand, RegisterFoodCommand, RegisterBigFoodCommand, DeleteFoodCommand, SetTraceCommand, DeleteTraceCommand, ExitCommand } CommandOp;
 
 typedef struct{
 	int fromX,fromY;
