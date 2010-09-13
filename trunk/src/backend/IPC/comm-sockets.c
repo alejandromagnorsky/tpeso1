@@ -21,7 +21,7 @@
 #define SERVER_IP LOCALHOST
 #define SERVER_PORT 9000
 #define INVALID_SOCKET -1
-#define CLT_KEY_BASE 3	// Map key: 1. Anthill key: 2. Clients keys are > 2
+#define CLT_KEY_BASE 3	// Map key: -1. Anthill key: 2. Clients keys are > 2
 
 int clientCount = 0;
 
@@ -160,7 +160,6 @@ int receiveFromClient(int serverKey, char * buf, int size){
 	/* See which socket is the one ready to be read. */
 	for (i = 0; i<clientCount; i++){
 		if (toRead[i].revents & POLLIN){
-			printf("sd to read: %d\n", toRead[i].fd);
 			sd = toRead[i].fd;
 			toRead[i].revents = 0;
 			break;
