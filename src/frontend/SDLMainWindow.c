@@ -14,6 +14,7 @@
 
 #define SCREEN_WIDTH 1024
 #define SCREEN_HEIGHT 768
+#define MAX_CHARS 100
 
 #define AUDIO_RATE 22050
 #define AUDIO_FORMAT AUDIO_S16SYS
@@ -59,25 +60,30 @@ SDL_Surface * initSDL(int argc, char * argv[]){
 
 int main(int argc, char * argv[]){
 
+	char * filename = malloc(MAX_CHARS);
+	if (filename == NULL)
+		errorLog("Memory allocation error on map loading.");
+	printf("Introduzca el nombre de archivo de mapa: ");
+	scanf("%s", filename);
+
 	signal(SIGINT, sigHandler);
 
 	SDL_Surface * screen = initSDL(argc, argv);
 
 	// MAP LOADER HERE
 	World * world;
-	world = mondoGenerator();	
+//	world = mondoGenerator();	
 
 	openSounds();
 
-	//world = getWorld("testmap");
+	world = getWorld(filename);
+
 	pthread_t mapThread;
 	pthread_create(&mapThread, NULL, mapMain,(void *) world);
 
 	startGame(screen, world->sizeX, world->sizeY);
 
 //	endWorld(world);
-
-	destroyIPC();
 
 //	SDL_FreeSurface(screen);
 	return cleanUp(1);

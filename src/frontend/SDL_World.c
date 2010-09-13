@@ -49,7 +49,6 @@ void translateCamera(SDL_World * world, int x, int y){
 }
 
 void endWorld(SDL_World * world){
-	SDL_FreeSurface(world->bgimage);
 	free(world);
 }
 

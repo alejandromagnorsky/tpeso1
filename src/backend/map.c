@@ -817,8 +817,7 @@ void parseError(const char * s){
 	exit(1);	
 }
 
-#define MAX_DIM 50	///////////////////////////////////////// CONSTANTE TEMPORAL; DESPUES BORRAR
-/////////////////// bBUENO EN REALIDAD ESTA FUNCION ES TEMPORAL SUPONGO
+#define MAX_DIM 50
 World * mondoGenerator(){
 	Pos	anthillPos;
 	int	i, j, x, y, smallFood, bigFood;
@@ -908,12 +907,12 @@ World * getWorld(char * filename){
 	if ((out = malloc(sizeof(World))) == NULL)
 		errorLog("Memory allocation error in world loading.");
 
-	if ( (fd = fopen(filename, "r")) < 0 )
+	if ( (fd = fopen(filename, "r")) == NULL )
 		errorLog("Failed to load world attributes.");
 
 	if ( fscanf(fd, "%d,%d\n%d,%d\n%d\n%d\n", &out->sizeY, &out->sizeX, &anthillPos.y, &anthillPos.x, &out->maxConnections, &smallFood) == EOF)
 		errorLog("Failed to read world's file.");
-	
+
 	/* Validates world dimensions */
 	if (out->sizeX < 0 || out->sizeY < 0)
 		parseError("Feel the power of my parser.");
