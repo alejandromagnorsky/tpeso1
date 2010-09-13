@@ -14,7 +14,7 @@ SDL_World * getSDLWorld(int sizeX, int sizeY, char * filename, char * ext, Uint3
 	out->vector = createAssetVector(10);
 
 	addAsset(out->vector, filename, ext, "World Background", 0);
-	out->bgimage = getAssetImage(out->vector, "World Background");
+	out->bgimage = getAssetByName(out->vector, "World Background");
 	out->bgcolor = bgcolor;
 
 	//printf("%d, %d \n", sizeX, sizeY);
@@ -110,16 +110,16 @@ void renderSDLWorld(SDL_World * world, SDL_Surface * screen){
 
 	int i,j,k;
 
-	int qtyBgsX = 2 + screen->w / world->bgimage->w;
-	int qtyBgsY = 2 + screen->h / world->bgimage->h;
+	int qtyBgsX = 2 + screen->w / world->bgimage->image->w;
+	int qtyBgsY = 2 + screen->h / world->bgimage->image->h;
 
-	int dX = world->cameraX % world->bgimage->w;
-	int dY = world->cameraY % world->bgimage->h;
+	int dX = world->cameraX % world->bgimage->image->w;
+	int dY = world->cameraY % world->bgimage->image->h;
 
 	//printf("Voy a dibujar fondo\n");
 	for(j=-1;j<qtyBgsY;j++)
 		for(i=-1;i<qtyBgsX;i++)
-			blitSurface( screen, world->bgimage, i*world->bgimage->w + dX, j*world->bgimage->h + dY);
+			blitSurface( screen, world->bgimage->image, i*world->bgimage->image->w + dX, j*world->bgimage->image->h + dY);
 
 
 	//renderGrid(world,screen, world->gridSize);

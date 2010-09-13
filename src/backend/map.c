@@ -404,6 +404,7 @@ void setFoodAtAnthill(Message * msg, World * world){
 
 	sendMessage(CLIENT, ans);
 }
+
 // Qty ants registered
 int getQtyRegistered(World * world){
 	int i, out;

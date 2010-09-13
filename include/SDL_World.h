@@ -32,7 +32,7 @@ typedef struct {
 	int cameraX, cameraY;	//camera position
 
 	double zoomFactor;
-	SDL_Surface * bgimage;
+	SDL_Asset * bgimage;
 	Uint32 bgcolor;
 	SDL_AssetVector * vector;
 
